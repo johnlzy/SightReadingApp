@@ -1,4 +1,3 @@
-/* js/ui.js */
 function showScreen(id) {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     document.getElementById(id).classList.add('active');
@@ -10,10 +9,6 @@ function updateLanding() {
     document.getElementById('landing-t-coins').innerText = currentUser.tCoins;
     document.getElementById('landing-b-coins').innerText = currentUser.bCoins;
     
-    // UPDATE CREDITS DISPLAY
-    const creditEl = document.getElementById('landing-credits');
-    if(creditEl) creditEl.innerText = currentUser.credits;
-
     const bag = document.getElementById('landing-bag');
     bag.innerHTML = '';
     Object.keys(INSTRUMENTS).forEach(k => {
