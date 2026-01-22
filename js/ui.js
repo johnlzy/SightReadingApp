@@ -1,11 +1,8 @@
 import { state } from './state.js';
 import { INSTRUMENTS, SONG_DB } from './config.js';
 import { playRun } from './audio.js';
-// Import data functions from storage
 import { saveCurrentUser, deleteUser, createUser, loginUser, verifyPin, addAdminCredits, logout as logoutData } from './storage.js';
 import { startGame } from './game.js';
-
-/* --- UI HELPERS --- */
 
 export function showScreen(id) {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
@@ -13,7 +10,6 @@ export function showScreen(id) {
     if(el) el.classList.add('active');
 }
 
-/* --- MOVED: LOAD USERS --- */
 export function loadUsers() {
     const list = JSON.parse(localStorage.getItem('fsr_users_v2') || '[]');
     const cont = document.getElementById('existing-users-list');
@@ -37,12 +33,9 @@ export function loadUsers() {
             cont.appendChild(row);
         });
 
-        // Add Click Handlers
         cont.querySelectorAll('.user-btn').forEach(btn => {
             btn.onclick = () => {
-                // 1. Update Data
                 loginUser(parseInt(btn.dataset.index)); 
-                // 2. Update UI
                 updateLanding();
                 showScreen('screen-landing');
             };
@@ -54,15 +47,10 @@ export function loadUsers() {
     }
 }
 
-/* --- NEW WRAPPERS FOR BUTTONS --- */
-
 export function handleCreateUserUI() {
-    // 1. Create data
     const newIndex = createUser();
-    // 2. Update UI
     hideNewUserForm();
     loadUsers();
-    // 3. Login
     loginUser(newIndex);
     updateLanding();
     showScreen('screen-landing');
@@ -73,8 +61,6 @@ export function handleLogoutUI() {
     showScreen('screen-register');
     loadUsers();
 }
-
-/* --- ADMIN & SECURITY --- */
 
 export function checkAdmin(callback) {
     const pin = prompt("🔐 Parent Admin: Enter PIN");
@@ -114,14 +100,10 @@ export function handleUserDelete(index) {
     checkAdmin(() => {
         if(confirm("Are you sure you want to delete this player?")) {
             deleteUser(index);
-            loadUsers(); // Refresh the list
+            loadUsers(); 
         }
     });
 }
-
-// ... Keep generateName, setRegDiff, selectAvatar, showNewUserForm, hideNewUserForm ...
-// ... Keep updateLanding, setClef, goToStore, buyItem, goToSongs, renderHighScores ...
-// (These functions below remain exactly the same as your original file, just ensure they are still there)
 
 export function generateName() {
     const adjs = ['Happy','Sparkly','Jolly','Sunny','Bouncy','Lucky','Magic','Super','Cool'];
@@ -131,11 +113,17 @@ export function generateName() {
     if(el) el.innerText = state.tempUser.name;
 }
 
-export function setRegDiff(lvl) {
+export function setRegDiff(lvl, el) {
+    // Only used when clicking options, need to support raw string calls too if needed
+    if(el) {
+        document.querySelectorAll('.toggle-group .toggle-opt').forEach(d => d.classList.remove('selected'));
+        el.classList.add('selected');
+    }
     state.tempUser.diff = lvl;
     let t = "C to G (White keys)";
     if(lvl === 'medium') t = "One Octave (White keys)";
     if(lvl === 'hard') t = "One Octave (Black & White)";
+    if(lvl === 'pro') t = "Rhythm & Timing (Metronome 80 BPM)";
     document.getElementById('diff-desc').innerText = t;
 }
 
@@ -273,6 +261,8 @@ export function renderHighScores() {
     let scores = [];
     if(state.game.mode === 'coin') {
         label.innerText = `Coin Run - ${state.currentUser.difficulty.toUpperCase()} Mode`;
+        // Ensure pro exists in case of old data
+        if(!state.currentUser.scores.coin.pro) state.currentUser.scores.coin.pro = [];
         scores = state.currentUser.scores.coin[state.currentUser.difficulty];
     } else {
         label.innerText = `Song: ${SONG_DB[state.game.songId].title}`;
