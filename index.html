@@ -59,6 +59,7 @@
                     <div class="toggle-opt selected" onclick="setRegDiff('easy', this)">Easy</div>
                     <div class="toggle-opt" onclick="setRegDiff('medium', this)">Medium</div>
                     <div class="toggle-opt" onclick="setRegDiff('hard', this)">Hard</div>
+                    <div class="toggle-opt" onclick="setRegDiff('pro', this)">Pro</div>
                 </div>
                 <small id="diff-desc" style="display:block; text-align:center; margin-bottom:15px; color:#777;">C to G (White keys)</small>
                 
@@ -184,8 +185,9 @@
                 <div id="high-score-list"></div>
             </div>
 
-            <div class="toggle-group" style="gap:20px;">
+            <div class="toggle-group" style="gap:20px; flex-wrap: wrap; justify-content: center;">
                 <button class="btn-secondary" style="font-size:1.2rem; padding:15px 30px;" onclick="showScreen('screen-landing')">Home</button>
+                <button id="btn-retry" class="btn-primary" style="font-size:1.2rem; padding:15px 30px; display:none; background-color: var(--accent);">Retry 🔄</button>
                 <button class="btn-primary" style="font-size:1.2rem; padding:15px 30px;" onclick="goToStore()">Shop</button>
             </div>
         </div>
