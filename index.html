@@ -76,7 +76,11 @@
                 <span id="user-display" style="font-weight:bold; font-size:1.1rem; color:var(--primary)">User</span>
                 <button class="btn-sm btn-secondary" style="background:#ddd; color:#555; margin-left:5px;" onclick="logout()">Logout</button>
             </div>
-            <div class="coins-display">🎟️ <span id="landing-credits" style="color:#555">8</span> | 🎼 <span id="landing-t-coins">0</span> | 𝄢 <span id="landing-b-coins">0</span></div>
+            <div class="coins-display">
+                <span onclick="showParentPanel()" style="cursor:pointer;">🎟️ <span id="landing-credits" style="color:#555">8</span></span> | 
+                🎼 <span id="landing-t-coins">0</span> | 
+                𝄢 <span id="landing-b-coins">0</span>
+            </div>
         </div>
         
         <div class="scroll-content">
