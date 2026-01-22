@@ -114,7 +114,6 @@ export function generateName() {
 }
 
 export function setRegDiff(lvl, el) {
-    // Only used when clicking options, need to support raw string calls too if needed
     if(el) {
         document.querySelectorAll('.toggle-group .toggle-opt').forEach(d => d.classList.remove('selected'));
         el.classList.add('selected');
@@ -253,33 +252,83 @@ export function goToSongs() {
     showScreen('screen-songs');
 }
 
+// NEW: Global Score Aggregation
+function getGlobalScores(type, key) {
+    const users = JSON.parse(localStorage.getItem('fsr_users_v2') || '[]');
+    let allScores = [];
+
+    users.forEach(u => {
+        if(!u.scores) return;
+        
+        let userScores = [];
+        if(type === 'coin') {
+            // key is difficulty (e.g., 'pro')
+            // Ensure schema exists
+            if(u.scores.coin && u.scores.coin[key]) {
+                userScores = u.scores.coin[key];
+            }
+        } else {
+            // key is songId
+            if(u.scores.songs && u.scores.songs[key]) {
+                userScores = u.scores.songs[key];
+            }
+        }
+
+        // Add to global list
+        userScores.forEach(s => {
+            allScores.push({ name: u.name, score: s });
+        });
+    });
+
+    return allScores;
+}
+
 export function renderHighScores() {
     const list = document.getElementById('high-score-list');
     const label = document.getElementById('score-category-label');
     list.innerHTML = '';
     
-    let scores = [];
+    let scores = []; // Array of objects {name, score}
+    let isTime = false;
+
     if(state.game.mode === 'coin') {
-        label.innerText = `Coin Run - ${state.currentUser.difficulty.toUpperCase()} Mode`;
-        // Ensure pro exists in case of old data
-        if(!state.currentUser.scores.coin.pro) state.currentUser.scores.coin.pro = [];
-        scores = state.currentUser.scores.coin[state.currentUser.difficulty];
+        const diff = state.currentUser.difficulty;
+        label.innerText = `Coin Run - ${diff.toUpperCase()} Mode (Top 5 Global)`;
+        
+        // Fetch Global Scores for this difficulty
+        scores = getGlobalScores('coin', diff);
+        
+        // Sort DESC (Higher coins is better)
+        scores.sort((a,b) => b.score - a.score);
+        
+        // If Pro, we display coins. If not pro, we also display coins.
+        isTime = false;
+        
     } else {
-        label.innerText = `Song: ${SONG_DB[state.game.songId].title}`;
-        scores = state.currentUser.scores.songs[state.game.songId] || [];
+        label.innerText = `Song: ${SONG_DB[state.game.songId].title} (Top 5 Global)`;
+        
+        // Fetch Global Scores for this song
+        scores = getGlobalScores('song', state.game.songId);
+        
+        // Sort ASC (Lower time is better)
+        scores.sort((a,b) => a.score - b.score);
+        
+        isTime = true;
     }
+
+    // Slice top 5
+    if(scores.length > 5) scores.length = 5;
 
     if(scores.length === 0) {
         list.innerHTML = '<div style="text-align:center; color:#999; padding:10px;">No records yet.</div>';
     } else {
         scores.forEach((s, i) => {
             const div = document.createElement('div');
-            // FIX: Display unit as "coins" for coin mode, "s" for song mode
-            const unit = state.game.mode === 'coin' ? ' coins' : 's';
+            const unit = isTime ? 's' : ' coins';
             div.className = 'score-row';
             div.innerHTML = `
-                <span style="font-weight:bold; color:${i===0?'gold':'#555'}">#${i+1}</span>
-                <span>${s}${unit}</span>
+                <span style="font-weight:bold; color:${i===0?'gold':'#555'}">#${i+1} ${s.name}</span>
+                <span>${s.score}${unit}</span>
             `;
             list.appendChild(div);
         });
