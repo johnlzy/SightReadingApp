@@ -1,7 +1,8 @@
 import { state } from './state.js';
 import { INSTRUMENTS, SONG_DB } from './config.js';
 import { playRun } from './audio.js';
-import { saveCurrentUser, loadUsers, loginUser, deleteUser, createUser, verifyPin, addAdminCredits } from './storage.js';
+// Import data functions from storage
+import { saveCurrentUser, deleteUser, createUser, loginUser, verifyPin, addAdminCredits, logout as logoutData } from './storage.js';
 import { startGame } from './game.js';
 
 /* --- UI HELPERS --- */
@@ -10,6 +11,67 @@ export function showScreen(id) {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     const el = document.getElementById(id);
     if(el) el.classList.add('active');
+}
+
+/* --- MOVED: LOAD USERS --- */
+export function loadUsers() {
+    const list = JSON.parse(localStorage.getItem('fsr_users_v2') || '[]');
+    const cont = document.getElementById('existing-users-list');
+    if (!cont) return; 
+    
+    cont.innerHTML = '';
+    if(list.length === 0) {
+        cont.innerHTML = '<p style="color:#888; text-align:center;">No existing players found.</p>';
+    } else {
+        list.forEach((u, index) => {
+            const row = document.createElement('div');
+            row.className = 'user-row';
+            row.innerHTML = `
+                <button class="user-btn" data-index="${index}">
+                    <span style="font-size:1.5rem">${u.avatar}</span> 
+                    <strong>${u.name}</strong> 
+                    <span style="color:#888; font-size:0.8rem">(${u.difficulty})</span>
+                </button>
+                <button class="btn-danger" data-delete="${index}">🗑️</button>
+            `;
+            cont.appendChild(row);
+        });
+
+        // Add Click Handlers
+        cont.querySelectorAll('.user-btn').forEach(btn => {
+            btn.onclick = () => {
+                // 1. Update Data
+                loginUser(parseInt(btn.dataset.index)); 
+                // 2. Update UI
+                updateLanding();
+                showScreen('screen-landing');
+            };
+        });
+        
+        cont.querySelectorAll('.btn-danger').forEach(btn => {
+            btn.onclick = () => window.handleUserDelete(parseInt(btn.dataset.delete));
+        });
+    }
+}
+
+/* --- NEW WRAPPERS FOR BUTTONS --- */
+
+export function handleCreateUserUI() {
+    // 1. Create data
+    const newIndex = createUser();
+    // 2. Update UI
+    hideNewUserForm();
+    loadUsers();
+    // 3. Login
+    loginUser(newIndex);
+    updateLanding();
+    showScreen('screen-landing');
+}
+
+export function handleLogoutUI() {
+    logoutData();
+    showScreen('screen-register');
+    loadUsers();
 }
 
 /* --- ADMIN & SECURITY --- */
@@ -36,31 +98,30 @@ export function hideParentPanel() {
 }
 
 export function handleAddCredit(amt) {
-    addAdminCredits(amt); // Updates data
-    updateLanding();      // Updates UI (since we are already in ui.js)
-    
-    // Update the specific modal element immediately
+    addAdminCredits(amt); 
+    updateLanding();
     document.getElementById('admin-current-credits').innerText = state.currentUser.credits;
     alert(`Added ${amt} credits!`);
 }
 
-// Wrapper for creating user (requires PIN)
 export function handleNewUserClick() {
     checkAdmin(() => {
         showNewUserForm();
     });
 }
 
-// Wrapper for deleting user (requires PIN)
 export function handleUserDelete(index) {
     checkAdmin(() => {
         if(confirm("Are you sure you want to delete this player?")) {
             deleteUser(index);
+            loadUsers(); // Refresh the list
         }
     });
 }
 
-/* --- REGISTRATION UI --- */
+// ... Keep generateName, setRegDiff, selectAvatar, showNewUserForm, hideNewUserForm ...
+// ... Keep updateLanding, setClef, goToStore, buyItem, goToSongs, renderHighScores ...
+// (These functions below remain exactly the same as your original file, just ensure they are still there)
 
 export function generateName() {
     const adjs = ['Happy','Sparkly','Jolly','Sunny','Bouncy','Lucky','Magic','Super','Cool'];
@@ -91,19 +152,15 @@ export function hideNewUserForm() {
     document.getElementById('new-user-form').style.display='none';
 }
 
-/* --- LANDING & STORE UI --- */
-
 export function updateLanding() {
     if(!state.currentUser) return;
     document.getElementById('user-display').innerText = `${state.currentUser.avatar} ${state.currentUser.name}`;
     document.getElementById('landing-t-coins').innerText = state.currentUser.tCoins;
     document.getElementById('landing-b-coins').innerText = state.currentUser.bCoins;
     
-    // NEW: Update Credits
     const creds = state.currentUser.credits !== undefined ? state.currentUser.credits : 0;
     document.getElementById('landing-credits').innerText = creds;
 
-    // Instrument Bag
     const bag = document.getElementById('landing-bag');
     bag.innerHTML = '';
     const allKeys = Object.keys(INSTRUMENTS);
@@ -117,7 +174,7 @@ export function updateLanding() {
         const div = document.createElement('div');
         const owned = state.currentUser.instruments.includes(k);
         div.className = `inst-item ${owned?'unlocked':'locked'} ${state.currentInstKey===k && owned ? 'selected':''}`;
-        div.innerText = INSTRUMENTS[k].name.split(' ')[1]; // Emoji
+        div.innerText = INSTRUMENTS[k].name.split(' ')[1]; 
         if(owned) {
             div.onclick = () => {
                 state.currentInstKey = k;
@@ -200,7 +257,7 @@ export function goToSongs() {
                 <strong>${i+1}. ${s.title}</strong><br>
                 <small>Reward: ${s.reward} coins</small>
             </div>
-            <div style="font-size:1.5rem">${locked?'🔒':'▶️'}</div>
+            <div style="font-size:1.5rem">${locked?'🔒':'✅'}</div>
         `;
         if(!locked) div.onclick = () => startGame('song', i);
         cont.appendChild(div);
