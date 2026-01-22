@@ -26,6 +26,7 @@ export function startGame(mode, songIdx=null, isRetry=false) {
     state.game.nextBeatTime = 0;
     
     if(state.game.metronomeInt) clearInterval(state.game.metronomeInt);
+    if(state.game.animFrame) cancelAnimationFrame(state.game.animFrame); // Clear anim frame
 
     document.getElementById('game-coins').innerText = 0;
     document.getElementById('game-timer').innerText = 0;
@@ -64,11 +65,22 @@ export function retryGame() {
 window.retryGame = retryGame; // expose to global for UI
 
 export function updateNotePosition() {
-    // In pro mode, we might want to scroll differently, but fixed width is safer for now.
-    // Adjust logic if pro mode requires variable spacing. For now, keep it simple.
-    const trans = state.HIT_X - (state.game.idx * 120);
-    const grp = document.getElementById('notes-group');
-    if(grp) grp.style.transform = `translateX(${trans}px)`;
+    // Update Hit Line Position (for resizes)
+    const line = document.getElementById('hit-line');
+    if(line) {
+        line.setAttribute('x1', state.HIT_X);
+        line.setAttribute('x2', state.HIT_X);
+    }
+
+    // In Pro Mode, smooth scrolling handles the transform via animation loop.
+    // We only manually set it here if we are NOT in the active game loop (e.g. init or end)
+    const isProActive = (state.currentUser.difficulty === 'pro' && state.game.mode === 'coin' && document.getElementById('game-start-overlay').style.display === 'none');
+    
+    if (!isProActive) {
+        const trans = state.HIT_X - (state.game.idx * 120);
+        const grp = document.getElementById('notes-group');
+        if(grp) grp.style.transform = `translateX(${trans}px)`;
+    }
 }
 
 export function generateNotes() {
@@ -159,11 +171,32 @@ function getMelodiousIndex(curr, max) {
 }
 
 export function renderSheet() {
-    const svg = document.getElementById('notes-group');
+    const noteGroup = document.getElementById('notes-group');
+    const svgContainer = document.getElementById('music-svg');
     const trebleSvg = document.getElementById('clef-treble-svg');
     const bassSvg = document.getElementById('clef-bass-svg');
-    svg.innerHTML = '';
     
+    noteGroup.innerHTML = '';
+    
+    // --- Render Stationary Pink Hit Line ---
+    // Remove existing if any
+    const oldLine = document.getElementById('hit-line');
+    if(oldLine) oldLine.remove();
+
+    const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    line.setAttribute('id', 'hit-line');
+    line.setAttribute('x1', state.HIT_X);
+    line.setAttribute('x2', state.HIT_X);
+    line.setAttribute('y1', 0);
+    line.setAttribute('y2', 300);
+    line.setAttribute('stroke', '#FF69B4'); // Hot Pink
+    line.setAttribute('stroke-width', 4);
+    line.setAttribute('opacity', 0.6);
+    // Insert before notes-group so notes fly over it
+    svgContainer.insertBefore(line, noteGroup);
+
+
+    // --- Clef Display ---
     if(state.currentClef === 'treble') {
         trebleSvg.style.display = 'block';
         bassSvg.style.display = 'none';
@@ -251,7 +284,7 @@ export function renderSheet() {
             sh.setAttribute('font-size', '30');
             g.appendChild(sh);
         }
-        svg.appendChild(g);
+        noteGroup.appendChild(g);
     });
 }
 
@@ -290,6 +323,14 @@ export function renderKeyboard() {
 
 export function beginRound() {
     document.getElementById('game-start-overlay').style.display = 'none';
+    
+    // --- Pro Mode Countdown & Logic ---
+    if (state.currentUser.difficulty === 'pro' && state.game.mode === 'coin') {
+        startProCountdown();
+        return;
+    }
+
+    // --- Standard Mode Start ---
     state.game.startTime = Date.now();
     state.game.noteTime = Date.now();
     
@@ -300,20 +341,80 @@ export function beginRound() {
         const el = document.getElementById('game-timer');
         if(el) el.innerText = t;
     }, 1000);
+}
 
-    // PRO MODE METRONOME
-    if (state.currentUser.difficulty === 'pro' && state.game.mode === 'coin') {
-        const BPM = 80;
-        const beatInterval = 60000 / BPM; 
-        
-        // Initial Count-in logic could go here, but starting immediately for simplicity
-        state.game.nextBeatTime = Date.now(); 
-        
-        state.game.metronomeInt = setInterval(() => {
-            playClick();
-        }, beatInterval);
-        playClick(); // First beat immediately
+// New: Pro Mode Countdown
+function startProCountdown() {
+    let count = 4;
+    const BPM = 80;
+    const interval = 60000 / BPM;
+    
+    let overlay = document.getElementById('countdown-overlay');
+    if(!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'countdown-overlay';
+        overlay.style = "position:absolute; top:40%; left:0; width:100%; text-align:center; font-size:6rem; color:var(--primary); font-weight:bold; z-index:600; text-shadow:2px 2px white;";
+        document.getElementById('screen-game').appendChild(overlay);
     }
+    overlay.style.display = 'block';
+    
+    const tick = () => {
+        if(count > 0) {
+            overlay.innerText = count;
+            playClick(); // Sound click
+            count--;
+            setTimeout(tick, interval);
+        } else {
+             overlay.style.display = 'none';
+             startProGame();
+        }
+    };
+    tick();
+}
+
+// New: Pro Mode Game Loop
+function startProGame() {
+    state.game.startTime = Date.now();
+    state.game.noteTime = Date.now();
+    state.game.nextBeatTime = state.game.startTime; 
+    
+    const BPM = 80;
+    const interval = 60000 / BPM;
+
+    // Start Metronome Audio
+    state.game.metronomeInt = setInterval(() => playClick(), interval);
+    
+    // Start Visual Scroll Loop (Smooth Sliding)
+    const animate = () => {
+        // Exit if game ended
+        if(state.game.mode !== 'coin' || state.currentUser.difficulty !== 'pro') return;
+        
+        const now = Date.now();
+        const elapsed = now - state.game.startTime;
+        const beatTime = 60000 / 80; // ~750ms
+        
+        // Calculate shift: 1 Beat = 120px spacing
+        const pxShift = (elapsed / beatTime) * 120;
+        
+        // Target: Current beat note should align with HIT_X
+        // Since notes start at idx*120, note 0 starts at 0 relative.
+        // We want Note 0 to be at HIT_X at Time 0.
+        // transformX = HIT_X - pxShift
+        const currentX = state.HIT_X - pxShift;
+        
+        const grp = document.getElementById('notes-group');
+        if(grp) grp.style.transform = `translateX(${currentX}px)`;
+        
+        state.game.animFrame = requestAnimationFrame(animate);
+    };
+    state.game.animFrame = requestAnimationFrame(animate);
+
+    // Score Timer
+    state.game.timerInt = setInterval(() => {
+        const t = Math.floor((Date.now() - state.game.startTime)/1000);
+        const el = document.getElementById('game-timer');
+        if(el) el.innerText = t;
+    }, 1000);
 }
 
 export function handleInput(note, el) {
@@ -410,7 +511,12 @@ export function handleInput(note, el) {
 export function endGame() {
     clearInterval(state.game.timerInt);
     if(state.game.metronomeInt) clearInterval(state.game.metronomeInt);
+    if(state.game.animFrame) cancelAnimationFrame(state.game.animFrame);
     
+    // Cleanup Overlay
+    const overlay = document.getElementById('countdown-overlay');
+    if(overlay) overlay.style.display = 'none';
+
     const totalTime = parseFloat(((Date.now() - state.game.startTime)/1000).toFixed(1));
     let finalCoins = state.game.coins;
     let msg = "";
@@ -480,6 +586,11 @@ export function endGame() {
 export function exitGame() {
     clearInterval(state.game.timerInt);
     if(state.game.metronomeInt) clearInterval(state.game.metronomeInt);
+    if(state.game.animFrame) cancelAnimationFrame(state.game.animFrame);
+    
+    const overlay = document.getElementById('countdown-overlay');
+    if(overlay) overlay.style.display = 'none';
+    
     showScreen('screen-landing');
     updateLanding();
 }
