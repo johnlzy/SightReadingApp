@@ -1,3 +1,4 @@
+/* js/config.js */
 const FREQUENCIES = {
     'C3': 130.81, 'C#3': 138.59, 'D3': 146.83, 'D#3': 155.56, 'E3': 164.81, 'F3': 174.61, 'F#3': 185.00, 'G3': 196.00, 'G#3': 207.65, 'A3': 220.00, 'A#3': 233.08, 'B3': 246.94,
     'C4': 261.63, 'C#4': 277.18, 'D4': 293.66, 'D#4': 311.13, 'E4': 329.63, 'F4': 349.23, 'F#4': 369.99, 'G4': 392.00, 'G#4': 415.30, 'A4': 440.00, 'A#4': 466.16, 'B4': 493.88,
@@ -24,7 +25,6 @@ const INSTRUMENTS = {
 const SONG_DB = [
     { title: "Twinkle Twinkle", reward: 10, notes: ["C4","C4","G4","G4","A4","A4","G4","F4","F4","E4","E4","D4","D4","C4","G4","G4","F4","F4","E4","E4","D4","G4","G4","F4","F4","E4","E4","D4","C4","C4","G4","G4","A4","A4","G4","F4","F4","E4","E4","D4","D4","C4"] },
     { title: "Mary Had a Little Lamb", reward: 20, notes: ["E4","D4","C4","D4","E4","E4","E4","D4","D4","D4","E4","G4","G4","E4","D4","C4","D4","E4","E4","E4","E4","D4","D4","E4","D4","C4"] },
-    // ... rest of SONG_DB
 ];
 
 /* GLOBAL STATE */
@@ -35,3 +35,7 @@ let currentInstKey = 'piano';
 let game = { mode: 'coin', notes: [], idx: 0, startTime: 0, noteTime: 0, coins: 0, timerInt: null, songId: -1, mistakes: 0 };
 let HIT_X = 300; 
 let tempUser = { avatar:'🐱', diff:'easy', name:'' };
+
+/* PARENTAL CONTROL */
+const PARENT_PIN = "123456";
+const DAILY_CREDITS = 8;
