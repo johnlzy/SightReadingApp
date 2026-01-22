@@ -237,15 +237,23 @@ export function goToSongs() {
     
     SONG_DB.forEach((s, i) => {
         const locked = i > state.currentUser.unlockedSongs;
+        const completed = i < state.currentUser.unlockedSongs; // Check if completed
+    
+        // Determine reward text
+        let rewardText = `Reward: ${s.reward} coins`;
+        if (completed) {
+            rewardText = `Reward: Claimed (0 coins)`;
+        }
+    
         const div = document.createElement('div');
         div.className = `song-item ${locked?'locked':''}`;
         div.innerHTML = `
             <div>
                 <strong>${i+1}. ${s.title}</strong><br>
-                <small>Reward: ${s.reward} coins</small>
-            </div>
+                <small>${rewardText}</small> </div>
             <div style="font-size:1.5rem">${locked?'🔒':'✅'}</div>
         `;
+        
         if(!locked) div.onclick = () => startGame('song', i);
         cont.appendChild(div);
     });
