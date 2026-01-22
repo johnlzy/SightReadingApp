@@ -1,12 +1,12 @@
 import { state } from './state.js';
 import { SONG_DB, TREBLE_Y, BASS_Y } from './config.js';
-import { playTone, playRun } from './audio.js';
+import { playTone, playRun, playClick } from './audio.js';
 import { showScreen, renderHighScores, updateLanding } from './ui.js';
 import { saveCurrentUser, deductCredit } from './storage.js';
 
 /* --- CORE GAME FUNCTIONS --- */
 
-export function startGame(mode, songIdx=null) {
+export function startGame(mode, songIdx=null, isRetry=false) {
     // CREDIT CHECK
     if (!state.currentUser || state.currentUser.credits <= 0) {
         alert("You are out of credits for today! Ask a parent for help.");
@@ -23,7 +23,10 @@ export function startGame(mode, songIdx=null) {
     state.game.coins = 0;
     state.game.idx = 0;
     state.game.mistakes = 0;
+    state.game.nextBeatTime = 0;
     
+    if(state.game.metronomeInt) clearInterval(state.game.metronomeInt);
+
     document.getElementById('game-coins').innerText = 0;
     document.getElementById('game-timer').innerText = 0;
     document.getElementById('game-start-overlay').style.display = 'flex';
@@ -41,14 +44,28 @@ export function startGame(mode, songIdx=null) {
     void noteGroup.offsetWidth; 
     noteGroup.classList.add('animate-scroll'); 
     
-    generateNotes();
+    if(isRetry && state.game.lastNotes.length > 0) {
+        state.game.notes = [...state.game.lastNotes];
+        state.game.durations = [...state.game.lastDurations];
+    } else {
+        generateNotes();
+        // Save for retry
+        state.game.lastNotes = [...state.game.notes];
+        state.game.lastDurations = [...state.game.durations];
+    }
+    
     renderSheet();
     renderKeyboard();
 }
 
-// ... (Rest of game.js functions remain unchanged: updateNotePosition, generateNotes, renderSheet, renderKeyboard, beginRound, handleInput, endGame, exitGame) ...
-// Simply include the rest of the original file below this line.
+export function retryGame() {
+    startGame(state.game.mode, state.game.songId, true);
+}
+window.retryGame = retryGame; // expose to global for UI
+
 export function updateNotePosition() {
+    // In pro mode, we might want to scroll differently, but fixed width is safer for now.
+    // Adjust logic if pro mode requires variable spacing. For now, keep it simple.
     const trans = state.HIT_X - (state.game.idx * 120);
     const grp = document.getElementById('notes-group');
     if(grp) grp.style.transform = `translateX(${trans}px)`;
@@ -56,6 +73,7 @@ export function updateNotePosition() {
 
 export function generateNotes() {
     state.game.notes = [];
+    state.game.durations = [];
     const octave = state.currentClef === 'treble' ? 4 : 3;
     
     if(state.game.mode === 'song') {
@@ -64,22 +82,80 @@ export function generateNotes() {
             if(state.currentClef === 'bass') return n.replace('5','4').replace('4','3');
             return n;
         });
+        // Default durations for song mode (all quarters for simplicity unless DB updated)
+        state.game.durations = state.game.notes.map(() => 1);
+        
     } else {
-        const count = 15 + Math.floor(Math.random()*10);
+        // COIN RUN GENERATION
         const pool = [];
-        if(state.currentUser.difficulty === 'easy') {
+        const diff = state.currentUser.difficulty;
+        
+        // Define pools
+        if(diff === 'easy') {
             ['C','D','E','F','G'].forEach(n => pool.push(n+octave));
-        } else if(state.currentUser.difficulty === 'medium') {
+        } else if(diff === 'medium') {
             ['C','D','E','F','G','A','B'].forEach(n => pool.push(n+octave));
             pool.push('C'+(octave+1));
         } else {
+            // Hard & Pro use full scale
             ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'].forEach(n => pool.push(n+octave));
             pool.push('C'+(octave+1));
         }
-        for(let i=0; i<count; i++) {
-            state.game.notes.push(pool[Math.floor(Math.random()*pool.length)]);
+
+        // --- Melodious Logic ---
+        const count = 16; // Fixed count for consistent runs
+        let currentIdx = Math.floor(pool.length / 2); // Start in middle
+        
+        if (diff === 'pro') {
+             // PRO MODE: RHYTHM GENERATION (4 bars of 4/4)
+             for(let bar=0; bar<4; bar++) {
+                 let beatsLeft = 4;
+                 while(beatsLeft > 0) {
+                     // Pick a duration that fits
+                     const opts = [1]; // Quarter
+                     if(beatsLeft >= 2) opts.push(2); // Half
+                     if(beatsLeft >= 4) opts.push(4); // Whole
+                     if(beatsLeft >= 0.5) opts.push(0.5); // Eighth
+                     
+                     // Weighted random for variety
+                     const dur = opts[Math.floor(Math.random()*opts.length)];
+                     
+                     // If eighth, force pairs usually to keep it simple, or just allow single
+                     if(dur === 0.5 && beatsLeft >= 1 && Math.random()>0.3) {
+                         // Add two eighths
+                         state.game.durations.push(0.5, 0.5);
+                         beatsLeft -= 1;
+                         // Add 2 notes
+                         for(let k=0; k<2; k++) {
+                            currentIdx = getMelodiousIndex(currentIdx, pool.length);
+                            state.game.notes.push(pool[currentIdx]);
+                         }
+                     } else {
+                         state.game.durations.push(dur);
+                         beatsLeft -= dur;
+                         currentIdx = getMelodiousIndex(currentIdx, pool.length);
+                         state.game.notes.push(pool[currentIdx]);
+                     }
+                 }
+             }
+        } else {
+            // Normal Modes
+            for(let i=0; i<count; i++) {
+                currentIdx = getMelodiousIndex(currentIdx, pool.length);
+                state.game.notes.push(pool[currentIdx]);
+                state.game.durations.push(1);
+            }
         }
     }
+}
+
+function getMelodiousIndex(curr, max) {
+    const moves = [-2, -1, -1, 0, 1, 1, 2, 3, -3, 4, -4, 5, -5]; // Weighted small steps
+    let move = moves[Math.floor(Math.random() * moves.length)];
+    let next = curr + move;
+    if(next < 0) next = 0; // Clamp
+    if(next >= max) next = max - 1; // Clamp
+    return next;
 }
 
 export function renderSheet() {
@@ -106,9 +182,12 @@ export function renderSheet() {
         g.setAttribute('class', `note ${i===0?'current':'inactive'}`);
         g.setAttribute('id', `note-${i}`);
         
+        const dur = state.game.durations[i] || 1;
+
+        // Ledger Lines
         let needsLine = false;
         if(state.currentClef==='treble' && note==='C4') needsLine=true;
-        if(state.currentClef==='bass' && (note==='C4'||note==='E5')) needsLine=true;
+        if(state.currentClef==='bass' && (note==='C4'||note==='E5')) needsLine=true; // E5 approx high for bass
         
         if(needsLine) {
             const l = document.createElementNS("http://www.w3.org/2000/svg", "line");
@@ -118,22 +197,52 @@ export function renderSheet() {
             g.appendChild(l);
         }
 
+        // Note Head
         const oval = document.createElementNS("http://www.w3.org/2000/svg", "ellipse");
         oval.setAttribute('rx', 12); oval.setAttribute('ry', 9);
         oval.setAttribute('class', 'note-head');
+        oval.setAttribute('stroke', '#000');
+        oval.setAttribute('stroke-width', '2');
+        
+        if(dur >= 2) {
+             oval.setAttribute('fill', '#fff'); // Hollow for Half/Whole
+        } else {
+             oval.setAttribute('class', 'note-head filled'); // Filled CSS class handles color
+             // Fallback if css fails
+             oval.setAttribute('fill', 'currentColor'); 
+        }
         g.appendChild(oval);
 
-        const stem = document.createElementNS("http://www.w3.org/2000/svg", "line");
-        stem.setAttribute('stroke', '#000');
-        stem.setAttribute('stroke-width', 2);
-        if(y < 160) {
-            stem.setAttribute('x1', -11); stem.setAttribute('y1', 0);
-            stem.setAttribute('x2', -11); stem.setAttribute('y2', 50);
-        } else {
-            stem.setAttribute('x1', 11); stem.setAttribute('y1', 0);
-            stem.setAttribute('x2', 11); stem.setAttribute('y2', -50);
+        // Stem
+        if (dur < 4) { // Whole notes have no stem
+            const stem = document.createElementNS("http://www.w3.org/2000/svg", "line");
+            stem.setAttribute('stroke', '#000');
+            stem.setAttribute('stroke-width', 2);
+            let stemUp = y >= 160; 
+            
+            if(stemUp) {
+                stem.setAttribute('x1', 11); stem.setAttribute('y1', 0);
+                stem.setAttribute('x2', 11); stem.setAttribute('y2', -50);
+            } else {
+                stem.setAttribute('x1', -11); stem.setAttribute('y1', 0);
+                stem.setAttribute('x2', -11); stem.setAttribute('y2', 50);
+            }
+            g.appendChild(stem);
+            
+            // Flag for Eighth Note
+            if (dur === 0.5) {
+                const flag = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                flag.setAttribute('fill', 'none');
+                flag.setAttribute('stroke', '#000');
+                flag.setAttribute('stroke-width', 2);
+                if(stemUp) {
+                    flag.setAttribute('d', "M11,-50 Q25,-40 25,-20");
+                } else {
+                    flag.setAttribute('d', "M-11,50 Q-25,40 -25,20");
+                }
+                g.appendChild(flag);
+            }
         }
-        g.appendChild(stem);
 
         if(note.includes('#')) {
             const sh = document.createElementNS("http://www.w3.org/2000/svg", "text");
@@ -191,58 +300,106 @@ export function beginRound() {
         const el = document.getElementById('game-timer');
         if(el) el.innerText = t;
     }, 1000);
+
+    // PRO MODE METRONOME
+    if (state.currentUser.difficulty === 'pro' && state.game.mode === 'coin') {
+        const BPM = 80;
+        const beatInterval = 60000 / BPM; 
+        
+        // Initial Count-in logic could go here, but starting immediately for simplicity
+        state.game.nextBeatTime = Date.now(); 
+        
+        state.game.metronomeInt = setInterval(() => {
+            playClick();
+        }, beatInterval);
+        playClick(); // First beat immediately
+    }
 }
 
 export function handleInput(note, el) {
     if(document.getElementById('game-start-overlay').style.display !== 'none') return;
     
     const target = state.game.notes[state.game.idx];
+    const isPro = (state.currentUser.difficulty === 'pro' && state.game.mode === 'coin');
     
     if(note === target) {
-        el.classList.add('active');
-        setTimeout(()=>el.classList.remove('active'), 100);
-        playTone(note, 'good');
-        
-        const dt = (Date.now() - state.game.noteTime) / 1000;
+        let isTimingGood = true;
         let earned = 0;
-        if(state.game.mode === 'coin') {
-            earned = 1;
-            if(dt < 0.5) earned = 5;
-            else if(dt < 1.5) earned = 3;
-            else if(dt < 2.5) earned = 2;
-            state.game.coins += earned;
-            document.getElementById('game-coins').innerText = state.game.coins;
-            
-            const float = document.createElement('div');
-            float.className = 'feedback-anim';
-            float.innerText = `+${earned}`;
-            float.style.left = el.getBoundingClientRect().left + 'px';
-            float.style.top = (el.getBoundingClientRect().top - 50) + 'px';
-            document.body.appendChild(float);
-            setTimeout(()=>float.remove(), 1000);
-        }
 
-        const currSvg = document.getElementById(`note-${state.game.idx}`);
-        if(currSvg) {
-            currSvg.classList.remove('current');
-            currSvg.classList.add('inactive');
-        }
-        
-        state.game.idx++;
-        state.game.noteTime = Date.now();
-        updateNotePosition();
-
-        if(state.game.idx >= state.game.notes.length) {
-            endGame();
-        } else {
-            const next = document.getElementById(`note-${state.game.idx}`);
-            if(next) {
-                next.classList.remove('inactive');
-                next.classList.add('current');
+        // --- Pro Mode Rhythm Check ---
+        if(isPro) {
+            const now = Date.now();
+            const diff = Math.abs(now - state.game.nextBeatTime);
+            // 80 BPM = 750ms per beat. Margin of error +/- 250ms is generous
+            if(diff > 300 && state.game.idx > 0) { // Skip check for first note (count-in ambiguous)
+                isTimingGood = false;
+                // Feedback for timing could go here
+                el.classList.add('wrong'); // Reuse wrong visual for bad timing
+                setTimeout(()=>el.classList.remove('wrong'), 300);
             }
+            
+            // Advance expected time for next note
+            const BPM = 80;
+            const msPerBeat = 60000 / BPM;
+            const dur = state.game.durations[state.game.idx];
+            state.game.nextBeatTime += (dur * msPerBeat);
+        }
+
+        if(isTimingGood) {
+            el.classList.add('active');
+            setTimeout(()=>el.classList.remove('active'), 100);
+            playTone(note, 'good');
+            
+            const dt = (Date.now() - state.game.noteTime) / 1000;
+            
+            if(state.game.mode === 'coin') {
+                earned = 1;
+                // Bonus logic
+                if(isPro) earned = 2; // Higher base for pro
+                
+                state.game.coins += earned;
+                document.getElementById('game-coins').innerText = state.game.coins;
+                
+                const float = document.createElement('div');
+                float.className = 'feedback-anim';
+                float.innerText = `+${earned}`;
+                float.style.left = el.getBoundingClientRect().left + 'px';
+                float.style.top = (el.getBoundingClientRect().top - 50) + 'px';
+                document.body.appendChild(float);
+                setTimeout(()=>float.remove(), 1000);
+            }
+
+            const currSvg = document.getElementById(`note-${state.game.idx}`);
+            if(currSvg) {
+                currSvg.classList.remove('current');
+                currSvg.classList.add('inactive');
+                // Fill if it was hollow, to show completion
+                const head = currSvg.querySelector('.note-head');
+                if(head) head.setAttribute('fill', 'var(--primary)'); 
+            }
+            
+            state.game.idx++;
+            state.game.noteTime = Date.now();
+            updateNotePosition();
+
+            if(state.game.idx >= state.game.notes.length) {
+                endGame();
+            } else {
+                const next = document.getElementById(`note-${state.game.idx}`);
+                if(next) {
+                    next.classList.remove('inactive');
+                    next.classList.add('current');
+                }
+            }
+        } else {
+             // Correct Pitch, Bad Rhythm
+             state.game.mistakes++;
+             // Maybe play a different sound or just count mistake
+             playTone(note, 'bad');
         }
         
     } else {
+        // Wrong Note
         playTone(note, 'bad');
         el.classList.add('wrong');
         setTimeout(()=>el.classList.remove('wrong'), 300);
@@ -252,12 +409,15 @@ export function handleInput(note, el) {
 
 export function endGame() {
     clearInterval(state.game.timerInt);
+    if(state.game.metronomeInt) clearInterval(state.game.metronomeInt);
+    
     const totalTime = parseFloat(((Date.now() - state.game.startTime)/1000).toFixed(1));
     let finalCoins = state.game.coins;
     let msg = "";
 
-    if(!state.currentUser.scores) state.currentUser.scores = { coin: { easy:[], medium:[], hard:[] }, songs: {} };
-    
+    if(!state.currentUser.scores) state.currentUser.scores = { coin: { easy:[], medium:[], hard:[], pro:[] }, songs: {} };
+    if(!state.currentUser.scores.coin.pro) state.currentUser.scores.coin.pro = []; // Ensure schema exists
+
     if(state.game.mode === 'coin') {
         const arr = state.currentUser.scores.coin[state.currentUser.difficulty];
         arr.push(totalTime);
@@ -272,6 +432,7 @@ export function endGame() {
         if(bonus>0) msg = `Speed Bonus: +${bonus}!`;
         
     } else {
+        // ... (Song mode logic same as before)
         if(state.game.mistakes === 0) {
             if(!state.currentUser.scores.songs[state.game.songId]) state.currentUser.scores.songs[state.game.songId] = [];
             const arr = state.currentUser.scores.songs[state.game.songId];
@@ -302,6 +463,15 @@ export function endGame() {
     document.getElementById('res-coins').innerText = finalCoins;
     document.getElementById('res-msg').innerText = msg;
     
+    // Show Retry Button for Coin Runs
+    const retryBtn = document.getElementById('btn-retry');
+    if(state.game.mode === 'coin') {
+        retryBtn.style.display = 'block';
+        retryBtn.onclick = retryGame;
+    } else {
+        retryBtn.style.display = 'none';
+    }
+
     renderHighScores();
     showScreen('screen-result');
     playRun();
@@ -309,6 +479,7 @@ export function endGame() {
 
 export function exitGame() {
     clearInterval(state.game.timerInt);
+    if(state.game.metronomeInt) clearInterval(state.game.metronomeInt);
     showScreen('screen-landing');
     updateLanding();
 }
