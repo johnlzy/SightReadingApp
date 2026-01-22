@@ -41,6 +41,26 @@ export function playTone(note, type='good', overrideInst=null) {
     }
 }
 
+// New: Metronome Click
+export function playClick() {
+    const audioCtx = state.audioCtx;
+    if(!audioCtx) return;
+    
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    
+    osc.frequency.setValueAtTime(1000, audioCtx.currentTime);
+    osc.type = 'square';
+    gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.05);
+    
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.05);
+}
+
 export function playRun(instKey) {
     const key = instKey || state.currentInstKey;
     const config = INSTRUMENTS[key];
