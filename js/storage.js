@@ -1,5 +1,5 @@
 import { state } from './state.js';
-import { updateLanding, showScreen, hideNewUserForm } from './ui.js';
+import { showScreen, hideNewUserForm } from './ui.js';
 
 export const ADMIN_PIN = "123456";
 
@@ -41,7 +41,6 @@ export function addAdminCredits(amount) {
     if(!state.currentUser) return;
     state.currentUser.credits += amount;
     saveCurrentUser();
-    updateLanding();
 }
 
 export function verifyPin(input) {
