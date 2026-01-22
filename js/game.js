@@ -6,7 +6,8 @@ import { saveCurrentUser, deductCredit } from './storage.js';
 
 /* --- CORE GAME FUNCTIONS --- */
 
-const PRO_BPM = 50; 
+const DEFAULT_PRO_BPM = 50; 
+let currentBPM = DEFAULT_PRO_BPM;
 const NOTE_ORDER = ['C','D','E','F','G','A','B'];
 
 export function startGame(mode, songIdx=null, isRetry=false) {
@@ -26,6 +27,13 @@ export function startGame(mode, songIdx=null, isRetry=false) {
     state.game.mistakes = 0;
     state.game.nextBeatTime = 0;
     
+    // Determine BPM
+    if (mode === 'song' && songIdx !== null) {
+        currentBPM = SONG_DB[songIdx].bpm || 80;
+    } else {
+        currentBPM = DEFAULT_PRO_BPM;
+    }
+
     if(state.game.metronomeInt) clearInterval(state.game.metronomeInt);
     if(state.game.animFrame) cancelAnimationFrame(state.game.animFrame); 
 
@@ -376,7 +384,8 @@ function startStandardGame() {
 
 function startCountdown(callback) {
     let count = 4;
-    const interval = 1000; // 1 second per beat for standard countdown
+    // UPDATED: Calculate interval based on the song's BPM or Pro BPM
+    const interval = 60000 / currentBPM; 
     
     let overlay = document.getElementById('countdown-overlay');
     if(!overlay) {
@@ -409,8 +418,7 @@ function startProGame() {
     state.game.noteTime = Date.now();
     state.game.nextBeatTime = state.game.startTime; 
     
-    // REMOVED: Metronome audio interval
-    // state.game.metronomeInt = setInterval(() => playClick(), 60000 / PRO_BPM);
+    // REMOVED: Metronome audio interval (handled by game logic if needed, but usually just countdown)
     
     const animate = () => {
         // UPDATED: Allow animation loop for Song mode as well
@@ -420,7 +428,10 @@ function startProGame() {
 
         if(state.game.idx < state.game.notes.length) {
             const dur = state.game.durations[state.game.idx];
-            const msPerBeat = 60000 / PRO_BPM;
+            
+            // UPDATED: Use dynamic currentBPM
+            const msPerBeat = 60000 / currentBPM;
+            
             const currentDurationMs = dur * msPerBeat;
             const deadline = state.game.nextBeatTime + currentDurationMs;
 
@@ -466,7 +477,9 @@ function startProGame() {
 
         // Logic for smooth scrolling
         const elapsed = now - state.game.startTime;
-        const beatTime = 60000 / PRO_BPM; 
+        
+        // UPDATED: Use dynamic currentBPM
+        const beatTime = 60000 / currentBPM; 
         
         const pxShift = (elapsed / beatTime) * 120;
         const currentX = state.HIT_X - pxShift;
@@ -501,7 +514,9 @@ export function handleInput(note, el) {
             const diff = now - state.game.nextBeatTime; 
             const absDiff = Math.abs(diff);
 
-            const msPerBeat = 60000 / PRO_BPM; 
+            // UPDATED: Use dynamic currentBPM
+            const msPerBeat = 60000 / currentBPM; 
+            
             const dur = state.game.durations[state.game.idx];
             const noteDurationMs = dur * msPerBeat;
 
