@@ -5,11 +5,17 @@ import {
     selectAvatar, setRegDiff, setClef, goToStore, goToSongs, 
     updateLanding, showScreen as showScreenAlias,
     handleNewUserClick, handleUserDelete, showParentPanel, hideParentPanel, handleAddCredit,
-    // NEW IMPORTS:
     loadUsers, handleCreateUserUI, handleLogoutUI
 } from './js/ui.js';
 import { startGame, exitGame, beginRound, updateNotePosition } from './js/game.js';
 import { state, setHitX } from './js/state.js';
+import { 
+    showScreen, showNewUserForm, hideNewUserForm, generateName, 
+    selectAvatar, setRegDiff, setClef, goToStore, goToSongs, 
+    updateLanding, showScreen as showScreenAlias, // <--- Imported here
+    handleNewUserClick, handleUserDelete, showParentPanel, hideParentPanel, handleAddCredit,
+    loadUsers, handleCreateUserUI, handleLogoutUI
+} from './js/ui.js';
 
 // --- Global Initialization ---
 
@@ -81,6 +87,7 @@ window.goToSongs = goToSongs;
 window.showScreen = showScreenAlias;
 window.exitGame = exitGame;
 window.beginRound = beginRound;
+window.updateLanding = updateLanding;
 
 window.addEventListener('resize', handleResize);
 handleResize();
