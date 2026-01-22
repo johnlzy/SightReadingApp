@@ -74,7 +74,8 @@ export function updateNotePosition() {
         line.setAttribute('x2', state.HIT_X);
     }
 
-    const isProActive = (state.currentUser.difficulty === 'pro' && state.game.mode === 'coin' && document.getElementById('game-start-overlay').style.display === 'none');
+    // UPDATED: Include Song Mode in the "Active/Scrolling" check
+    const isProActive = (((state.currentUser.difficulty === 'pro' && state.game.mode === 'coin') || state.game.mode === 'song') && document.getElementById('game-start-overlay').style.display === 'none');
     
     if (!isProActive) {
         // Calculate the X offset based on the cumulative duration of previous notes
@@ -243,11 +244,6 @@ export function renderSheet() {
         currentX += (dur * PIXELS_PER_BEAT);
 
         // Dynamic Ledger Lines
-        // Staff lines are roughly 120 to 200. 
-        // 220 is C4 (line). 100 is A5 (line).
-        // Simple check: if Y is divisible by 20 (line) and outside the 120-200 range?
-        // Let's stick to C4 and standard ranges for simplicity or check specific positions.
-        // C4(220) needs line. A3(240) needs line. A5(100) needs line.
         let needsLine = false;
         if(y >= 220 && (y-220)%20 === 0) needsLine = true; // Low notes on lines
         if(y <= 100 && (100-y)%20 === 0) needsLine = true; // High notes on lines
@@ -350,14 +346,14 @@ export function renderKeyboard() {
 export function beginRound() {
     document.getElementById('game-start-overlay').style.display = 'none';
     
-    // Updated: Use countdown for Pro Mode OR Song Mode
+    // Updated: Song mode now also uses the Countdown and Pro Game engine
     const isProCoin = (state.currentUser.difficulty === 'pro' && state.game.mode === 'coin');
     const isSong = (state.game.mode === 'song');
 
     if (isProCoin || isSong) {
         startCountdown(() => {
-            if (isProCoin) startProGame();
-            else startStandardGame();
+            // Use Pro engine for both Pro Coin and Song modes
+            startProGame();
         });
         return;
     }
@@ -413,12 +409,12 @@ function startProGame() {
     state.game.noteTime = Date.now();
     state.game.nextBeatTime = state.game.startTime; 
     
-    const interval = 60000 / PRO_BPM;
-
-    state.game.metronomeInt = setInterval(() => playClick(), interval);
+    // REMOVED: Metronome audio interval
+    // state.game.metronomeInt = setInterval(() => playClick(), 60000 / PRO_BPM);
     
     const animate = () => {
-        if(state.game.mode !== 'coin' || state.currentUser.difficulty !== 'pro') return;
+        // UPDATED: Allow animation loop for Song mode as well
+        if( !((state.game.mode === 'coin' && state.currentUser.difficulty === 'pro') || state.game.mode === 'song') ) return;
         
         const now = Date.now();
 
@@ -447,6 +443,8 @@ function startProGame() {
                  document.body.appendChild(float);
                  setTimeout(()=>float.remove(), 1000);
 
+                 // UPDATED: Count mistakes on timeout so songs can't be perfected by doing nothing
+                 state.game.mistakes++;
                  state.game.idx++;
                  
                  // Update Progress
@@ -470,10 +468,6 @@ function startProGame() {
         const elapsed = now - state.game.startTime;
         const beatTime = 60000 / PRO_BPM; 
         
-        // This linear calculation only works if all notes are the same, OR if we sum durations.
-        // For Pro mode (random generation), we currently generate random rhythms.
-        // We need to calculate the PIXEL offset based on time.
-        
         const pxShift = (elapsed / beatTime) * 120;
         const currentX = state.HIT_X - pxShift;
         
@@ -495,7 +489,8 @@ export function handleInput(note, el) {
     if(document.getElementById('game-start-overlay').style.display !== 'none') return;
     
     const target = state.game.notes[state.game.idx];
-    const isPro = (state.currentUser.difficulty === 'pro' && state.game.mode === 'coin');
+    // UPDATED: Include Song Mode in the "Pro/Active" input logic
+    const isPro = ((state.currentUser.difficulty === 'pro' && state.game.mode === 'coin') || state.game.mode === 'song');
     
     if(note === target) {
         let isTimingGood = true;
