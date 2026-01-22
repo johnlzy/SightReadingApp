@@ -10,14 +10,21 @@ export const state = {
     // Game Session State
     game: { 
         mode: 'coin', // 'coin' or 'song'
-        notes: [], 
+        notes: [],
+        durations: [], // New: duration of each note in beats (1 = quarter)
         idx: 0, 
         startTime: 0, 
         noteTime: 0, 
         coins: 0, 
-        timerInt: null, 
+        timerInt: null,
+        metronomeInt: null, // New: for Pro mode
+        nextBeatTime: 0,    // New: for Pro mode rhythm check
         songId: -1, 
-        mistakes: 0 
+        mistakes: 0,
+        
+        // For Retry Logic
+        lastNotes: [],
+        lastDurations: []
     },
 
     // Temporary registration state
