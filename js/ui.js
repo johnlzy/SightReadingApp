@@ -1,7 +1,7 @@
 import { state } from './state.js';
 import { INSTRUMENTS, SONG_DB } from './config.js';
 import { playRun } from './audio.js';
-import { saveCurrentUser, loadUsers, loginUser, deleteUser, createUser } from './storage.js';
+import { saveCurrentUser, loadUsers, loginUser, deleteUser, createUser, verifyPin, addAdminCredits } from './storage.js';
 import { startGame } from './game.js';
 
 /* --- UI HELPERS --- */
@@ -10,6 +10,51 @@ export function showScreen(id) {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     const el = document.getElementById(id);
     if(el) el.classList.add('active');
+}
+
+/* --- ADMIN & SECURITY --- */
+
+export function checkAdmin(callback) {
+    const pin = prompt("🔐 Parent Admin: Enter PIN");
+    if(verifyPin(pin)) {
+        callback();
+    } else {
+        alert("Incorrect PIN");
+    }
+}
+
+export function showParentPanel() {
+    checkAdmin(() => {
+        document.getElementById('admin-modal').style.display = 'flex';
+        document.getElementById('admin-current-user').innerText = state.currentUser ? state.currentUser.name : 'Unknown';
+        document.getElementById('admin-current-credits').innerText = state.currentUser ? state.currentUser.credits : 0;
+    });
+}
+
+export function hideParentPanel() {
+    document.getElementById('admin-modal').style.display = 'none';
+}
+
+export function handleAddCredit(amt) {
+    addAdminCredits(amt);
+    document.getElementById('admin-current-credits').innerText = state.currentUser.credits;
+    alert(`Added ${amt} credits!`);
+}
+
+// Wrapper for creating user (requires PIN)
+export function handleNewUserClick() {
+    checkAdmin(() => {
+        showNewUserForm();
+    });
+}
+
+// Wrapper for deleting user (requires PIN)
+export function handleUserDelete(index) {
+    checkAdmin(() => {
+        if(confirm("Are you sure you want to delete this player?")) {
+            deleteUser(index);
+        }
+    });
 }
 
 /* --- REGISTRATION UI --- */
@@ -24,8 +69,6 @@ export function generateName() {
 
 export function setRegDiff(lvl) {
     state.tempUser.diff = lvl;
-    // UI update handled in main.js event binding or manually here if preferred
-    // For now, we assume the click handler in main.js calls this and updates classes
     let t = "C to G (White keys)";
     if(lvl === 'medium') t = "One Octave (White keys)";
     if(lvl === 'hard') t = "One Octave (Black & White)";
@@ -34,7 +77,6 @@ export function setRegDiff(lvl) {
 
 export function selectAvatar(em) {
     state.tempUser.avatar = em;
-    // UI class update handled in main.js
 }
 
 export function showNewUserForm() {
@@ -54,6 +96,10 @@ export function updateLanding() {
     document.getElementById('landing-t-coins').innerText = state.currentUser.tCoins;
     document.getElementById('landing-b-coins').innerText = state.currentUser.bCoins;
     
+    // NEW: Update Credits
+    const creds = state.currentUser.credits !== undefined ? state.currentUser.credits : 0;
+    document.getElementById('landing-credits').innerText = creds;
+
     // Instrument Bag
     const bag = document.getElementById('landing-bag');
     bag.innerHTML = '';
