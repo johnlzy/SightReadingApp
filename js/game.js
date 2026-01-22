@@ -2,11 +2,22 @@ import { state } from './state.js';
 import { SONG_DB, TREBLE_Y, BASS_Y } from './config.js';
 import { playTone, playRun } from './audio.js';
 import { showScreen, renderHighScores, updateLanding } from './ui.js';
-import { saveCurrentUser } from './storage.js';
+import { saveCurrentUser, deductCredit } from './storage.js';
 
 /* --- CORE GAME FUNCTIONS --- */
 
 export function startGame(mode, songIdx=null) {
+    // CREDIT CHECK
+    if (!state.currentUser || state.currentUser.credits <= 0) {
+        alert("You are out of credits for today! Ask a parent for help.");
+        return;
+    }
+    
+    // Deduct Credit
+    const success = deductCredit();
+    if(!success) return; 
+    updateLanding(); // Update UI to show new credit count
+
     state.game.mode = mode;
     state.game.songId = songIdx;
     state.game.coins = 0;
@@ -19,14 +30,12 @@ export function startGame(mode, songIdx=null) {
     
     showScreen('screen-game');
     
-    // Trigger resize logic to ensure HIT_X is correct for the current screen size
-    // We'll call the global resize handler (exposed in main.js) or just trigger window resize event
     window.dispatchEvent(new Event('resize')); 
     
     // RESET NOTE POSITION
     const noteGroup = document.getElementById('notes-group');
     noteGroup.classList.remove('animate-scroll'); 
-    updateNotePosition(); // Set initial transform
+    updateNotePosition(); 
     
     // Force Reflow
     void noteGroup.offsetWidth; 
@@ -37,8 +46,9 @@ export function startGame(mode, songIdx=null) {
     renderKeyboard();
 }
 
+// ... (Rest of game.js functions remain unchanged: updateNotePosition, generateNotes, renderSheet, renderKeyboard, beginRound, handleInput, endGame, exitGame) ...
+// Simply include the rest of the original file below this line.
 export function updateNotePosition() {
-    // Current note index moves to HIT_X
     const trans = state.HIT_X - (state.game.idx * 120);
     const grp = document.getElementById('notes-group');
     if(grp) grp.style.transform = `translateX(${trans}px)`;
@@ -78,7 +88,6 @@ export function renderSheet() {
     const bassSvg = document.getElementById('clef-bass-svg');
     svg.innerHTML = '';
     
-    // Toggle Clef Visibility
     if(state.currentClef === 'treble') {
         trebleSvg.style.display = 'block';
         bassSvg.style.display = 'none';
@@ -86,9 +95,6 @@ export function renderSheet() {
         trebleSvg.style.display = 'none';
         bassSvg.style.display = 'block';
     }
-    
-    // We rely on resize handler in main.js to call positionClefs, 
-    // but we can ensure they are correct here too if needed.
     
     state.game.notes.forEach((note, i) => {
         let y = 0;
@@ -153,7 +159,6 @@ export function renderKeyboard() {
         k.dataset.note = n;
         k.innerText = n;
         k.onclick = () => handleInput(n, k);
-        // Better touch handling
         k.ontouchstart = (e) => { e.preventDefault(); handleInput(n, k); };
         kb.appendChild(k);
     });
@@ -251,15 +256,13 @@ export function endGame() {
     let finalCoins = state.game.coins;
     let msg = "";
 
-    // Score Saving Logic
     if(!state.currentUser.scores) state.currentUser.scores = { coin: { easy:[], medium:[], hard:[] }, songs: {} };
     
     if(state.game.mode === 'coin') {
-        // Only save coin run times if they finished
         const arr = state.currentUser.scores.coin[state.currentUser.difficulty];
         arr.push(totalTime);
-        arr.sort((a,b) => a - b); // Ascending (lower is better)
-        if(arr.length > 5) arr.length = 5; // Keep top 5
+        arr.sort((a,b) => a - b); 
+        if(arr.length > 5) arr.length = 5; 
         
         let bonus = 0;
         if(totalTime < 15) bonus = 25;
@@ -270,7 +273,6 @@ export function endGame() {
         
     } else {
         if(state.game.mistakes === 0) {
-            // Only save song times if perfect
             if(!state.currentUser.scores.songs[state.game.songId]) state.currentUser.scores.songs[state.game.songId] = [];
             const arr = state.currentUser.scores.songs[state.game.songId];
             arr.push(totalTime);
