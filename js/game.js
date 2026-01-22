@@ -76,7 +76,15 @@ export function updateNotePosition() {
     const isProActive = (state.currentUser.difficulty === 'pro' && state.game.mode === 'coin' && document.getElementById('game-start-overlay').style.display === 'none');
     
     if (!isProActive) {
-        const trans = state.HIT_X - (state.game.idx * 120);
+        // Calculate the X offset based on the cumulative duration of previous notes
+        // Previously: idx * 120. Now we sum durations.
+        
+        let cumulativeDuration = 0;
+        for(let i=0; i<state.game.idx; i++) {
+             cumulativeDuration += (state.game.durations[i] || 1);
+        }
+
+        const trans = state.HIT_X - (cumulativeDuration * 120);
         const grp = document.getElementById('notes-group');
         if(grp) grp.style.transform = `translateX(${trans}px)`;
     }
@@ -88,12 +96,15 @@ export function generateNotes() {
     const octave = state.currentClef === 'treble' ? 4 : 3;
     
     if(state.game.mode === 'song') {
-        const raw = SONG_DB[state.game.songId].notes;
-        state.game.notes = raw.map(n => {
+        const songData = SONG_DB[state.game.songId].melody; // Changed from .notes to .melody
+        
+        state.game.notes = songData.map(item => {
+            let n = item.n;
             if(state.currentClef === 'bass') return n.replace('5','4').replace('4','3');
             return n;
         });
-        state.game.durations = state.game.notes.map(() => 1);
+        
+        state.game.durations = songData.map(item => item.d);
         
     } else {
         const pool = [];
@@ -206,6 +217,7 @@ export function renderSheet() {
         
         const dur = state.game.durations[i] || 1;
 
+        // NOTE: This visualizes the rhythm
         currentX += (dur * PIXELS_PER_BEAT);
 
         let needsLine = false;
@@ -415,11 +427,15 @@ function startProGame() {
             }
         }
 
+        // Logic for smooth scrolling
         const elapsed = now - state.game.startTime;
         const beatTime = 60000 / PRO_BPM; 
         
-        const pxShift = (elapsed / beatTime) * 120;
+        // This linear calculation only works if all notes are the same, OR if we sum durations.
+        // For Pro mode (random generation), we currently generate random rhythms.
+        // We need to calculate the PIXEL offset based on time.
         
+        const pxShift = (elapsed / beatTime) * 120;
         const currentX = state.HIT_X - pxShift;
         
         const grp = document.getElementById('notes-group');
