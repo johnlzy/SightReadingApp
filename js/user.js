@@ -1,3 +1,15 @@
+/* js/user.js */
+
+// Helper to verify PIN
+function verifyParentPin(callback) {
+    const pin = prompt("Enter Parent PIN:");
+    if (pin === PARENT_PIN) {
+        callback();
+    } else {
+        alert("Incorrect PIN.");
+    }
+}
+
 function loadUsers() {
     const list = JSON.parse(localStorage.getItem('fsr_users_v2') || '[]');
     const cont = document.getElementById('existing-users-list');
@@ -21,6 +33,55 @@ function loadUsers() {
     }
 }
 
+// Protected: Delete User
+function deleteUser(index) {
+    verifyParentPin(() => {
+        const list = JSON.parse(localStorage.getItem('fsr_users_v2') || '[]');
+        list.splice(index, 1);
+        localStorage.setItem('fsr_users_v2', JSON.stringify(list));
+        loadUsers();
+    });
+}
+
+// Protected: Show New User Form
+function showNewUserForm() {
+    verifyParentPin(() => {
+        document.getElementById('new-user-form').style.display = 'block';
+        document.getElementById('existing-users-list').style.display = 'none';
+        generateName();
+    });
+}
+
+function hideNewUserForm() {
+    document.getElementById('new-user-form').style.display = 'none';
+    document.getElementById('existing-users-list').style.display = 'block';
+}
+
+// Protected: Refill Credits
+function refillCredits() {
+    verifyParentPin(() => {
+        if(currentUser) {
+            currentUser.credits += 8;
+            saveCurrentUser();
+            alert("Added 8 credits!");
+        }
+    });
+}
+
+/* Form Helpers (Missing in original) */
+function selectAvatar(avatar, event) {
+    tempUser.avatar = avatar;
+    document.querySelectorAll('.emoji-opt').forEach(el => el.classList.remove('selected'));
+    event.target.classList.add('selected');
+}
+
+function setRegDiff(diff, el) {
+    tempUser.diff = diff;
+    document.querySelectorAll('.toggle-opt').forEach(e => e.classList.remove('selected'));
+    el.classList.add('selected');
+    document.getElementById('diff-desc').innerText = diff === 'easy' ? 'C to G (White keys)' : (diff === 'medium' ? 'C to C (White keys)' : 'All keys (Sharps/Flats)');
+}
+
 function generateName() {
     const adjs = ['Happy','Sparkly','Jolly','Sunny','Bouncy','Lucky','Magic','Super','Cool'];
     const nouns = ['Panda','Kitty','Puppy','Star','Cookie','Bunny','Tiger','Moon','Bear'];
@@ -30,6 +91,8 @@ function generateName() {
 
 function createUser() {
     const list = JSON.parse(localStorage.getItem('fsr_users_v2') || '[]');
+    const today = new Date().toDateString();
+    
     const newUser = {
         name: tempUser.name,
         avatar: tempUser.avatar,
@@ -37,6 +100,8 @@ function createUser() {
         tCoins: 0, bCoins: 0,
         instruments: ['piano'],
         unlockedSongs: 0,
+        credits: DAILY_CREDITS, // Init Credits
+        lastLoginDate: today,   // Init Date
         scores: { coin: { easy: [], medium: [], hard: [] }, songs: {} }
     };
     list.push(newUser);
@@ -50,7 +115,18 @@ function loginUser(index) {
     const list = JSON.parse(localStorage.getItem('fsr_users_v2') || '[]');
     currentUser = list[index];
     currentUser.idx = index; 
+    
+    // Safety check for old data
     if(!currentUser.scores) currentUser.scores = { coin: { easy: [], medium: [], hard: [] }, songs: {} };
+    
+    // Check Daily Credits
+    const today = new Date().toDateString();
+    if(currentUser.lastLoginDate !== today || typeof currentUser.credits === 'undefined') {
+        currentUser.credits = DAILY_CREDITS;
+        currentUser.lastLoginDate = today;
+        saveCurrentUser();
+    }
+
     updateLanding();
     showScreen('screen-landing');
 }
