@@ -6,19 +6,17 @@ import { saveCurrentUser, deductCredit } from './storage.js';
 
 /* --- CORE GAME FUNCTIONS --- */
 
-const PRO_BPM = 50; // Unified BPM for Pro Mode logic
+const PRO_BPM = 50; 
 
 export function startGame(mode, songIdx=null, isRetry=false) {
-    // CREDIT CHECK
     if (!state.currentUser || state.currentUser.credits <= 0) {
         alert("You are out of credits for today! Ask a parent for help.");
         return;
     }
     
-    // Deduct Credit
     const success = deductCredit();
     if(!success) return; 
-    updateLanding(); // Update UI to show new credit count
+    updateLanding();
 
     state.game.mode = mode;
     state.game.songId = songIdx;
@@ -28,22 +26,25 @@ export function startGame(mode, songIdx=null, isRetry=false) {
     state.game.nextBeatTime = 0;
     
     if(state.game.metronomeInt) clearInterval(state.game.metronomeInt);
-    if(state.game.animFrame) cancelAnimationFrame(state.game.animFrame); // Clear anim frame
+    if(state.game.animFrame) cancelAnimationFrame(state.game.animFrame); 
 
     document.getElementById('game-coins').innerText = 0;
     document.getElementById('game-timer').innerText = 0;
+    
+    // Reset Progress Bar
+    const prog = document.getElementById('progress-fill');
+    if(prog) prog.style.width = '0%';
+
     document.getElementById('game-start-overlay').style.display = 'flex';
     
     showScreen('screen-game');
     
     window.dispatchEvent(new Event('resize')); 
     
-    // RESET NOTE POSITION
     const noteGroup = document.getElementById('notes-group');
     noteGroup.classList.remove('animate-scroll'); 
     updateNotePosition(); 
     
-    // Force Reflow
     void noteGroup.offsetWidth; 
     noteGroup.classList.add('animate-scroll'); 
     
@@ -52,7 +53,6 @@ export function startGame(mode, songIdx=null, isRetry=false) {
         state.game.durations = [...state.game.lastDurations];
     } else {
         generateNotes();
-        // Save for retry
         state.game.lastNotes = [...state.game.notes];
         state.game.lastDurations = [...state.game.durations];
     }
@@ -64,22 +64,18 @@ export function startGame(mode, songIdx=null, isRetry=false) {
 export function retryGame() {
     startGame(state.game.mode, state.game.songId, true);
 }
-window.retryGame = retryGame; // expose to global for UI
+window.retryGame = retryGame;
 
 export function updateNotePosition() {
-    // Update Hit Line Position (for resizes)
     const line = document.getElementById('hit-line');
     if(line) {
         line.setAttribute('x1', state.HIT_X);
         line.setAttribute('x2', state.HIT_X);
     }
 
-    // In Pro Mode, smooth scrolling handles the transform via animation loop.
-    // We only manually set it here if we are NOT in the active game loop (e.g. init or end)
     const isProActive = (state.currentUser.difficulty === 'pro' && state.game.mode === 'coin' && document.getElementById('game-start-overlay').style.display === 'none');
     
     if (!isProActive) {
-        // Standard calculation assumes equal spacing (duration 1)
         const trans = state.HIT_X - (state.game.idx * 120);
         const grp = document.getElementById('notes-group');
         if(grp) grp.style.transform = `translateX(${trans}px)`;
@@ -97,54 +93,42 @@ export function generateNotes() {
             if(state.currentClef === 'bass') return n.replace('5','4').replace('4','3');
             return n;
         });
-        // Default durations for song mode (all quarters for simplicity unless DB updated)
         state.game.durations = state.game.notes.map(() => 1);
         
     } else {
-        // COIN RUN GENERATION
         const pool = [];
         const diff = state.currentUser.difficulty;
         
-        // Define pools
         if(diff === 'easy') {
             ['C','D','E','F','G'].forEach(n => pool.push(n+octave));
         } else if(diff === 'medium') {
             ['C','D','E','F','G','A','B'].forEach(n => pool.push(n+octave));
             pool.push('C'+(octave+1));
         } else if(diff === 'pro') {
-            // Pro Mode: White keys only (similar to medium but rhythm focused)
             ['C','D','E','F','G','A','B'].forEach(n => pool.push(n+octave));
             pool.push('C'+(octave+1));
         } else {
-            // Hard use full scale
             ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'].forEach(n => pool.push(n+octave));
             pool.push('C'+(octave+1));
         }
 
-        // --- Melodious Logic ---
-        const count = 16; // Fixed count for consistent runs
-        let currentIdx = Math.floor(pool.length / 2); // Start in middle
+        const count = 16; 
+        let currentIdx = Math.floor(pool.length / 2);
         
         if (diff === 'pro') {
-             // PRO MODE: RHYTHM GENERATION (4 bars of 4/4)
              for(let bar=0; bar<4; bar++) {
                  let beatsLeft = 4;
                  while(beatsLeft > 0) {
-                     // Pick a duration that fits
-                     const opts = [1]; // Quarter
-                     if(beatsLeft >= 2) opts.push(2); // Half
-                     if(beatsLeft >= 4) opts.push(4); // Whole
-                     if(beatsLeft >= 0.5) opts.push(0.5); // Eighth
+                     const opts = [1];
+                     if(beatsLeft >= 2) opts.push(2); 
+                     if(beatsLeft >= 4) opts.push(4); 
+                     if(beatsLeft >= 0.5) opts.push(0.5); 
                      
-                     // Weighted random for variety
                      const dur = opts[Math.floor(Math.random()*opts.length)];
                      
-                     // If eighth, force pairs usually to keep it simple, or just allow single
                      if(dur === 0.5 && beatsLeft >= 1 && Math.random()>0.3) {
-                         // Add two eighths
                          state.game.durations.push(0.5, 0.5);
                          beatsLeft -= 1;
-                         // Add 2 notes
                          for(let k=0; k<2; k++) {
                             currentIdx = getMelodiousIndex(currentIdx, pool.length);
                             state.game.notes.push(pool[currentIdx]);
@@ -158,7 +142,6 @@ export function generateNotes() {
                  }
              }
         } else {
-            // Normal Modes
             for(let i=0; i<count; i++) {
                 currentIdx = getMelodiousIndex(currentIdx, pool.length);
                 state.game.notes.push(pool[currentIdx]);
@@ -169,11 +152,11 @@ export function generateNotes() {
 }
 
 function getMelodiousIndex(curr, max) {
-    const moves = [-2, -1, -1, 0, 1, 1, 2, 3, -3, 4, -4, 5, -5]; // Weighted small steps
+    const moves = [-2, -1, -1, 0, 1, 1, 2, 3, -3, 4, -4, 5, -5];
     let move = moves[Math.floor(Math.random() * moves.length)];
     let next = curr + move;
-    if(next < 0) next = 0; // Clamp
-    if(next >= max) next = max - 1; // Clamp
+    if(next < 0) next = 0; 
+    if(next >= max) next = max - 1; 
     return next;
 }
 
@@ -185,8 +168,6 @@ export function renderSheet() {
     
     noteGroup.innerHTML = '';
     
-    // --- Render Stationary Pink Hit Line ---
-    // Remove existing if any
     const oldLine = document.getElementById('hit-line');
     if(oldLine) oldLine.remove();
 
@@ -196,14 +177,11 @@ export function renderSheet() {
     line.setAttribute('x2', state.HIT_X);
     line.setAttribute('y1', 0);
     line.setAttribute('y2', 300);
-    line.setAttribute('stroke', '#FF69B4'); // Hot Pink
+    line.setAttribute('stroke', '#FF69B4');
     line.setAttribute('stroke-width', 4);
     line.setAttribute('opacity', 0.6);
-    // Insert before notes-group so notes fly over it
     svgContainer.insertBefore(line, noteGroup);
 
-
-    // --- Clef Display ---
     if(state.currentClef === 'treble') {
         trebleSvg.style.display = 'block';
         bassSvg.style.display = 'none';
@@ -212,7 +190,6 @@ export function renderSheet() {
         bassSvg.style.display = 'block';
     }
     
-    // Track cumulative X position for variable note spacing
     let currentX = 0;
     const PIXELS_PER_BEAT = 120;
 
@@ -223,20 +200,17 @@ export function renderSheet() {
         
         const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
         
-        // Use cumulative X instead of index-based X
         g.setAttribute('transform', `translate(${currentX}, ${y})`); 
         g.setAttribute('class', `note ${i===0?'current':'inactive'}`);
         g.setAttribute('id', `note-${i}`);
         
         const dur = state.game.durations[i] || 1;
 
-        // Advance X for the NEXT note based on THIS note's duration
         currentX += (dur * PIXELS_PER_BEAT);
 
-        // Ledger Lines
         let needsLine = false;
         if(state.currentClef==='treble' && note==='C4') needsLine=true;
-        if(state.currentClef==='bass' && (note==='C4'||note==='E5')) needsLine=true; // E5 approx high for bass
+        if(state.currentClef==='bass' && (note==='C4'||note==='E5')) needsLine=true; 
         
         if(needsLine) {
             const l = document.createElementNS("http://www.w3.org/2000/svg", "line");
@@ -246,7 +220,6 @@ export function renderSheet() {
             g.appendChild(l);
         }
 
-        // Note Head
         const oval = document.createElementNS("http://www.w3.org/2000/svg", "ellipse");
         oval.setAttribute('rx', 12); oval.setAttribute('ry', 9);
         oval.setAttribute('class', 'note-head');
@@ -254,16 +227,14 @@ export function renderSheet() {
         oval.setAttribute('stroke-width', '2');
         
         if(dur >= 2) {
-             oval.setAttribute('fill', '#fff'); // Hollow for Half/Whole
+             oval.setAttribute('fill', '#fff'); 
         } else {
-             oval.setAttribute('class', 'note-head filled'); // Filled CSS class handles color
-             // Fallback if css fails
+             oval.setAttribute('class', 'note-head filled'); 
              oval.setAttribute('fill', 'currentColor'); 
         }
         g.appendChild(oval);
 
-        // Stem
-        if (dur < 4) { // Whole notes have no stem
+        if (dur < 4) { 
             const stem = document.createElementNS("http://www.w3.org/2000/svg", "line");
             stem.setAttribute('stroke', '#000');
             stem.setAttribute('stroke-width', 2);
@@ -278,7 +249,6 @@ export function renderSheet() {
             }
             g.appendChild(stem);
             
-            // Flag for Eighth Note
             if (dur === 0.5) {
                 const flag = document.createElementNS("http://www.w3.org/2000/svg", "path");
                 flag.setAttribute('fill', 'none');
@@ -340,13 +310,11 @@ export function renderKeyboard() {
 export function beginRound() {
     document.getElementById('game-start-overlay').style.display = 'none';
     
-    // --- Pro Mode Countdown & Logic ---
     if (state.currentUser.difficulty === 'pro' && state.game.mode === 'coin') {
         startProCountdown();
         return;
     }
 
-    // --- Standard Mode Start ---
     state.game.startTime = Date.now();
     state.game.noteTime = Date.now();
     
@@ -359,11 +327,9 @@ export function beginRound() {
     }, 1000);
 }
 
-// New: Pro Mode Countdown
 function startProCountdown() {
     let count = 4;
-    // const BPM = 20; // Unused here
-    const interval = 60000 / 60; // Keep countdown brisk (1s)
+    const interval = 60000 / 60; 
     
     let overlay = document.getElementById('countdown-overlay');
     if(!overlay) {
@@ -377,7 +343,7 @@ function startProCountdown() {
     const tick = () => {
         if(count > 0) {
             overlay.innerText = count;
-            playClick(); // Sound click
+            playClick(); 
             count--;
             setTimeout(tick, interval);
         } else {
@@ -388,9 +354,7 @@ function startProCountdown() {
     tick();
 }
 
-// New: Pro Mode Game Loop
 function startProGame() {
-    // FIX: Remove CSS transition so JS can control scrolling precisely without drag/lag
     const noteGroup = document.getElementById('notes-group');
     if(noteGroup) noteGroup.classList.remove('animate-scroll');
 
@@ -400,36 +364,29 @@ function startProGame() {
     
     const interval = 60000 / PRO_BPM;
 
-    // Start Metronome Audio
     state.game.metronomeInt = setInterval(() => playClick(), interval);
     
-    // Start Visual Scroll & Logic Loop
     const animate = () => {
-        // Exit if game ended
         if(state.game.mode !== 'coin' || state.currentUser.difficulty !== 'pro') return;
         
         const now = Date.now();
 
-        // --- Auto-Advance / Miss Logic ---
         if(state.game.idx < state.game.notes.length) {
             const dur = state.game.durations[state.game.idx];
             const msPerBeat = 60000 / PRO_BPM;
             const currentDurationMs = dur * msPerBeat;
-            // Deadline is end of the note duration
             const deadline = state.game.nextBeatTime + currentDurationMs;
 
             if (now > deadline) {
-                 // Missed! Auto-advance
                  const currSvg = document.getElementById(`note-${state.game.idx}`);
                  if(currSvg) {
                      currSvg.classList.remove('current');
                      currSvg.classList.add('inactive');
                      currSvg.style.opacity = 0.4;
                      const head = currSvg.querySelector('.note-head');
-                     if(head) head.setAttribute('fill', '#ff4444'); // Red feedback
+                     if(head) head.setAttribute('fill', '#ff4444'); 
                  }
                  
-                 // Show Miss
                  const float = document.createElement('div');
                  float.className = 'feedback-anim';
                  float.innerText = "Miss";
@@ -440,30 +397,29 @@ function startProGame() {
                  setTimeout(()=>float.remove(), 1000);
 
                  state.game.idx++;
-                 state.game.nextBeatTime += currentDurationMs; // Shift expected time for next note
-                 updateNotePosition(); // Updates 'current' class on new note
+                 
+                 // Update Progress
+                 const pct = (state.game.idx / state.game.notes.length) * 100;
+                 const prog = document.getElementById('progress-fill');
+                 if(prog) prog.style.width = pct + '%';
+
+                 state.game.nextBeatTime += currentDurationMs; 
+                 updateNotePosition(); 
             }
         }
 
-        // --- End Game Check ---
         if(state.game.idx >= state.game.notes.length) {
-            // Wait for the last note's time to fully pass (visual finish)
             if (now > state.game.nextBeatTime) {
                 endGame();
                 return;
             }
         }
 
-        // --- Visual Scrolling ---
         const elapsed = now - state.game.startTime;
-        const beatTime = 60000 / PRO_BPM; // Use unified BPM
+        const beatTime = 60000 / PRO_BPM; 
         
-        // Calculate shift: 1 Beat = 120px spacing
-        // Since renderSheet now spaces notes based on duration * 120,
-        // and time flows linearly, this shift will align perfectly.
         const pxShift = (elapsed / beatTime) * 120;
         
-        // Target: Current beat note should align with HIT_X
         const currentX = state.HIT_X - pxShift;
         
         const grp = document.getElementById('notes-group');
@@ -473,7 +429,6 @@ function startProGame() {
     };
     state.game.animFrame = requestAnimationFrame(animate);
 
-    // Score Timer
     state.game.timerInt = setInterval(() => {
         const t = Math.floor((Date.now() - state.game.startTime)/1000);
         const el = document.getElementById('game-timer');
@@ -491,33 +446,25 @@ export function handleInput(note, el) {
         let isTimingGood = true;
         let earned = 0;
 
-        // --- Pro Mode Rhythm Check ---
         if(isPro) {
             const now = Date.now();
-            // Calculate timing against the ideal beat time
-            const diff = now - state.game.nextBeatTime; // + is Late, - is Early
+            const diff = now - state.game.nextBeatTime; 
             const absDiff = Math.abs(diff);
 
-            const msPerBeat = 60000 / PRO_BPM; // Use unified BPM
+            const msPerBeat = 60000 / PRO_BPM; 
             const dur = state.game.durations[state.game.idx];
             const noteDurationMs = dur * msPerBeat;
 
-            // Updated Scoring Logic per requirements
             if (absDiff <= (noteDurationMs * 0.25)) {
-                // Within +/- 25% window
                 earned = 5;
             } else if (diff > (noteDurationMs * 0.25) && diff <= noteDurationMs) {
-                // Late but within duration
                 earned = 3;
             } else {
-                // Too Early or Too Late (missed window entirely)
                 earned = 0;
             }
 
-            // Always advance in Pro mode, but earned might be 0
             isTimingGood = true; 
             
-            // Advance expected time for next note
             state.game.nextBeatTime += noteDurationMs;
         }
 
@@ -530,14 +477,12 @@ export function handleInput(note, el) {
             
             if(state.game.mode === 'coin') {
                 if(!isPro) {
-                    earned = 1; // Standard mode
+                    earned = 1; 
                 } 
-                // In Pro mode 'earned' is already calculated
                 
                 state.game.coins += earned;
                 document.getElementById('game-coins').innerText = state.game.coins;
                 
-                // Show floating text if earned > 0, else maybe "Miss"?
                 const float = document.createElement('div');
                 float.className = 'feedback-anim';
                 float.innerText = earned > 0 ? `+${earned}` : '0';
@@ -552,28 +497,29 @@ export function handleInput(note, el) {
             if(currSvg) {
                 currSvg.classList.remove('current');
                 currSvg.classList.add('inactive');
-                // Fill if it was hollow, to show completion
                 const head = currSvg.querySelector('.note-head');
                 if(head) head.setAttribute('fill', 'var(--primary)'); 
             }
             
             state.game.idx++;
+
+            // Update Progress Bar
+            const pct = (state.game.idx / state.game.notes.length) * 100;
+            const prog = document.getElementById('progress-fill');
+            if(prog) prog.style.width = pct + '%';
+
             state.game.noteTime = Date.now();
             updateNotePosition();
 
-            // Note: For Pro mode, we let the animate loop handle the final endGame call
-            // to ensure visual smoothness, unless we are strictly not Pro.
             if(!isPro && state.game.idx >= state.game.notes.length) {
                 endGame();
             }
         } else {
-             // Correct Pitch, Bad Rhythm (This block acts as fallback for non-pro logic mainly)
              state.game.mistakes++;
              playTone(note, 'bad');
         }
         
     } else {
-        // Wrong Note
         playTone(note, 'bad');
         el.classList.add('wrong');
         setTimeout(()=>el.classList.remove('wrong'), 300);
@@ -586,7 +532,6 @@ export function endGame() {
     if(state.game.metronomeInt) clearInterval(state.game.metronomeInt);
     if(state.game.animFrame) cancelAnimationFrame(state.game.animFrame);
     
-    // Cleanup Overlay
     const overlay = document.getElementById('countdown-overlay');
     if(overlay) overlay.style.display = 'none';
 
@@ -595,7 +540,7 @@ export function endGame() {
     let msg = "";
 
     if(!state.currentUser.scores) state.currentUser.scores = { coin: { easy:[], medium:[], hard:[], pro:[] }, songs: {} };
-    if(!state.currentUser.scores.coin.pro) state.currentUser.scores.coin.pro = []; // Ensure schema exists
+    if(!state.currentUser.scores.coin.pro) state.currentUser.scores.coin.pro = []; 
 
     if(state.game.mode === 'coin') {
         const arr = state.currentUser.scores.coin[state.currentUser.difficulty];
@@ -605,7 +550,6 @@ export function endGame() {
         else if(totalTime < 30) bonus = 15;
         else if(totalTime < 45) bonus = 5;
         
-        // In pro mode, we don't give speed bonuses, score is pure accuracy
         if(state.currentUser.difficulty !== 'pro') {
             finalCoins += bonus;
             if(bonus>0) msg = `Speed Bonus: +${bonus}!`;
@@ -613,13 +557,11 @@ export function endGame() {
             msg = "Sequence Complete!";
         }
 
-        // Leaderboard Logic: Save COINS, Sort DESCENDING
         arr.push(finalCoins);
-        arr.sort((a,b) => b - a); // Higher score first
+        arr.sort((a,b) => b - a); 
         if(arr.length > 5) arr.length = 5; 
         
     } else {
-        // ... (Song mode logic same as before)
         if(state.game.mistakes === 0) {
             if(!state.currentUser.scores.songs[state.game.songId]) state.currentUser.scores.songs[state.game.songId] = [];
             const arr = state.currentUser.scores.songs[state.game.songId];
@@ -650,7 +592,6 @@ export function endGame() {
     document.getElementById('res-coins').innerText = finalCoins;
     document.getElementById('res-msg').innerText = msg;
     
-    // Show Retry Button for Coin Runs
     const retryBtn = document.getElementById('btn-retry');
     if(state.game.mode === 'coin') {
         retryBtn.style.display = 'block';
