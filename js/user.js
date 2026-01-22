@@ -1,3 +1,4 @@
+/* --- USER LOGIC --- */
 function loadUsers() {
     const list = JSON.parse(localStorage.getItem('fsr_users_v2') || '[]');
     const cont = document.getElementById('existing-users-list');
@@ -28,16 +29,45 @@ function generateName() {
     document.getElementById('gen-name').innerText = tempUser.name;
 }
 
+function setRegDiff(lvl, el) {
+    tempUser.diff = lvl;
+    document.querySelectorAll('.toggle-opt').forEach(d => d.classList.remove('selected'));
+    el.classList.add('selected');
+    let t = "C to G (White keys)";
+    if(lvl === 'medium') t = "One Octave (White keys)";
+    if(lvl === 'hard') t = "One Octave (Black & White)";
+    document.getElementById('diff-desc').innerText = t;
+}
+
+function selectAvatar(em, event) {
+    tempUser.avatar = em;
+    document.querySelectorAll('.emoji-opt').forEach(e => e.classList.remove('selected'));
+    if(event && event.target) event.target.classList.add('selected');
+}
+
+function showNewUserForm() {
+    document.getElementById('new-user-form').style.display='block';
+    generateName();
+}
+
+function hideNewUserForm() {
+    document.getElementById('new-user-form').style.display='none';
+}
+
 function createUser() {
     const list = JSON.parse(localStorage.getItem('fsr_users_v2') || '[]');
     const newUser = {
         name: tempUser.name,
         avatar: tempUser.avatar,
         difficulty: tempUser.diff,
-        tCoins: 0, bCoins: 0,
+        tCoins: 0,
+        bCoins: 0,
         instruments: ['piano'],
         unlockedSongs: 0,
-        scores: { coin: { easy: [], medium: [], hard: [] }, songs: {} }
+        scores: {
+            coin: { easy: [], medium: [], hard: [] },
+            songs: {}
+        }
     };
     list.push(newUser);
     localStorage.setItem('fsr_users_v2', JSON.stringify(list));
@@ -46,17 +76,30 @@ function createUser() {
     loginUser(list.length - 1);
 }
 
+function deleteUser(index) {
+    if(!confirm("Are you sure you want to delete this player?")) return;
+    const list = JSON.parse(localStorage.getItem('fsr_users_v2') || '[]');
+    list.splice(index, 1);
+    localStorage.setItem('fsr_users_v2', JSON.stringify(list));
+    loadUsers();
+}
+
 function loginUser(index) {
     const list = JSON.parse(localStorage.getItem('fsr_users_v2') || '[]');
     currentUser = list[index];
     currentUser.idx = index; 
-    if(!currentUser.scores) currentUser.scores = { coin: { easy: [], medium: [], hard: [] }, songs: {} };
+    
+    // Legacy migration check
+    if(!currentUser.scores) {
+        currentUser.scores = { coin: { easy: [], medium: [], hard: [] }, songs: {} };
+    }
+
     updateLanding();
     showScreen('screen-landing');
 }
 
 function saveCurrentUser() {
-    if(!currentUser) return;
+    if(currentUser === null) return;
     const list = JSON.parse(localStorage.getItem('fsr_users_v2') || '[]');
     list[currentUser.idx] = currentUser;
     localStorage.setItem('fsr_users_v2', JSON.stringify(list));
