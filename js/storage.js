@@ -8,10 +8,12 @@ export const ADMIN_PIN = "123456";
 function checkDailyCredits(user) {
     const today = new Date().toDateString();
     
-    // Legacy support: ensure credits exist if undefined
-    if (typeof user.credits === 'undefined') {
-        user.credits = 0; // Initialize at 0, logic below will top it up
-    }
+    // Legacy support: Initialize missing fields for old users
+    if (typeof user.credits === 'undefined') user.credits = 0;
+    if (!user.instruments) user.instruments = ['piano']; // Fixes the crash
+    if (typeof user.tCoins === 'undefined') user.tCoins = 0;
+    if (typeof user.bCoins === 'undefined') user.bCoins = 0;
+    if (typeof user.unlockedSongs === 'undefined') user.unlockedSongs = 0;
 
     // If it's a new day
     if (user.lastLogin !== today) {
@@ -119,7 +121,7 @@ export function loginUser(index) {
     const list = JSON.parse(localStorage.getItem('fsr_users_v2') || '[]');
     let user = list[index];
     
-    // Check for daily reset
+    // Check for daily reset AND initialize missing fields
     user = checkDailyCredits(user);
     
     state.currentUser = user;
@@ -129,7 +131,7 @@ export function loginUser(index) {
         state.currentUser.scores = { coin: { easy: [], medium: [], hard: [] }, songs: {} };
     }
 
-    // Save back in case date/credits were updated
+    // Save back in case date/credits/instruments were updated
     list[index] = user;
     localStorage.setItem('fsr_users_v2', JSON.stringify(list));
 
