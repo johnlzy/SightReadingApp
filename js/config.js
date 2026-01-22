@@ -31,5 +31,12 @@ export const SONG_DB = [
     { title: "Old MacDonald", reward: 70, notes: ["G4","G4","G4","D4","E4","E4","D4","B4","B4","A4","A4","G4","D4","G4","G4","G4","D4","E4","E4","D4","G4","G4","G4","D4","E4","E4","D4"] },
     { title: "London Bridge", reward: 80, notes: ["G4","A4","G4","F4","E4","F4","G4","D4","E4","F4","E4","F4","G4","G4","A4","G4","F4","E4","F4","G4","D4","G4","E4","C4"] },
     { title: "Saints Go Marching", reward: 90, notes: ["C4","E4","F4","G4","C4","E4","F4","G4","C4","E4","F4","G4","E4","C4","E4","D4","E4","E4","D4","C4","C4","E4","G4","G4","F4","E4","F4","G4","E4","C4","D4","C4"] },
-    { title: "Frere Jacques", reward: 100, notes: ["C4","D4","E4","C4","C4","D4","E4","C4","E4","F4","G4","E4","F4","G4","G4","A4","G4","F4","E4","C4","G4","A4","G4","F4","E4","C4","C4","G3","C4","C4","G3","C4"] }
+    { title: "Frere Jacques", reward: 100, notes: ["C4","D4","E4","C4","C4","D4","E4","C4","E4","F4","G4","E4","F4","G4","G4","A4","G4","F4","E4","C4","G4","A4","G4","F4","E4","C4","C4","G3","C4","C4","G3","C4"] },
+    
+    // NEW SONGS
+    { title: "Fur Elise (Theme)", reward: 110, notes: ["E4","D#4","E4","D#4","E4","B3","D4","C4","A3","C3","E3","A3","B3","E3","G#3","B3","C4","E3","E4","D#4","E4","D#4","E4","B3","D4","C4","A3"] },
+    { title: "Minuet in G", reward: 120, notes: ["D4","G3","A3","B3","C4","D4","G3","G3","E4","C4","D4","E4","F#4","G4","G3","G3","C4","D4","C4","B3","A3","B3","C4","B3","A3","G3","F#3","G3","A3","B3","G3","B3","A3"] },
+    { title: "Swan Lake", reward: 130, notes: ["E4","A3","B3","C4","D4","E4","C4","A3","F4","D4","B3","G#3","E4","A3","B3","C4","D4","E4","C4","A3","F4","D4","B3","G#3","A3"] },
+    { title: "The Entertainer", reward: 140, notes: ["D4","D#4","E4","C5","E4","C5","E4","C5","C5","D5","D#5","E5","C5","D5","E5","B4","D5","C5","D4","D#4","E4","C5","E4","C5","E4","C5"] },
+    { title: "Habanera (Carmen)", reward: 150, notes: ["D4","C#4","D4","C#4","D4","A3","A#3","G3","C4","B3","C4","B3","C4","G3","A3","F#3","D4","C#4","D4","C#4","D4","A3","A#3","G3","D#4","D4","C#4","C4","B3"] }
 ];
