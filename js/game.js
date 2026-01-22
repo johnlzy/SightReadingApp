@@ -7,6 +7,7 @@ import { saveCurrentUser, deductCredit } from './storage.js';
 /* --- CORE GAME FUNCTIONS --- */
 
 const PRO_BPM = 50; 
+const NOTE_ORDER = ['C','D','E','F','G','A','B'];
 
 export function startGame(mode, songIdx=null, isRetry=false) {
     if (!state.currentUser || state.currentUser.credits <= 0) {
@@ -77,8 +78,6 @@ export function updateNotePosition() {
     
     if (!isProActive) {
         // Calculate the X offset based on the cumulative duration of previous notes
-        // Previously: idx * 120. Now we sum durations.
-        
         let cumulativeDuration = 0;
         for(let i=0; i<state.game.idx; i++) {
              cumulativeDuration += (state.game.durations[i] || 1);
@@ -96,7 +95,7 @@ export function generateNotes() {
     const octave = state.currentClef === 'treble' ? 4 : 3;
     
     if(state.game.mode === 'song') {
-        const songData = SONG_DB[state.game.songId].melody; // Changed from .notes to .melody
+        const songData = SONG_DB[state.game.songId].melody; 
         
         state.game.notes = songData.map(item => {
             let n = item.n;
@@ -171,6 +170,31 @@ function getMelodiousIndex(curr, max) {
     return next;
 }
 
+// New Helper to calculate Y position dynamically to avoid missing notes
+function getNoteY(note, clef) {
+    const natural = note.replace(/[#b]/g, '');
+    const letter = natural.charAt(0);
+    const octave = parseInt(natural.slice(1));
+
+    if (clef === 'treble') {
+        // Ref C4 = 220 (One ledger line below staff)
+        const refOctave = 4;
+        const refIndex = 0; // C
+        const refY = 220;
+        const idx = NOTE_ORDER.indexOf(letter);
+        const steps = (octave - refOctave) * 7 + (idx - refIndex);
+        return refY - (steps * 10);
+    } else {
+        // Ref C3 = 170 (Second space from bottom)
+        const refOctave = 3;
+        const refIndex = 0; // C
+        const refY = 170; 
+        const idx = NOTE_ORDER.indexOf(letter);
+        const steps = (octave - refOctave) * 7 + (idx - refIndex);
+        return refY - (steps * 10);
+    }
+}
+
 export function renderSheet() {
     const noteGroup = document.getElementById('notes-group');
     const svgContainer = document.getElementById('music-svg');
@@ -205,9 +229,8 @@ export function renderSheet() {
     const PIXELS_PER_BEAT = 120;
 
     state.game.notes.forEach((note, i) => {
-        let y = 0;
-        if(state.currentClef==='treble') y = TREBLE_Y[note] || 220;
-        else y = BASS_Y[note] || 100;
+        // Use dynamic calculation instead of static map
+        const y = getNoteY(note, state.currentClef);
         
         const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
         
@@ -217,12 +240,17 @@ export function renderSheet() {
         
         const dur = state.game.durations[i] || 1;
 
-        // NOTE: This visualizes the rhythm
         currentX += (dur * PIXELS_PER_BEAT);
 
+        // Dynamic Ledger Lines
+        // Staff lines are roughly 120 to 200. 
+        // 220 is C4 (line). 100 is A5 (line).
+        // Simple check: if Y is divisible by 20 (line) and outside the 120-200 range?
+        // Let's stick to C4 and standard ranges for simplicity or check specific positions.
+        // C4(220) needs line. A3(240) needs line. A5(100) needs line.
         let needsLine = false;
-        if(state.currentClef==='treble' && note==='C4') needsLine=true;
-        if(state.currentClef==='bass' && (note==='C4'||note==='E5')) needsLine=true; 
+        if(y >= 220 && (y-220)%20 === 0) needsLine = true; // Low notes on lines
+        if(y <= 100 && (100-y)%20 === 0) needsLine = true; // High notes on lines
         
         if(needsLine) {
             const l = document.createElementNS("http://www.w3.org/2000/svg", "line");
@@ -322,11 +350,22 @@ export function renderKeyboard() {
 export function beginRound() {
     document.getElementById('game-start-overlay').style.display = 'none';
     
-    if (state.currentUser.difficulty === 'pro' && state.game.mode === 'coin') {
-        startProCountdown();
+    // Updated: Use countdown for Pro Mode OR Song Mode
+    const isProCoin = (state.currentUser.difficulty === 'pro' && state.game.mode === 'coin');
+    const isSong = (state.game.mode === 'song');
+
+    if (isProCoin || isSong) {
+        startCountdown(() => {
+            if (isProCoin) startProGame();
+            else startStandardGame();
+        });
         return;
     }
 
+    startStandardGame();
+}
+
+function startStandardGame() {
     state.game.startTime = Date.now();
     state.game.noteTime = Date.now();
     
@@ -339,9 +378,9 @@ export function beginRound() {
     }, 1000);
 }
 
-function startProCountdown() {
+function startCountdown(callback) {
     let count = 4;
-    const interval = 60000 / 60; 
+    const interval = 1000; // 1 second per beat for standard countdown
     
     let overlay = document.getElementById('countdown-overlay');
     if(!overlay) {
@@ -360,7 +399,7 @@ function startProCountdown() {
             setTimeout(tick, interval);
         } else {
              overlay.style.display = 'none';
-             startProGame();
+             if(callback) callback();
         }
     };
     tick();
