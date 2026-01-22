@@ -1,11 +1,12 @@
 import { initAudio } from './js/audio.js';
-import { loadUsers, createUser, loginUser, deleteUser, logout } from './js/storage.js';
+// REMOVED: import from storage.js (loginUser, etc. are now handled inside ui.js)
 import { 
     showScreen, showNewUserForm, hideNewUserForm, generateName, 
     selectAvatar, setRegDiff, setClef, goToStore, goToSongs, 
     updateLanding, showScreen as showScreenAlias,
-    // NEW IMPORTS
-    handleNewUserClick, handleUserDelete, showParentPanel, hideParentPanel, handleAddCredit
+    handleNewUserClick, handleUserDelete, showParentPanel, hideParentPanel, handleAddCredit,
+    // NEW IMPORTS:
+    loadUsers, handleCreateUserUI, handleLogoutUI
 } from './js/ui.js';
 import { startGame, exitGame, beginRound, updateNotePosition } from './js/game.js';
 import { state, setHitX } from './js/state.js';
@@ -33,7 +34,6 @@ function handleResize() {
     }
 }
 
-// Attach functions to window so HTML 'onclick' attributes can see them
 window.initAudio = () => {
     initAudio();
     document.getElementById('overlay-start').style.display = 'none';
@@ -41,7 +41,7 @@ window.initAudio = () => {
     window.addEventListener('resize', handleResize);
     handleResize();
 
-    loadUsers();
+    loadUsers(); // Now called from UI
     showScreen('screen-register');
 };
 
@@ -69,10 +69,11 @@ window.setRegDiff = (lvl, el) => {
     setRegDiff(lvl);
 };
 
-window.createUser = createUser;
-window.loginUser = loginUser;
-window.deleteUser = deleteUser;
-window.logout = logout;
+// UPDATED: Now points to UI wrapper
+window.createUser = handleCreateUserUI; 
+window.logout = handleLogoutUI;
+// Removed window.loginUser and window.deleteUser as they are handled internally by UI loadUsers
+
 window.setClef = setClef;
 window.goToStore = goToStore;
 window.startGame = startGame;
