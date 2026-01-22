@@ -274,10 +274,12 @@ export function renderHighScores() {
     } else {
         scores.forEach((s, i) => {
             const div = document.createElement('div');
+            // FIX: Display unit as "coins" for coin mode, "s" for song mode
+            const unit = state.game.mode === 'coin' ? ' coins' : 's';
             div.className = 'score-row';
             div.innerHTML = `
                 <span style="font-weight:bold; color:${i===0?'gold':'#555'}">#${i+1}</span>
-                <span>${s}s</span>
+                <span>${s}${unit}</span>
             `;
             list.appendChild(div);
         });
