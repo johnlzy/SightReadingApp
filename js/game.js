@@ -390,6 +390,10 @@ function startProCountdown() {
 
 // New: Pro Mode Game Loop
 function startProGame() {
+    // FIX: Remove CSS transition so JS can control scrolling precisely without drag/lag
+    const noteGroup = document.getElementById('notes-group');
+    if(noteGroup) noteGroup.classList.remove('animate-scroll');
+
     state.game.startTime = Date.now();
     state.game.noteTime = Date.now();
     state.game.nextBeatTime = state.game.startTime; 
