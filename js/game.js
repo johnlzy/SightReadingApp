@@ -6,6 +6,8 @@ import { saveCurrentUser, deductCredit } from './storage.js';
 
 /* --- CORE GAME FUNCTIONS --- */
 
+const PRO_BPM = 50; // Unified BPM for Pro Mode logic
+
 export function startGame(mode, songIdx=null, isRetry=false) {
     // CREDIT CHECK
     if (!state.currentUser || state.currentUser.credits <= 0) {
@@ -77,6 +79,7 @@ export function updateNotePosition() {
     const isProActive = (state.currentUser.difficulty === 'pro' && state.game.mode === 'coin' && document.getElementById('game-start-overlay').style.display === 'none');
     
     if (!isProActive) {
+        // Standard calculation assumes equal spacing (duration 1)
         const trans = state.HIT_X - (state.game.idx * 120);
         const grp = document.getElementById('notes-group');
         if(grp) grp.style.transform = `translateX(${trans}px)`;
@@ -209,17 +212,26 @@ export function renderSheet() {
         bassSvg.style.display = 'block';
     }
     
+    // Track cumulative X position for variable note spacing
+    let currentX = 0;
+    const PIXELS_PER_BEAT = 120;
+
     state.game.notes.forEach((note, i) => {
         let y = 0;
         if(state.currentClef==='treble') y = TREBLE_Y[note] || 220;
         else y = BASS_Y[note] || 100;
         
         const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
-        g.setAttribute('transform', `translate(${i*120}, ${y})`); 
+        
+        // Use cumulative X instead of index-based X
+        g.setAttribute('transform', `translate(${currentX}, ${y})`); 
         g.setAttribute('class', `note ${i===0?'current':'inactive'}`);
         g.setAttribute('id', `note-${i}`);
         
         const dur = state.game.durations[i] || 1;
+
+        // Advance X for the NEXT note based on THIS note's duration
+        currentX += (dur * PIXELS_PER_BEAT);
 
         // Ledger Lines
         let needsLine = false;
@@ -350,8 +362,8 @@ export function beginRound() {
 // New: Pro Mode Countdown
 function startProCountdown() {
     let count = 4;
-    const BPM = 20; // Sync with game BPM
-    const interval = 60000 / 60; // Keep countdown brisk (1s) despite slow game
+    // const BPM = 20; // Unused here
+    const interval = 60000 / 60; // Keep countdown brisk (1s)
     
     let overlay = document.getElementById('countdown-overlay');
     if(!overlay) {
@@ -382,8 +394,7 @@ function startProGame() {
     state.game.noteTime = Date.now();
     state.game.nextBeatTime = state.game.startTime; 
     
-    const BPM = 50; // Reduced Speed
-    const interval = 60000 / BPM;
+    const interval = 60000 / PRO_BPM;
 
     // Start Metronome Audio
     state.game.metronomeInt = setInterval(() => playClick(), interval);
@@ -398,7 +409,7 @@ function startProGame() {
         // --- Auto-Advance / Miss Logic ---
         if(state.game.idx < state.game.notes.length) {
             const dur = state.game.durations[state.game.idx];
-            const msPerBeat = 60000 / 20;
+            const msPerBeat = 60000 / PRO_BPM;
             const currentDurationMs = dur * msPerBeat;
             // Deadline is end of the note duration
             const deadline = state.game.nextBeatTime + currentDurationMs;
@@ -441,9 +452,11 @@ function startProGame() {
 
         // --- Visual Scrolling ---
         const elapsed = now - state.game.startTime;
-        const beatTime = 60000 / 20; // 20 BPM
+        const beatTime = 60000 / PRO_BPM; // Use unified BPM
         
         // Calculate shift: 1 Beat = 120px spacing
+        // Since renderSheet now spaces notes based on duration * 120,
+        // and time flows linearly, this shift will align perfectly.
         const pxShift = (elapsed / beatTime) * 120;
         
         // Target: Current beat note should align with HIT_X
@@ -481,8 +494,7 @@ export function handleInput(note, el) {
             const diff = now - state.game.nextBeatTime; // + is Late, - is Early
             const absDiff = Math.abs(diff);
 
-            const BPM = 20;
-            const msPerBeat = 60000 / BPM;
+            const msPerBeat = 60000 / PRO_BPM; // Use unified BPM
             const dur = state.game.durations[state.game.idx];
             const noteDurationMs = dur * msPerBeat;
 
@@ -583,14 +595,12 @@ export function endGame() {
 
     if(state.game.mode === 'coin') {
         const arr = state.currentUser.scores.coin[state.currentUser.difficulty];
-        arr.push(totalTime);
-        arr.sort((a,b) => a - b); 
-        if(arr.length > 5) arr.length = 5; 
         
         let bonus = 0;
         if(totalTime < 15) bonus = 25;
         else if(totalTime < 30) bonus = 15;
         else if(totalTime < 45) bonus = 5;
+        
         // In pro mode, we don't give speed bonuses, score is pure accuracy
         if(state.currentUser.difficulty !== 'pro') {
             finalCoins += bonus;
@@ -598,6 +608,11 @@ export function endGame() {
         } else {
             msg = "Sequence Complete!";
         }
+
+        // Leaderboard Logic: Save COINS, Sort DESCENDING
+        arr.push(finalCoins);
+        arr.sort((a,b) => b - a); // Higher score first
+        if(arr.length > 5) arr.length = 5; 
         
     } else {
         // ... (Song mode logic same as before)
