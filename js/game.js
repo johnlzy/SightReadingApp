@@ -350,8 +350,8 @@ export function beginRound() {
 // New: Pro Mode Countdown
 function startProCountdown() {
     let count = 4;
-    const BPM = 40; // Reduced from 80
-    const interval = 60000 / BPM;
+    const BPM = 20; // Sync with game BPM
+    const interval = 60000 / 60; // Keep countdown brisk (1s) despite slow game
     
     let overlay = document.getElementById('countdown-overlay');
     if(!overlay) {
@@ -382,20 +382,66 @@ function startProGame() {
     state.game.noteTime = Date.now();
     state.game.nextBeatTime = state.game.startTime; 
     
-    const BPM = 40; // Reduced from 80
+    const BPM = 50; // Reduced Speed
     const interval = 60000 / BPM;
 
     // Start Metronome Audio
     state.game.metronomeInt = setInterval(() => playClick(), interval);
     
-    // Start Visual Scroll Loop (Smooth Sliding)
+    // Start Visual Scroll & Logic Loop
     const animate = () => {
         // Exit if game ended
         if(state.game.mode !== 'coin' || state.currentUser.difficulty !== 'pro') return;
         
         const now = Date.now();
+
+        // --- Auto-Advance / Miss Logic ---
+        if(state.game.idx < state.game.notes.length) {
+            const dur = state.game.durations[state.game.idx];
+            const msPerBeat = 60000 / 20;
+            const currentDurationMs = dur * msPerBeat;
+            // Deadline is end of the note duration
+            const deadline = state.game.nextBeatTime + currentDurationMs;
+
+            if (now > deadline) {
+                 // Missed! Auto-advance
+                 const currSvg = document.getElementById(`note-${state.game.idx}`);
+                 if(currSvg) {
+                     currSvg.classList.remove('current');
+                     currSvg.classList.add('inactive');
+                     currSvg.style.opacity = 0.4;
+                     const head = currSvg.querySelector('.note-head');
+                     if(head) head.setAttribute('fill', '#ff4444'); // Red feedback
+                 }
+                 
+                 // Show Miss
+                 const float = document.createElement('div');
+                 float.className = 'feedback-anim';
+                 float.innerText = "Miss";
+                 float.style.color = "#ff4444";
+                 float.style.left = state.HIT_X + 'px';
+                 float.style.top = '100px';
+                 document.body.appendChild(float);
+                 setTimeout(()=>float.remove(), 1000);
+
+                 state.game.idx++;
+                 state.game.nextBeatTime += currentDurationMs; // Shift expected time for next note
+                 updateNotePosition(); // Updates 'current' class on new note
+            }
+        }
+
+        // --- End Game Check ---
+        if(state.game.idx >= state.game.notes.length) {
+            // Wait for the last note's time to fully pass (visual finish)
+            if (now > state.game.nextBeatTime) {
+                endGame();
+                return;
+            }
+        }
+
+        // --- Visual Scrolling ---
         const elapsed = now - state.game.startTime;
-        const beatTime = 60000 / 40; // Consistent with new BPM
+        const beatTime = 60000 / 20; // 20 BPM
         
         // Calculate shift: 1 Beat = 120px spacing
         const pxShift = (elapsed / beatTime) * 120;
@@ -435,12 +481,12 @@ export function handleInput(note, el) {
             const diff = now - state.game.nextBeatTime; // + is Late, - is Early
             const absDiff = Math.abs(diff);
 
-            const BPM = 40;
+            const BPM = 20;
             const msPerBeat = 60000 / BPM;
             const dur = state.game.durations[state.game.idx];
             const noteDurationMs = dur * msPerBeat;
 
-            // Updated Scoring Logic
+            // Updated Scoring Logic per requirements
             if (absDiff <= (noteDurationMs * 0.25)) {
                 // Within +/- 25% window
                 earned = 5;
@@ -478,7 +524,7 @@ export function handleInput(note, el) {
                 // Show floating text if earned > 0, else maybe "Miss"?
                 const float = document.createElement('div');
                 float.className = 'feedback-anim';
-                float.innerText = earned > 0 ? `+${earned}` : 'Miss';
+                float.innerText = earned > 0 ? `+${earned}` : '0';
                 float.style.color = earned > 0 ? 'var(--accent)' : '#999';
                 float.style.left = el.getBoundingClientRect().left + 'px';
                 float.style.top = (el.getBoundingClientRect().top - 50) + 'px';
@@ -499,21 +545,10 @@ export function handleInput(note, el) {
             state.game.noteTime = Date.now();
             updateNotePosition();
 
-            if(state.game.idx >= state.game.notes.length) {
-                if(isPro) {
-                    // Wait for last note duration to complete before ending
-                    const remainingTime = state.game.nextBeatTime - Date.now();
-                    const wait = remainingTime > 0 ? remainingTime : 0;
-                    setTimeout(endGame, wait);
-                } else {
-                    endGame();
-                }
-            } else {
-                const next = document.getElementById(`note-${state.game.idx}`);
-                if(next) {
-                    next.classList.remove('inactive');
-                    next.classList.add('current');
-                }
+            // Note: For Pro mode, we let the animate loop handle the final endGame call
+            // to ensure visual smoothness, unless we are strictly not Pro.
+            if(!isPro && state.game.idx >= state.game.notes.length) {
+                endGame();
             }
         } else {
              // Correct Pitch, Bad Rhythm (This block acts as fallback for non-pro logic mainly)
