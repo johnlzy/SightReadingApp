@@ -108,8 +108,12 @@ export function generateNotes() {
         } else if(diff === 'medium') {
             ['C','D','E','F','G','A','B'].forEach(n => pool.push(n+octave));
             pool.push('C'+(octave+1));
+        } else if(diff === 'pro') {
+            // Pro Mode: White keys only (similar to medium but rhythm focused)
+            ['C','D','E','F','G','A','B'].forEach(n => pool.push(n+octave));
+            pool.push('C'+(octave+1));
         } else {
-            // Hard & Pro use full scale
+            // Hard use full scale
             ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'].forEach(n => pool.push(n+octave));
             pool.push('C'+(octave+1));
         }
@@ -346,7 +350,7 @@ export function beginRound() {
 // New: Pro Mode Countdown
 function startProCountdown() {
     let count = 4;
-    const BPM = 80;
+    const BPM = 40; // Reduced from 80
     const interval = 60000 / BPM;
     
     let overlay = document.getElementById('countdown-overlay');
@@ -378,7 +382,7 @@ function startProGame() {
     state.game.noteTime = Date.now();
     state.game.nextBeatTime = state.game.startTime; 
     
-    const BPM = 80;
+    const BPM = 40; // Reduced from 80
     const interval = 60000 / BPM;
 
     // Start Metronome Audio
@@ -391,15 +395,12 @@ function startProGame() {
         
         const now = Date.now();
         const elapsed = now - state.game.startTime;
-        const beatTime = 60000 / 80; // ~750ms
+        const beatTime = 60000 / 40; // Consistent with new BPM
         
         // Calculate shift: 1 Beat = 120px spacing
         const pxShift = (elapsed / beatTime) * 120;
         
         // Target: Current beat note should align with HIT_X
-        // Since notes start at idx*120, note 0 starts at 0 relative.
-        // We want Note 0 to be at HIT_X at Time 0.
-        // transformX = HIT_X - pxShift
         const currentX = state.HIT_X - pxShift;
         
         const grp = document.getElementById('notes-group');
@@ -430,20 +431,32 @@ export function handleInput(note, el) {
         // --- Pro Mode Rhythm Check ---
         if(isPro) {
             const now = Date.now();
-            const diff = Math.abs(now - state.game.nextBeatTime);
-            // 80 BPM = 750ms per beat. Margin of error +/- 250ms is generous
-            if(diff > 300 && state.game.idx > 0) { // Skip check for first note (count-in ambiguous)
-                isTimingGood = false;
-                // Feedback for timing could go here
-                el.classList.add('wrong'); // Reuse wrong visual for bad timing
-                setTimeout(()=>el.classList.remove('wrong'), 300);
-            }
-            
-            // Advance expected time for next note
-            const BPM = 80;
+            // Calculate timing against the ideal beat time
+            const diff = now - state.game.nextBeatTime; // + is Late, - is Early
+            const absDiff = Math.abs(diff);
+
+            const BPM = 40;
             const msPerBeat = 60000 / BPM;
             const dur = state.game.durations[state.game.idx];
-            state.game.nextBeatTime += (dur * msPerBeat);
+            const noteDurationMs = dur * msPerBeat;
+
+            // Updated Scoring Logic
+            if (absDiff <= (noteDurationMs * 0.25)) {
+                // Within +/- 25% window
+                earned = 5;
+            } else if (diff > (noteDurationMs * 0.25) && diff <= noteDurationMs) {
+                // Late but within duration
+                earned = 3;
+            } else {
+                // Too Early or Too Late (missed window entirely)
+                earned = 0;
+            }
+
+            // Always advance in Pro mode, but earned might be 0
+            isTimingGood = true; 
+            
+            // Advance expected time for next note
+            state.game.nextBeatTime += noteDurationMs;
         }
 
         if(isTimingGood) {
@@ -454,16 +467,19 @@ export function handleInput(note, el) {
             const dt = (Date.now() - state.game.noteTime) / 1000;
             
             if(state.game.mode === 'coin') {
-                earned = 1;
-                // Bonus logic
-                if(isPro) earned = 2; // Higher base for pro
+                if(!isPro) {
+                    earned = 1; // Standard mode
+                } 
+                // In Pro mode 'earned' is already calculated
                 
                 state.game.coins += earned;
                 document.getElementById('game-coins').innerText = state.game.coins;
                 
+                // Show floating text if earned > 0, else maybe "Miss"?
                 const float = document.createElement('div');
                 float.className = 'feedback-anim';
-                float.innerText = `+${earned}`;
+                float.innerText = earned > 0 ? `+${earned}` : 'Miss';
+                float.style.color = earned > 0 ? 'var(--accent)' : '#999';
                 float.style.left = el.getBoundingClientRect().left + 'px';
                 float.style.top = (el.getBoundingClientRect().top - 50) + 'px';
                 document.body.appendChild(float);
@@ -484,7 +500,14 @@ export function handleInput(note, el) {
             updateNotePosition();
 
             if(state.game.idx >= state.game.notes.length) {
-                endGame();
+                if(isPro) {
+                    // Wait for last note duration to complete before ending
+                    const remainingTime = state.game.nextBeatTime - Date.now();
+                    const wait = remainingTime > 0 ? remainingTime : 0;
+                    setTimeout(endGame, wait);
+                } else {
+                    endGame();
+                }
             } else {
                 const next = document.getElementById(`note-${state.game.idx}`);
                 if(next) {
@@ -493,9 +516,8 @@ export function handleInput(note, el) {
                 }
             }
         } else {
-             // Correct Pitch, Bad Rhythm
+             // Correct Pitch, Bad Rhythm (This block acts as fallback for non-pro logic mainly)
              state.game.mistakes++;
-             // Maybe play a different sound or just count mistake
              playTone(note, 'bad');
         }
         
@@ -534,8 +556,13 @@ export function endGame() {
         if(totalTime < 15) bonus = 25;
         else if(totalTime < 30) bonus = 15;
         else if(totalTime < 45) bonus = 5;
-        finalCoins += bonus;
-        if(bonus>0) msg = `Speed Bonus: +${bonus}!`;
+        // In pro mode, we don't give speed bonuses, score is pure accuracy
+        if(state.currentUser.difficulty !== 'pro') {
+            finalCoins += bonus;
+            if(bonus>0) msg = `Speed Bonus: +${bonus}!`;
+        } else {
+            msg = "Sequence Complete!";
+        }
         
     } else {
         // ... (Song mode logic same as before)
