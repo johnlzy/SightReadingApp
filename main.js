@@ -22,16 +22,15 @@ function handleResize() {
     }
 
     // FIX: Always update the SVG transforms if the game screen is active.
-    // Previously, this only ran if 'state.HIT_X' changed, causing the 
-    // Clefs to stay in their giant/broken HTML default state on initial load.
+    // Updated scale factors for the new, high-res paths.
     if(document.getElementById('screen-game').classList.contains('active')) {
         const xPos = state.HIT_X - 130 < 20 ? 20 : state.HIT_X - 130;
         const treble = document.getElementById('clef-treble-svg');
         const bass = document.getElementById('clef-bass-svg');
         
-        // Apply the correct scale and position for the game view
-        if(treble) treble.setAttribute('transform', `translate(${xPos}, 110) scale(1.6)`);
-        if(bass) bass.setAttribute('transform', `translate(${xPos}, 115) scale(2.0)`);
+        // Apply the correct scale and position for the game view (New standard paths)
+        if(treble) treble.setAttribute('transform', `translate(${xPos}, 110) scale(0.8)`);
+        if(bass) bass.setAttribute('transform', `translate(${xPos}, 115) scale(0.9)`);
         
         updateNotePosition(); 
     }
