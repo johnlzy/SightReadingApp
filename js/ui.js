@@ -36,7 +36,10 @@ export function hideParentPanel() {
 }
 
 export function handleAddCredit(amt) {
-    addAdminCredits(amt);
+    addAdminCredits(amt); // Updates data
+    updateLanding();      // Updates UI (since we are already in ui.js)
+    
+    // Update the specific modal element immediately
     document.getElementById('admin-current-credits').innerText = state.currentUser.credits;
     alert(`Added ${amt} credits!`);
 }
