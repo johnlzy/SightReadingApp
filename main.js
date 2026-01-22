@@ -1,5 +1,4 @@
 import { initAudio } from './js/audio.js';
-// REMOVED: import from storage.js (loginUser, etc. are now handled inside ui.js)
 import { 
     showScreen, showNewUserForm, hideNewUserForm, generateName, 
     selectAvatar, setRegDiff, setClef, goToStore, goToSongs, 
@@ -9,13 +8,6 @@ import {
 } from './js/ui.js';
 import { startGame, exitGame, beginRound, updateNotePosition } from './js/game.js';
 import { state, setHitX } from './js/state.js';
-import { 
-    showScreen, showNewUserForm, hideNewUserForm, generateName, 
-    selectAvatar, setRegDiff, setClef, goToStore, goToSongs, 
-    updateLanding, showScreen as showScreenAlias, // <--- Imported here
-    handleNewUserClick, handleUserDelete, showParentPanel, hideParentPanel, handleAddCredit,
-    loadUsers, handleCreateUserUI, handleLogoutUI
-} from './js/ui.js';
 
 // --- Global Initialization ---
 
@@ -47,7 +39,7 @@ window.initAudio = () => {
     window.addEventListener('resize', handleResize);
     handleResize();
 
-    loadUsers(); // Now called from UI
+    loadUsers(); 
     showScreen('screen-register');
 };
 
@@ -75,10 +67,8 @@ window.setRegDiff = (lvl, el) => {
     setRegDiff(lvl);
 };
 
-// UPDATED: Now points to UI wrapper
 window.createUser = handleCreateUserUI; 
 window.logout = handleLogoutUI;
-// Removed window.loginUser and window.deleteUser as they are handled internally by UI loadUsers
 
 window.setClef = setClef;
 window.goToStore = goToStore;
