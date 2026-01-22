@@ -1,3 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Fun Sight Reading v2</title>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <div id="overlay-start" class="start-overlay">
+        <h1 style="font-size:4rem; margin-bottom:0;">🎹</h1>
+        <h2 style="margin-top:0;">Fun Sight Reading</h2>
+        <p>Turn up volume & Tap to Start</p>
+        <button class="btn-secondary" style="background:white; color:var(--primary); font-size:1.5rem; padding:15px 40px;" onclick="initAudio()">Let's Play!</button>
+    </div>
+
+    <div id="screen-register" class="screen">
+        <div class="scroll-content">
+            <h2 style="color:var(--primary)">Who is playing?</h2>
+            <div id="existing-users-list" class="user-list"></div>
+            <div style="margin-top:30px; width:100%; display:flex; justify-content:center;">
+                <button class="btn-primary" onclick="showNewUserForm()">+ New Friend</button>
+            </div>
+            <div id="new-user-form" class="form-container" style="display:none;">
+                <h3 style="margin-top:0; color:var(--text)">Create New User</h3>
+                <p>Pick a face:</p>
+                <div class="emoji-grid">
+                    <div class="emoji-opt" onclick="selectAvatar('🐱', event)">🐱</div>
+                    <div class="emoji-opt" onclick="selectAvatar('🐶', event)">🐶</div>
+                    <div class="emoji-opt" onclick="selectAvatar('🦄', event)">🦄</div>
+                    <div class="emoji-opt" onclick="selectAvatar('🐼', event)">🐼</div>
+                    <div class="emoji-opt" onclick="selectAvatar('🐰', event)">🐰</div>
+                    <div class="emoji-opt" onclick="selectAvatar('🦊', event)">🦊</div>
+                    <div class="emoji-opt" onclick="selectAvatar('🐸', event)">🐸</div>
+                    <div class="emoji-opt" onclick="selectAvatar('🦁', event)">🦁</div>
+                </div>
+                <p>Name: <span id="gen-name" class="highlight-name">...</span> <button class="btn-secondary btn-sm" onclick="generateName()">🔄</button></p>
+                <p>Difficulty:</p>
+                <div class="toggle-group">
+                    <div class="toggle-opt selected" onclick="setRegDiff('easy', this)">Easy</div>
+                    <div class="toggle-opt" onclick="setRegDiff('medium', this)">Medium</div>
+                    <div class="toggle-opt" onclick="setRegDiff('hard', this)">Hard</div>
+                </div>
+                <small id="diff-desc" class="help-text">C to G (White keys)</small>
+                <div style="text-align:center; display:flex; gap:10px; justify-content:center;">
+                    <button class="btn-secondary" onclick="hideNewUserForm()" style="background:#ccc;">Cancel</button>
+                    <button class="btn-primary" onclick="createUser()">Start Game</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
 <div id="screen-landing" class="screen">
         <div class="top-bar">
             <div class="user-info-area">
@@ -35,3 +89,77 @@
             </div>
         </div>
     </div>
+
+    <div id="screen-store" class="screen">
+        <div class="top-bar">
+            <button class="btn-secondary" onclick="showScreen('screen-landing')" style="padding:8px 20px;">🔙</button>
+            <div class="coins-display"><span id="store-currency-icon"></span> <span id="store-coins">0</span></div>
+        </div>
+        <div class="scroll-content">
+            <h3 id="store-title">Store</h3>
+            <div class="store-grid" id="store-grid"></div>
+        </div>
+    </div>
+
+    <div id="screen-songs" class="screen">
+        <div class="top-bar">
+            <button class="btn-secondary" onclick="showScreen('screen-landing')" style="padding:8px 20px;">🔙</button>
+            <h3>Song Book</h3>
+        </div>
+        <div class="scroll-content" id="song-list-container"></div>
+    </div>
+
+    <div id="screen-game" class="screen game-screen">
+        <div class="top-bar game-overlay-bar">
+            <button class="btn-secondary" onclick="exitGame()" style="padding:5px 15px;">❌</button>
+            <div class="game-stats">Time: <span id="game-timer">0</span>s | Coins: <span id="game-coins">0</span></div>
+        </div>
+        <div class="game-wrapper">
+            <div class="sheet-music-area">
+                <svg id="music-svg" class="staff-svg" viewBox="0 0 1000 300" preserveAspectRatio="xMinYMid slice">
+                    <g stroke="#333" stroke-width="2">
+                        <line x1="0" y1="120" x2="3000" y2="120" /><line x1="0" y1="140" x2="3000" y2="140" />
+                        <line x1="0" y1="160" x2="3000" y2="160" /><line x1="0" y1="180" x2="3000" y2="180" />
+                        <line x1="0" y1="200" x2="3000" y2="200" />
+                    </g>
+                    <g id="clef-treble-svg" transform="translate(20, 110) scale(1.6)" display="block">
+                         <path d="M15.2,56.5c-0.6-2.5-0.6-4.6,0.3-6.5..." fill="#000"/>
+                    </g>
+                    <g id="clef-bass-svg" transform="translate(20, 115) scale(2.0)" display="none">
+                         <path d="M12.6,12c-2.6,0-5.1,0.9..." fill="#000"/>
+                    </g>
+                    <g id="notes-group" class="note-group"></g>
+                </svg>
+            </div>
+            <div class="keyboard-area" id="keyboard"></div>
+        </div>
+        <div id="game-start-overlay" class="game-countdown">
+            <button class="btn-primary" style="font-size:2rem; padding:20px 50px;" onclick="beginRound()">START</button>
+        </div>
+    </div>
+
+    <div id="screen-result" class="screen result-screen">
+        <div class="scroll-content">
+            <h1 style="color:var(--primary); font-size:3rem; margin-bottom:10px;">Great Job! 🎉</h1>
+            <h2 style="color:#555">Time: <span id="res-time"></span>s</h2>
+            <h2 style="color:var(--accent)">Coins Earned: +<span id="res-coins"></span></h2>
+            <div id="res-msg" class="result-msg"></div>
+            <div class="score-box">
+                <h3 style="margin-top:0; color:#444; text-align:center;">🏆 Fast Times 🏆</h3>
+                <small id="score-category-label" class="score-label"></small>
+                <div id="high-score-list"></div>
+            </div>
+            <div class="toggle-group" style="gap:20px;">
+                <button class="btn-secondary" onclick="showScreen('screen-landing')">Home</button>
+                <button class="btn-primary" onclick="goToStore()">Shop</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/audio.js"></script>
+    <script src="js/user.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/game.js"></script>
+</body>
+</html>
