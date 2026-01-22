@@ -222,7 +222,7 @@ export function renderSheet() {
     }
     clefPath.setAttribute('fill', '#000');
     clefG.appendChild(clefPath);
-    noteGroup.appendChild(clefG);
+    svgContainer.appendChild(clefG);
 
     let currentX = 80;
     const PIXELS_PER_BEAT = 120;
