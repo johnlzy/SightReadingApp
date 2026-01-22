@@ -25,7 +25,7 @@ export const INSTRUMENTS = {
 export const SONG_DB = [
     { 
         title: "Twinkle Twinkle", 
-        reward: 10,
+        reward: 20,
         bpm: 80,
         melody: [
             {n:"C4",d:1}, {n:"C4",d:1}, {n:"G4",d:1}, {n:"G4",d:1}, {n:"A4",d:1}, {n:"A4",d:1}, {n:"G4",d:2},
@@ -38,7 +38,7 @@ export const SONG_DB = [
     },
     { 
         title: "Mary Had a Little Lamb", 
-        reward: 20, 
+        reward: 40, 
         bpm: 90,
         melody: [
             {n:"E4",d:1}, {n:"D4",d:1}, {n:"C4",d:1}, {n:"D4",d:1}, {n:"E4",d:1}, {n:"E4",d:1}, {n:"E4",d:2},
@@ -49,7 +49,7 @@ export const SONG_DB = [
     },
     { 
         title: "Jingle Bells", 
-        reward: 30, 
+        reward: 60, 
         bpm: 100,
         melody: [
             {n:"E4",d:1}, {n:"E4",d:1}, {n:"E4",d:2}, {n:"E4",d:1}, {n:"E4",d:1}, {n:"E4",d:2},
@@ -60,7 +60,7 @@ export const SONG_DB = [
     },
     { 
         title: "Row Row Row", 
-        reward: 40, 
+        reward: 80, 
         bpm: 90,
         melody: [
             {n:"C4",d:1.5}, {n:"C4",d:1.5}, {n:"C4",d:1}, {n:"D4",d:0.5}, {n:"E4",d:1.5},
@@ -71,7 +71,7 @@ export const SONG_DB = [
     },
     { 
         title: "Happy Birthday", 
-        reward: 50, 
+        reward: 100, 
         bpm: 80,
         melody: [
             {n:"C4",d:0.5}, {n:"C4",d:0.5}, {n:"D4",d:1}, {n:"C4",d:1}, {n:"F4",d:1}, {n:"E4",d:2},
@@ -82,7 +82,7 @@ export const SONG_DB = [
     },
     { 
         title: "Ode to Joy", 
-        reward: 60, 
+        reward: 120, 
         bpm: 100,
         melody: [
             {n:"E4",d:1}, {n:"E4",d:1}, {n:"F4",d:1}, {n:"G4",d:1}, {n:"G4",d:1}, {n:"F4",d:1}, {n:"E4",d:1}, {n:"D4",d:1},
@@ -93,7 +93,7 @@ export const SONG_DB = [
     },
     { 
         title: "Old MacDonald", 
-        reward: 70, 
+        reward: 140, 
         bpm: 100,
         melody: [
             {n:"G4",d:1}, {n:"G4",d:1}, {n:"G4",d:1}, {n:"D4",d:1}, {n:"E4",d:1}, {n:"E4",d:1}, {n:"D4",d:2},
@@ -105,7 +105,7 @@ export const SONG_DB = [
     },
     { 
         title: "London Bridge", 
-        reward: 80, 
+        reward: 160, 
         bpm: 100,
         melody: [
             {n:"G4",d:1.5}, {n:"A4",d:0.5}, {n:"G4",d:1}, {n:"F4",d:1}, {n:"E4",d:1}, {n:"F4",d:1}, {n:"G4",d:2},
@@ -116,7 +116,7 @@ export const SONG_DB = [
     },
     { 
         title: "Saints Go Marching", 
-        reward: 90, 
+        reward: 180, 
         bpm: 120,
         melody: [
             {n:"C4",d:1}, {n:"E4",d:1}, {n:"F4",d:1}, {n:"G4",d:4}, {n:"C4",d:1}, {n:"E4",d:1}, {n:"F4",d:1}, {n:"G4",d:4},
@@ -127,7 +127,7 @@ export const SONG_DB = [
     },
     { 
         title: "Frere Jacques", 
-        reward: 100, 
+        reward: 200, 
         bpm: 90,
         melody: [
             {n:"C4",d:1}, {n:"D4",d:1}, {n:"E4",d:1}, {n:"C4",d:1}, {n:"C4",d:1}, {n:"D4",d:1}, {n:"E4",d:1}, {n:"C4",d:1},
@@ -138,7 +138,7 @@ export const SONG_DB = [
     },
     { 
         title: "Fur Elise (Theme)", 
-        reward: 110, 
+        reward: 220, 
         bpm: 90,
         melody: [
             {n:"E4",d:0.5}, {n:"D#4",d:0.5}, {n:"E4",d:0.5}, {n:"D#4",d:0.5}, {n:"E4",d:0.5}, {n:"B3",d:0.5}, {n:"D4",d:0.5}, {n:"C4",d:0.5}, {n:"A3",d:2},
@@ -149,7 +149,7 @@ export const SONG_DB = [
     },
     { 
         title: "Minuet in G", 
-        reward: 120, 
+        reward: 240, 
         bpm: 100,
         melody: [
             {n:"D4",d:1}, {n:"G3",d:0.5}, {n:"A3",d:0.5}, {n:"B3",d:0.5}, {n:"C4",d:0.5}, {n:"D4",d:1}, {n:"G3",d:1}, {n:"G3",d:1},
@@ -160,7 +160,7 @@ export const SONG_DB = [
     },
     { 
         title: "Swan Lake", 
-        reward: 130, 
+        reward: 260, 
         bpm: 80,
         melody: [
             {n:"E4",d:2}, {n:"A3",d:1}, {n:"B3",d:1}, {n:"C4",d:1}, {n:"D4",d:1}, {n:"E4",d:1.5}, {n:"C4",d:0.5}, {n:"A3",d:2},
@@ -171,7 +171,7 @@ export const SONG_DB = [
     },
     { 
         title: "The Entertainer", 
-        reward: 140, 
+        reward: 280, 
         bpm: 100,
         melody: [
             {n:"D4",d:0.5}, {n:"D#4",d:0.5}, {n:"E4",d:0.5}, {n:"C5",d:1}, {n:"E4",d:0.5}, {n:"C5",d:1}, {n:"E4",d:0.5}, {n:"C5",d:3},
@@ -181,7 +181,7 @@ export const SONG_DB = [
     },
     { 
         title: "Habanera (Carmen)", 
-        reward: 150, 
+        reward: 300, 
         bpm: 90,
         melody: [
             {n:"D4",d:1.5}, {n:"C#4",d:0.5}, {n:"D4",d:1}, {n:"C#4",d:0.5}, {n:"D4",d:1}, {n:"A3",d:1}, {n:"A#3",d:1}, {n:"G3",d:1},
