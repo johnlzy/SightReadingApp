@@ -13,18 +13,23 @@ import { state, setHitX } from './js/state.js';
 
 function handleResize() {
     const width = window.innerWidth;
-    const oldHit = state.HIT_X;
     
+    // Update the global HIT_X based on screen width
     if(width < 600) {
         setHitX(150);
     } else {
         setHitX(300);
     }
 
-    if(oldHit !== state.HIT_X && document.getElementById('screen-game').classList.contains('active')) {
+    // FIX: Always update the SVG transforms if the game screen is active.
+    // Previously, this only ran if 'state.HIT_X' changed, causing the 
+    // Clefs to stay in their giant/broken HTML default state on initial load.
+    if(document.getElementById('screen-game').classList.contains('active')) {
         const xPos = state.HIT_X - 130 < 20 ? 20 : state.HIT_X - 130;
         const treble = document.getElementById('clef-treble-svg');
         const bass = document.getElementById('clef-bass-svg');
+        
+        // Apply the correct scale and position for the game view
         if(treble) treble.setAttribute('transform', `translate(${xPos}, 110) scale(1.6)`);
         if(bass) bass.setAttribute('transform', `translate(${xPos}, 115) scale(2.0)`);
         
@@ -80,4 +85,5 @@ window.beginRound = beginRound;
 window.updateLanding = updateLanding;
 
 window.addEventListener('resize', handleResize);
+// Initial call
 handleResize();
