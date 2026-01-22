@@ -1,3 +1,4 @@
+/* js/game.js */
 function handleResize() {
     HIT_X = window.innerWidth < 600 ? 150 : 300;
     if(document.getElementById('screen-game').classList.contains('active')) {
@@ -7,6 +8,16 @@ function handleResize() {
 }
 
 function startGame(mode, songIdx=null) {
+    // CREDIT CHECK
+    if (currentUser.credits <= 0) {
+        alert("You are out of credits for today! Ask a parent to refill.");
+        return;
+    }
+
+    // DEDUCT CREDIT
+    currentUser.credits -= 1;
+    saveCurrentUser();
+
     game = { mode, songId: songIdx, coins: 0, idx: 0, mistakes: 0, startTime: 0, noteTime: 0 };
     document.getElementById('game-start-overlay').style.display = 'flex';
     showScreen('screen-game');
@@ -36,7 +47,6 @@ function handleInput(note, el) {
 
 function endGame() {
     clearInterval(game.timerInt);
-    const totalTime = parseFloat(((Date.now() - game.startTime)/1000).toFixed(1));
     // Calculate rewards and save
     saveCurrentUser();
     showScreen('screen-result');
