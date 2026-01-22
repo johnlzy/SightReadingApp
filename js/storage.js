@@ -1,5 +1,5 @@
 import { state } from './state.js';
-import { showScreen, hideNewUserForm } from './ui.js';
+import { showScreen, hideNewUserForm, updateLanding } from './ui.js';
 
 export const ADMIN_PIN = "123456";
 
