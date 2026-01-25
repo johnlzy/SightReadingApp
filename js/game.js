@@ -17,11 +17,25 @@ const PATH_BASS = "M46 76.5C36.9 76.5 29.5 69.1 29.5 60S36.9 43.5 46 43.5c8.7 0 
 function updateAccuracyUI() {
     const total = (state.game.hits || 0) + (state.game.mistakes || 0);
     const acc = total === 0 ? 100 : Math.round((state.game.hits / total) * 100);
-    const el = document.getElementById('game-acc');
-    if (el) el.innerText = acc + '%';
+    
+    // Update Bar Visuals
+    const bar = document.getElementById('acc-bar-fill');
+    if (bar) {
+        bar.style.width = acc + '%';
+        
+        // Color coding: Green > 80%, Orange > 50%, Red otherwise
+        if(acc >= 80) {
+            bar.style.backgroundColor = '#4CAF50'; 
+        } else if(acc >= 50) {
+            bar.style.backgroundColor = '#FFC107'; 
+        } else {
+            bar.style.backgroundColor = '#FF5722'; 
+        }
+    }
+    
+    // Keep this return as it is used by endGame()
     return acc;
 }
-
 export function startGame(mode, songIdx=null, isRetry=false) {
     if (!state.currentUser || state.currentUser.credits <= 0) {
         alert("You are out of credits for today! Ask a parent for help.");
