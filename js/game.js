@@ -109,8 +109,11 @@ export function generateNotes() {
         });
         state.game.durations = songData.map(item => item.d);
     } else {
+        // --- COIN RUN MODE ---
         const pool = [];
         const diff = state.currentUser.difficulty;
+        
+        // Build the pool of available notes based on difficulty
         if(diff === 'easy') {
             ['C','D','E','F','G'].forEach(n => pool.push(n+octave));
         } else if(diff === 'medium') {
@@ -120,12 +123,12 @@ export function generateNotes() {
             ['C','D','E','F','G','A','B'].forEach(n => pool.push(n+octave));
             pool.push('C'+(octave+1));
         } else {
+            // Hard
             ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'].forEach(n => pool.push(n+octave));
             pool.push('C'+(octave+1));
         }
 
         const count = 16; 
-        let currentIdx = Math.floor(pool.length / 2);
         
         if (diff === 'pro') {
              for(let bar=0; bar<4; bar++) {
@@ -137,31 +140,36 @@ export function generateNotes() {
                      if(beatsLeft >= 0.5) opts.push(0.5); 
                      
                      const dur = opts[Math.floor(Math.random()*opts.length)];
+                     
+                     // Handle 8th notes (0.5 duration)
                      if(dur === 0.5 && beatsLeft >= 1 && Math.random()>0.3) {
                          state.game.durations.push(0.5, 0.5);
                          beatsLeft -= 1;
                          for(let k=0; k<2; k++) {
-                            currentIdx = getMelodiousIndex(currentIdx, pool.length);
-                            state.game.notes.push(pool[currentIdx]);
+                            // CHANGED: Uniform random selection
+                            const randIdx = Math.floor(Math.random() * pool.length);
+                            state.game.notes.push(pool[randIdx]);
                          }
                      } else {
                          state.game.durations.push(dur);
                          beatsLeft -= dur;
-                         currentIdx = getMelodiousIndex(currentIdx, pool.length);
-                         state.game.notes.push(pool[currentIdx]);
+                         // CHANGED: Uniform random selection
+                         const randIdx = Math.floor(Math.random() * pool.length);
+                         state.game.notes.push(pool[randIdx]);
                      }
                  }
              }
         } else {
+            // Standard generation for Easy/Medium/Hard
             for(let i=0; i<count; i++) {
-                currentIdx = getMelodiousIndex(currentIdx, pool.length);
-                state.game.notes.push(pool[currentIdx]);
+                // CHANGED: Uniform random selection
+                const randIdx = Math.floor(Math.random() * pool.length);
+                state.game.notes.push(pool[randIdx]);
                 state.game.durations.push(1);
             }
         }
     }
 }
-
 function getMelodiousIndex(curr, max) {
     const moves = [-2, -1, -1, 0, 1, 1, 2, 3, -3, 4, -4, 5, -5];
     let move = moves[Math.floor(Math.random() * moves.length)];
