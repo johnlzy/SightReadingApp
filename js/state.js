@@ -8,25 +8,25 @@ export const state = {
     currentInstKey: 'piano',
     
     // Game Session State
-    game: { 
-        mode: 'coin', // 'coin' or 'song'
+game: { 
+        mode: 'coin', 
         notes: [],
-        durations: [], // New: duration of each note in beats (1 = quarter)
+        durations: [],
         idx: 0, 
         startTime: 0, 
         noteTime: 0, 
         coins: 0, 
         timerInt: null,
-        metronomeInt: null, // New: for Pro mode
-        nextBeatTime: 0,    // New: for Pro mode rhythm check
+        metronomeInt: null,
+        nextBeatTime: 0,
         songId: -1, 
         mistakes: 0,
+        hits: 0, // <--- Added this property
         
-        // For Retry Logic
         lastNotes: [],
         lastDurations: []
     },
-
+    
     // Temporary registration state
     tempUser: { 
         avatar: '🐱', 
