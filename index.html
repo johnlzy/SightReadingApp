@@ -156,12 +156,18 @@
 <div id="screen-game" class="screen" style="padding:0; overflow:hidden;">
         <div class="top-bar" style="position:absolute; top:0; left:0; width:100%;">
             <button class="btn-secondary" onclick="exitGame()" style="padding:5px 15px;">❌</button>
-            <div style="font-weight:bold; color:var(--primary); background:rgba(255,255,255,0.8); padding:5px 10px; border-radius:10px; display:inline-block;">
-                Time: <span id="game-timer">0</span>s | 
-                Coins: <span id="game-coins">0</span> | 
-                Acc: <span id="game-acc">100%</span>
+            <div class="stats-bar">
+                <div class="stat-group">Time: <span id="game-timer">0</span>s</div>
+                <div class="stat-group">Coins: <span id="game-coins">0</span></div>
+                <div class="acc-group">
+                    <div class="acc-label">Accuracy</div>
+                    <div class="acc-track">
+                        <div id="acc-bar-fill" class="acc-fill"></div>
+                    </div>
+                </div>
             </div>
-        </div>        
+        </div>
+        
         <div id="progress-container">
             <div id="progress-fill"></div>
         </div>
