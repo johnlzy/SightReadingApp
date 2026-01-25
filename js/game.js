@@ -109,11 +109,9 @@ export function generateNotes() {
         });
         state.game.durations = songData.map(item => item.d);
     } else {
-        // --- COIN RUN MODE ---
         const pool = [];
         const diff = state.currentUser.difficulty;
         
-        // Build the pool of available notes based on difficulty
         if(diff === 'easy') {
             ['C','D','E','F','G'].forEach(n => pool.push(n+octave));
         } else if(diff === 'medium') {
@@ -123,7 +121,6 @@ export function generateNotes() {
             ['C','D','E','F','G','A','B'].forEach(n => pool.push(n+octave));
             pool.push('C'+(octave+1));
         } else {
-            // Hard
             ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'].forEach(n => pool.push(n+octave));
             pool.push('C'+(octave+1));
         }
@@ -141,42 +138,29 @@ export function generateNotes() {
                      
                      const dur = opts[Math.floor(Math.random()*opts.length)];
                      
-                     // Handle 8th notes (0.5 duration)
                      if(dur === 0.5 && beatsLeft >= 1 && Math.random()>0.3) {
                          state.game.durations.push(0.5, 0.5);
                          beatsLeft -= 1;
                          for(let k=0; k<2; k++) {
-                            // CHANGED: Uniform random selection
                             const randIdx = Math.floor(Math.random() * pool.length);
                             state.game.notes.push(pool[randIdx]);
                          }
                      } else {
                          state.game.durations.push(dur);
                          beatsLeft -= dur;
-                         // CHANGED: Uniform random selection
                          const randIdx = Math.floor(Math.random() * pool.length);
                          state.game.notes.push(pool[randIdx]);
                      }
                  }
              }
         } else {
-            // Standard generation for Easy/Medium/Hard
             for(let i=0; i<count; i++) {
-                // CHANGED: Uniform random selection
                 const randIdx = Math.floor(Math.random() * pool.length);
                 state.game.notes.push(pool[randIdx]);
                 state.game.durations.push(1);
             }
         }
     }
-}
-function getMelodiousIndex(curr, max) {
-    const moves = [-2, -1, -1, 0, 1, 1, 2, 3, -3, 4, -4, 5, -5];
-    let move = moves[Math.floor(Math.random() * moves.length)];
-    let next = curr + move;
-    if(next < 0) next = 0; 
-    if(next >= max) next = max - 1; 
-    return next;
 }
 
 function getNoteY(note, clef) {
@@ -318,20 +302,16 @@ export function renderKeyboard() {
     const octave = state.currentClef === 'treble' ? 4 : 3;
     const whites = ['C','D','E','F','G','A','B','C'];
     
-    // Render White Keys
     whites.forEach((w, i) => {
         const k = document.createElement('div');
         k.className = 'white-key';
         const n = w + (i===7 ? octave+1 : octave);
         k.dataset.note = n;
         k.innerText = n;
-        
-        // FIX: Use onpointerdown instead of onclick/ontouchstart
         k.onpointerdown = (e) => {
-            e.preventDefault(); // Prevents scrolling/highlighting
+            e.preventDefault();
             handleInput(n, k);
         };
-
         kb.appendChild(k);
     });
 
@@ -339,24 +319,21 @@ export function renderKeyboard() {
         {n:'C#', l:9}, {n:'D#', l:21.5}, {n:'F#', l:46.5}, {n:'G#', l:59}, {n:'A#', l:71.5} 
     ];
 
-    // Render Black Keys
     blacks.forEach(b => {
         const k = document.createElement('div');
         k.className = 'black-key';
         k.style.left = b.l + '%';
         const n = b.n + octave;
         k.dataset.note = n;
-        
-        // FIX: Use onpointerdown instead of onclick/ontouchstart
         k.onpointerdown = (e) => {
             e.preventDefault(); 
-            e.stopPropagation(); // Keep this to prevent event bubbling if needed
+            e.stopPropagation(); 
             handleInput(n, k);
         };
-
         kb.appendChild(k);
     });
 }
+
 export function beginRound() {
     document.getElementById('game-start-overlay').style.display = 'none';
     const isProCoin = (state.currentUser.difficulty === 'pro' && state.game.mode === 'coin');
@@ -486,8 +463,49 @@ function startProGame() {
 export function handleInput(note, el) {
     if(document.getElementById('game-start-overlay').style.display !== 'none') return;
     
-    const target = state.game.notes[state.game.idx];
     const isPro = ((state.currentUser.difficulty === 'pro' && state.game.mode === 'coin') || state.game.mode === 'song');
+    
+    if (isPro) {
+        const target = state.game.notes[state.game.idx];
+        if (note !== target) {
+            const nextIdx = state.game.idx + 1;
+            if (nextIdx < state.game.notes.length) {
+                const nextTarget = state.game.notes[nextIdx];
+                if (note === nextTarget) {
+                    const now = Date.now();
+                    const msPerBeat = 60000 / currentBPM;
+                    const dur = state.game.durations[state.game.idx];
+                    const currentDurationMs = dur * msPerBeat;
+                    const deadline = state.game.nextBeatTime + currentDurationMs;
+                    
+                    if (deadline - now < 300) {
+                         state.game.mistakes++;
+                         const currSvg = document.getElementById(`note-${state.game.idx}`);
+                         if(currSvg) {
+                             currSvg.classList.remove('current');
+                             currSvg.classList.add('inactive');
+                             currSvg.style.opacity = 0.4;
+                             const head = currSvg.querySelector('.note-head');
+                             if(head) head.setAttribute('fill', '#ff4444'); 
+                         }
+                         
+                         state.game.idx++;
+                         state.game.nextBeatTime += currentDurationMs;
+                         
+                         const pct = (state.game.idx / state.game.notes.length) * 100;
+                         const prog = document.getElementById('progress-fill');
+                         if(prog) prog.style.width = pct + '%';
+                         
+                         updateNotePosition();
+                         handleInput(note, el);
+                         return;
+                    }
+                }
+            }
+        }
+    }
+
+    const target = state.game.notes[state.game.idx];
     
     if(note === target) {
         let isTimingGood = true;
