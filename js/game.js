@@ -310,14 +310,20 @@ export function renderKeyboard() {
     const octave = state.currentClef === 'treble' ? 4 : 3;
     const whites = ['C','D','E','F','G','A','B','C'];
     
+    // Render White Keys
     whites.forEach((w, i) => {
         const k = document.createElement('div');
         k.className = 'white-key';
         const n = w + (i===7 ? octave+1 : octave);
         k.dataset.note = n;
         k.innerText = n;
-        k.onclick = () => handleInput(n, k);
-        k.ontouchstart = (e) => { e.preventDefault(); handleInput(n, k); };
+        
+        // FIX: Use onpointerdown instead of onclick/ontouchstart
+        k.onpointerdown = (e) => {
+            e.preventDefault(); // Prevents scrolling/highlighting
+            handleInput(n, k);
+        };
+
         kb.appendChild(k);
     });
 
@@ -325,18 +331,24 @@ export function renderKeyboard() {
         {n:'C#', l:9}, {n:'D#', l:21.5}, {n:'F#', l:46.5}, {n:'G#', l:59}, {n:'A#', l:71.5} 
     ];
 
+    // Render Black Keys
     blacks.forEach(b => {
         const k = document.createElement('div');
         k.className = 'black-key';
         k.style.left = b.l + '%';
         const n = b.n + octave;
         k.dataset.note = n;
-        k.onclick = (e) => { e.stopPropagation(); handleInput(n, k); };
-        k.ontouchstart = (e) => { e.preventDefault(); e.stopPropagation(); handleInput(n, k); };
+        
+        // FIX: Use onpointerdown instead of onclick/ontouchstart
+        k.onpointerdown = (e) => {
+            e.preventDefault(); 
+            e.stopPropagation(); // Keep this to prevent event bubbling if needed
+            handleInput(n, k);
+        };
+
         kb.appendChild(k);
     });
 }
-
 export function beginRound() {
     document.getElementById('game-start-overlay').style.display = 'none';
     const isProCoin = (state.currentUser.difficulty === 'pro' && state.game.mode === 'coin');
