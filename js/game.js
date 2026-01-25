@@ -13,6 +13,15 @@ const NOTE_ORDER = ['C','D','E','F','G','A','B'];
 const PATH_TREBLE = "M26.4 56.7c-.5-3.3-3.6-5.8-7-5.8-4.2 0-7.3 3.5-7.3 7.6 0 2.2 1 4.2 2.6 5.5l-3.3 14.9c-3.6-1.5-6.6-4.3-6.6-9.1 0-6.4 6-12 14.7-12 7.2 0 12.8 3.5 12.8 9.7 0 3.8-2.5 7.7-6.5 11-4.7 4-9.3 7.6-11.4 14.8-.1 .5-.3 1-.3 1.5l-2 9c.8 .2 1.6 .3 2.5 .3 6.1 0 11-4.9 11-10.9 0-2.8-1-5.4-2.7-7.4l-1.3-2.2c-3-3.1-4.7-4.9-4.7-7.9 0-3.3 2.6-6 7.2-6 4.4 0 7 2.8 7 6 0 1.2-.2 2.1-.6 2.9l12-53.6c-1.2-6.1-6.4-11.1-14.4-11.1-9.2 0-16 6.2-16 15.7 0 8.4 6.2 13.3 12.6 17z";
 const PATH_BASS = "M46 76.5C36.9 76.5 29.5 69.1 29.5 60S36.9 43.5 46 43.5c8.7 0 15.8 6.8 16.4 15.4 0 .4 .1 .7 .1 1.1 0 9.1-7.4 16.5-16.5 16.5zm0-29c-6.9 0-12.5 5.6-12.5 12.5S39.1 72.5 46 72.5c6.5 0 11.8-4.9 12.4-11.2-.8-.2-1.6-.3-2.4-.3-10.2 0-18.5-8.3-18.5-18.5 0-.4 0-.8 .1-1.2-5.4 1-9.6 5.2-10.6 10.6 .4-.1 .8-.1 1.2-.1 6.9 0 12.5 5.6 12.5 12.5S45.4 76.5 38.5 76.5c-.4 0-.8 0-1.2-.1 .8 7.4 7.1 13.1 14.7 13.1 8.3 0 15-6.7 15-15s-6.7-15-15-15zm44 2.5c-2.5 0-4.5 2-4.5 4.5s2 4.5 4.5 4.5 4.5-2 4.5-4.5-2-4.5-4.5-4.5zm0 18c-2.5 0-4.5 2-4.5 4.5s2 4.5 4.5 4.5 4.5-2 4.5-4.5-2-4.5-4.5-4.5z";
 
+// Helper to update live accuracy UI
+function updateAccuracyUI() {
+    const total = (state.game.hits || 0) + (state.game.mistakes || 0);
+    const acc = total === 0 ? 100 : Math.round((state.game.hits / total) * 100);
+    const el = document.getElementById('game-acc');
+    if (el) el.innerText = acc + '%';
+    return acc;
+}
+
 export function startGame(mode, songIdx=null, isRetry=false) {
     if (!state.currentUser || state.currentUser.credits <= 0) {
         alert("You are out of credits for today! Ask a parent for help.");
@@ -28,10 +37,21 @@ export function startGame(mode, songIdx=null, isRetry=false) {
     state.game.coins = 0;
     state.game.idx = 0;
     state.game.mistakes = 0;
+    state.game.hits = 0; // Initialize hits for accuracy
     state.game.nextBeatTime = 0;
     
+    // Feature: Tempo scaling based on difficulty for Song Mode
     if (mode === 'song' && songIdx !== null) {
-        currentBPM = SONG_DB[songIdx].bpm || 80;
+        const baseBPM = SONG_DB[songIdx].bpm || 80;
+        const diff = state.currentUser.difficulty;
+        let multiplier = 1;
+
+        if (diff === 'easy') multiplier = 0.25;
+        else if (diff === 'medium') multiplier = 0.50;
+        else if (diff === 'hard') multiplier = 0.75;
+        else multiplier = 1.0; // Pro
+
+        currentBPM = baseBPM * multiplier;
     } else {
         currentBPM = DEFAULT_PRO_BPM;
     }
@@ -41,6 +61,7 @@ export function startGame(mode, songIdx=null, isRetry=false) {
 
     document.getElementById('game-coins').innerText = 0;
     document.getElementById('game-timer').innerText = 0;
+    updateAccuracyUI(); // Reset accuracy display
     
     const prog = document.getElementById('progress-fill');
     if(prog) prog.style.width = '0%';
@@ -424,6 +445,7 @@ function startProGame() {
                  setTimeout(()=>float.remove(), 1000);
 
                  state.game.mistakes++;
+                 updateAccuracyUI(); // Update accuracy on miss
                  state.game.idx++;
                  
                  const pct = (state.game.idx / state.game.notes.length) * 100;
@@ -480,6 +502,7 @@ export function handleInput(note, el) {
                     
                     if (deadline - now < 300) {
                          state.game.mistakes++;
+                         updateAccuracyUI(); // Update accuracy on mistake
                          const currSvg = document.getElementById(`note-${state.game.idx}`);
                          if(currSvg) {
                              currSvg.classList.remove('current');
@@ -531,6 +554,9 @@ export function handleInput(note, el) {
         }
 
         if(isTimingGood) {
+            state.game.hits = (state.game.hits || 0) + 1; // Increment hits
+            updateAccuracyUI(); // Update accuracy UI
+
             el.classList.add('active');
             setTimeout(()=>el.classList.remove('active'), 100);
             playTone(note, 'good');
@@ -589,6 +615,7 @@ export function handleInput(note, el) {
             } 
         } else {
              state.game.mistakes++;
+             updateAccuracyUI();
              playTone(note, 'bad');
         }
         
@@ -597,6 +624,7 @@ export function handleInput(note, el) {
         el.classList.add('wrong');
         setTimeout(()=>el.classList.remove('wrong'), 300);
         state.game.mistakes++;
+        updateAccuracyUI(); // Update accuracy on wrong input
     }
 }
 
@@ -609,6 +637,7 @@ export function endGame() {
     if(overlay) overlay.style.display = 'none';
 
     const totalTime = parseFloat(((Date.now() - state.game.startTime)/1000).toFixed(1));
+    const accuracy = updateAccuracyUI(); // Get final accuracy
     let finalCoins = state.game.coins;
     let msg = "";
 
@@ -630,13 +659,14 @@ export function endGame() {
         } else {
             msg = "Sequence Complete!";
         }
+        
+        // Final coins multiplied by accuracy
+        finalCoins = Math.round(finalCoins * (accuracy / 100));
+
         arr.push(finalCoins);
         arr.sort((a,b) => b - a); 
         if(arr.length > 5) arr.length = 5; 
     } else {
-        const totalNotes = state.game.notes.length;
-        const hits = totalNotes - state.game.mistakes;
-        const accuracy = Math.round((hits / totalNotes) * 100);
         if(accEl) {
             accEl.innerText = `Accuracy: ${accuracy}%`;
             accEl.style.display = 'block';
@@ -651,6 +681,7 @@ export function endGame() {
 
             const s = SONG_DB[state.game.songId];
             if(state.game.songId === state.currentUser.unlockedSongs) {
+                // Final reward based on accuracy
                 finalCoins = Math.round(s.reward * (accuracy / 100));
                 state.currentUser.unlockedSongs++;
                 msg = `Passed! Song Unlocked! (+${finalCoins})`;
