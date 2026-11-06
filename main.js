@@ -129,9 +129,12 @@ document.addEventListener('visibilitychange', () => {
     if(document.hidden) {
         pausePlayBudget();
         closeMicrophoneSetup();
-        if(document.getElementById('screen-game').classList.contains('active')) pauseMusicSession();
+        const gameActive=document.getElementById('screen-game').classList.contains('active');
+        if(gameActive) pauseMusicSession(); // stops tracks, preserves selected mic mode
         if(document.getElementById('screen-audition').classList.contains('active')) closeAudition();
-        useTouchInput(false);
+        // Do not silently switch a real-piano child to touch during a paused
+        // game. Resume must be able to re-request mic permission on gesture.
+        if(!gameActive) useTouchInput(false);
     } else {
         if(state.game.phase!=='paused'&&state.game.phase!=='resuming')
             resumePlayBudget();
