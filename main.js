@@ -1,6 +1,6 @@
 import { initAudio } from './js/audio.js';
 import { 
-    showScreen, showNewUserForm, hideNewUserForm, generateName, 
+    showScreen, setHomeTab, changeSongPage, showNewUserForm, hideNewUserForm, generateName, 
     selectAvatar, setRegDiff, setClef, goToStore, goToSongs, 
     updateLanding, showScreen as showScreenAlias,
     handleNewUserClick, handleUserDelete, showParentPanel, hideParentPanel, handleAddCredit,
@@ -93,6 +93,8 @@ window.hearWorkshopSound = hearWorkshopSound;
 window.startGame = startGame;
 window.togglePhraseHints = togglePhraseHints;
 window.goToSongs = goToSongs;
+window.changeSongPage = changeSongPage;
+window.setHomeTab = setHomeTab;
 window.showScreen = showScreenAlias;
 window.exitGame = exitGame;
 window.beginRound = beginRound;
