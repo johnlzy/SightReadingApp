@@ -514,6 +514,7 @@ export function renderKeyboard() {
 }
 
 function focusCurrentKey() {
+    if(state.game.mode === 'phrase' || state.game.mode === 'phrase-check')return;
     const kb = document.getElementById('keyboard');
     const target = state.game.notes[state.game.idx];
     const key = [...kb.querySelectorAll('[data-note]')].find(el => el.dataset.note === target);
@@ -883,7 +884,26 @@ export function endGame() {
 
     if(!state.currentUser.scores) state.currentUser.scores = { coin: { easy:[], medium:[], hard:[], pro:[] }, songs: {} };
 
-    if(state.game.mode === 'practice' || state.game.mode === 'check') {
+    if(state.game.mode === 'phrase' || state.game.mode === 'phrase-check') {
+        const result=finishReadingPhrase(state.currentUser,{
+            kind:state.game.mode === 'phrase-check'?'check':'practice',
+            clef:state.currentClef,level:state.game.phraseSpec.level,
+            notes:state.game.notes,outcomes:state.game.outcomes,
+            excerptId:state.game.phraseSpec.excerptId,
+            hintsUsed:state.game.hintsUsed,
+            sessionId:state.game.sessionId
+        });
+        finalCoins=0;
+        if(accEl)accEl.textContent=(state.game.mode==='phrase-check'
+            ?'Fresh Phrase Check: ':'Melody Reading: ')+result.score+'% first try';
+        if(pitchResult)pitchResult.textContent='First-try notes: '+result.correct+' / '+result.total;
+        msg=state.game.mode==='phrase-check'
+            ? 'Your fresh melody result is saved separately from practice.'
+            : state.game.hintsUsed
+                ? 'Wonderful effort! Keep practicing, then try again without hints.'
+                : 'You read a complete stationary melody. Try a fresh phrase next!';
+        saveCurrentUser();
+    } else if(state.game.mode === 'practice' || state.game.mode === 'check') {
         const learning = ensureLearning(state.currentUser);
         const progress = finishLearningSession(learning, {
             mode:state.game.mode,
@@ -1026,4 +1046,18 @@ function endForBudget() {
     const label = document.getElementById('budget-nearly-done');
     if(label) label.hidden = true;
     showTimeUpOverlay();
+}
+
+/** Key labels are a teaching scaffold and are NEVER available in blind checks. */
+export function togglePhraseHints() {
+    if(state.game.mode!=='phrase' || !['ready','playing'].includes(state.game.phase))return false;
+    const el=document.querySelector('.game-wrapper');
+    const show=!el?.classList.contains('phrase-show-labels');
+    el?.classList.toggle('phrase-show-labels',show);
+    if(show)state.game.hintsUsed=true;
+    document.querySelectorAll('#keyboard .white-key').forEach(key=>{
+        key.textContent=show?key.dataset.note:'';
+    });
+    document.getElementById('phrase-hint-button')?.setAttribute('aria-pressed',String(show));
+    return show;
 }
