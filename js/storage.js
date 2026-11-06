@@ -95,8 +95,8 @@ export function loginUser(identifier) {
     state.currentUser.idx = index;
     state.currentClef = user.preferences.clef;
     state.currentInstKey = user.preferences.instrument;
-    // Microphone permission and capture must be re-established after login.
-    state.inputMode = 'touch';
+    // Restore preference only; capture still requires a Start click / permission.
+    state.inputMode = user.preferences.input;
     users[index] = user;
     persistPlayers(users);
     return user;
