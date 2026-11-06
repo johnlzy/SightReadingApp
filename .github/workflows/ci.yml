@@ -1,7 +1,7 @@
 name: Regression tests
 on:
   push:
-    branches: [main, feat/v3.1-rhythm-and-onsets]
+    branches: [main, feat/v3.2-adaptive-learning]
   pull_request:
 
 jobs:
