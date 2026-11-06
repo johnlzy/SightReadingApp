@@ -77,6 +77,7 @@ test('result screen shows separate pitch and rhythm grades', async ({ page }) =>
 
 test('mic timing adjustment persists without recording audio', async ({ page }) => {
     await login(page);
+    await page.evaluate(()=>window.setHomeTab('setup'));
     await page.locator('#input-microphone').click();
     await expect(page.locator('#mic-modal')).toBeVisible();
     await page.locator('#mic-timing-adjust').evaluate(input => {
