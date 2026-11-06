@@ -6,6 +6,7 @@ export const state = {
     currentUser: null,
     currentClef: 'treble',
     currentInstKey: 'piano',
+    inputMode: 'touch', // 'touch' or 'microphone'; no hardware keyboard dependency
     
     // Game Session State
 game: { 

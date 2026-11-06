@@ -8,6 +8,10 @@ import {
 } from './js/ui.js';
 import { startGame, exitGame, beginRound, updateNotePosition } from './js/game.js';
 import { state, setHitX } from './js/state.js';
+import {
+    openMicrophoneSetup, closeMicrophoneSetup, confirmMicrophoneSetup,
+    useTouchInput, syncInputModeUI
+} from './js/mic-ui.js';
 
 // --- Global Initialization ---
 
@@ -31,7 +35,8 @@ window.initAudio = () => {
     
     handleResize();
 
-    loadUsers(); 
+    loadUsers();
+    syncInputModeUI();
     showScreen('screen-register');
 };
 
@@ -59,7 +64,11 @@ window.setRegDiff = (lvl, el) => {
 };
 
 window.createUser = handleCreateUserUI; 
-window.logout = handleLogoutUI;
+window.logout = () => {
+    closeMicrophoneSetup();
+    useTouchInput();
+    handleLogoutUI();
+};
 
 window.setClef = setClef;
 window.goToStore = goToStore;
@@ -69,6 +78,20 @@ window.showScreen = showScreenAlias;
 window.exitGame = exitGame;
 window.beginRound = beginRound;
 window.updateLanding = updateLanding;
+window.openMicrophoneSetup = openMicrophoneSetup;
+window.closeMicrophoneSetup = closeMicrophoneSetup;
+window.confirmMicrophoneSetup = confirmMicrophoneSetup;
+window.useTouchInput = useTouchInput;
+
+document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) return;
+    // Never leave the microphone active in the background.
+    closeMicrophoneSetup();
+    if (document.getElementById('screen-game').classList.contains('active')) {
+        exitGame();
+    }
+    useTouchInput();
+});
 
 window.addEventListener('resize', handleResize);
 handleResize();

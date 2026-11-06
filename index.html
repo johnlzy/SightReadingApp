@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Fun Sight Reading v2.4</title>
+    <title>Fun Sight Reading v3.0</title>
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@300;400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
     <style>
@@ -45,6 +45,25 @@
                 <button class="btn-primary" onclick="handleAddCredit(5)">+5 Credits</button>
             </div>
             <button class="btn-secondary" onclick="hideParentPanel()">Close</button>
+        </div>
+    </div>
+
+
+    <div id="mic-modal" class="mic-modal" hidden role="dialog" aria-modal="true" aria-labelledby="mic-title">
+        <div class="mic-dialog">
+            <h2 id="mic-title">🎤 Set Up Your Real Piano</h2>
+            <p>Place your device near your piano. Allow microphone access and play a single note.</p>
+            <div class="mic-readout">
+                <span class="mic-readout-label">Heard note</span>
+                <strong id="mic-calibration-note">—</strong>
+                <div class="mic-meter"><div id="mic-level-fill"></div></div>
+            </div>
+            <p id="mic-status" role="status" aria-live="polite">Waiting for microphone permission...</p>
+            <p class="mic-privacy">Sound stays on your device. No audio is recorded or uploaded. The mic stops when you leave setup or the game.</p>
+            <div class="mic-actions">
+                <button class="btn-secondary" onclick="closeMicrophoneSetup()">Cancel</button>
+                <button class="btn-primary" id="mic-confirm" disabled onclick="confirmMicrophoneSetup()">Use Real Piano</button>
+            </div>
         </div>
     </div>
 
@@ -110,6 +129,15 @@
                 <div class="toggle-opt" id="clef-bass" onclick="setClef('bass')">Bass 𝄢</div>
             </div>
 
+            <div class="input-mode-panel">
+                <h4>How will you play?</h4>
+                <div class="input-mode-buttons">
+                    <button id="input-touch" class="btn-secondary selected" aria-label="Play with the on-screen piano" onclick="useTouchInput()">🎹 On-Screen Piano</button>
+                    <button id="input-microphone" class="btn-secondary" aria-label="Set up an acoustic piano microphone" onclick="openMicrophoneSetup()">🎤 Real Piano</button>
+                </div>
+                <p id="input-mode-help" aria-live="polite">Tap the on-screen piano keys. No microphone is used.</p>
+            </div>
+
             <h4 style="margin-bottom:5px; margin-top:20px;">My Instruments</h4>
             <div class="instrument-bag" id="landing-bag"></div>
 
@@ -173,6 +201,11 @@
         </div>
 
         <div class="game-wrapper">
+            <div id="mic-game-status" class="mic-game-status" hidden aria-live="polite">
+                <span class="mic-live-dot"></span>
+                <span>Listening: <strong id="mic-game-note">—</strong></span>
+                <button class="btn-sm btn-secondary" onclick="useTouchInput()">Use touch keys</button>
+            </div>
             <div class="sheet-music-area">
                 <svg id="music-svg" class="staff-svg" viewBox="0 0 1000 340" preserveAspectRatio="xMinYMid slice">
                     <g stroke="#333" stroke-width="2">

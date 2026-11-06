@@ -70,3 +70,18 @@ test('exiting a round cancels an outstanding countdown timer', async () => {
     assert.equal(state.game.phase, 'idle');
     assert.equal(state.game.sessionToken, 8);
 });
+
+
+test('microphone notes use the same hit and progress path without a virtual key', () => {
+    state.currentUser = { difficulty: 'easy' };
+    state.inputMode = 'microphone';
+    Object.assign(state.game, {
+        mode: 'coin', notes: ['A4', 'C4'], durations: [1, 1], idx: 0,
+        hits: 0, mistakes: 0, coins: 0, phase: 'playing'
+    });
+    handleInput('A4', null, Date.now(), 'microphone');
+    assert.equal(state.game.hits, 1);
+    assert.equal(state.game.coins, 1);
+    assert.equal(state.game.idx, 1);
+    state.inputMode = 'touch';
+});

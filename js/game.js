@@ -1,7 +1,9 @@
 import { state } from './state.js';
 import { SONG_DB, TREBLE_Y, BASS_Y } from './config.js';
 import { playTone, playRun, playClick } from './audio.js';
-import { transposeOctaves, keyboardNotesFor, durationNotation, gradeTimedOnset, validateMelody } from './music.js';
+import { transposeOctaves, keyboardNotesFor, durationNotation, gradeTimedOnset, validateMelody, midiToNote } from './music.js';
+import { startMicrophone, stopMicrophone, resetMicrophoneNotes } from './microphone.js';
+import { syncInputModeUI, useTouchInput } from './mic-ui.js';
 import { showScreen, renderHighScores, updateLanding } from './ui.js';
 import { saveCurrentUser, deductCredit } from './storage.js';
 
@@ -54,6 +56,7 @@ export function startGame(mode, songIdx=null, isRetry=false) {
         return;
     }
     
+    stopMicrophone(); // Release any old capture before starting a new session.
     const success = deductCredit();
     if(!success) return; 
     updateLanding();
@@ -96,6 +99,7 @@ export function startGame(mode, songIdx=null, isRetry=false) {
     document.getElementById('game-start-overlay').style.display = 'flex';
     
     showScreen('screen-game');
+    syncInputModeUI();
     window.dispatchEvent(new Event('resize')); 
     
     const noteGroup = document.getElementById('notes-group');
@@ -408,24 +412,63 @@ function showCurrentNote() {
     focusCurrentKey();
 }
 
-export function beginRound() {
+export async function beginRound() {
     if(state.game.phase !== 'ready') return;
-    document.getElementById('game-start-overlay').style.display = 'none';
-    const isProCoin = (state.currentUser.difficulty === 'pro' && state.game.mode === 'coin');
-    const isSong = (state.game.mode === 'song');
+    const startOverlay = document.getElementById('game-start-overlay');
+    const button = startOverlay.querySelector('button');
+    const token = state.game.sessionToken;
 
-    if (isProCoin || isSong) {
-        startCountdown(() => {
-            startProGame();
-        });
-        return;
+    if(state.inputMode === 'microphone') {
+        state.game.phase = 'arming';
+        button.disabled = true;
+        button.textContent = '🎤 Connecting...';
+        try {
+            const connected = await startMicrophone({
+                onNote: event => {
+                    if (state.game.phase === 'playing' && state.inputMode === 'microphone') {
+                        handleInput(midiToNote(event.midiNote), null, event.onsetTimeMs, 'microphone');
+                    }
+                },
+                onMonitor: ({ pitch }) => {
+                    const label = document.getElementById('mic-game-note');
+                    if(label) label.textContent = pitch?.confidence >= 0.82
+                        ? midiToNote(pitch.midi) : 'Listening…';
+                },
+                onError: error => {
+                    useTouchInput();
+                    alert(error.message || 'Microphone disconnected. You can continue with touch keys.');
+                }
+            });
+            if (!connected || token !== state.game.sessionToken || state.game.phase !== 'arming') return;
+        } catch (error) {
+            if(token !== state.game.sessionToken || state.game.phase !== 'arming') return;
+            useTouchInput();
+            alert((error.name === 'NotAllowedError' ? 'Microphone permission denied. ' : '')
+                + 'Switching to on-screen piano. ' + (error.message || ''));
+        } finally {
+            button.disabled = false;
+            button.textContent = 'START';
+            if(token === state.game.sessionToken && state.game.phase === 'arming') {
+                state.game.phase = 'ready';
+            }
+        }
     }
-    startStandardGame();
+
+    if(token !== state.game.sessionToken || state.game.phase !== 'ready') return;
+    startOverlay.style.display = 'none';
+    const isProCoin = (state.currentUser.difficulty === 'pro' && state.game.mode === 'coin');
+    const isSong = state.game.mode === 'song';
+    if (isProCoin || isSong) {
+        startCountdown(startProGame);
+    } else {
+        startStandardGame();
+    }
 }
 
 function startStandardGame() {
     if(state.game.phase !== 'ready') return;
     state.game.phase = 'playing';
+    if(state.inputMode === 'microphone') resetMicrophoneNotes();
     state.game.startTime = Date.now();
     state.game.noteTime = Date.now();
     if(state.game.timerInt) clearInterval(state.game.timerInt);
@@ -469,6 +512,7 @@ function startCountdown(callback) {
 function startProGame() {
     if(state.game.phase !== 'countdown') return;
     state.game.phase = 'playing';
+    if(state.inputMode === 'microphone') resetMicrophoneNotes();
     const noteGroup = document.getElementById('notes-group');
     if(noteGroup) noteGroup.classList.remove('animate-scroll');
 
@@ -545,8 +589,22 @@ function startProGame() {
     }, 1000);
 }
 
-export function handleInput(note, el) {
+export function handleInput(note, el, playedAtMs = Date.now(), source = 'touch') {
     if(state.game.phase !== 'playing' || state.game.idx >= state.game.notes.length) return;
+    if(source === 'microphone' && state.inputMode !== 'microphone') return;
+    const isMic = source === 'microphone';
+    if(!el && typeof document.querySelectorAll === 'function') {
+        el = [...document.querySelectorAll('#keyboard [data-note]')]
+            .find(key => key.dataset.note === note) || null;
+    }
+    const markKey = className => {
+        el?.classList.add(className);
+        if(el) setTimeout(() => el.classList.remove(className), className === 'wrong' ? 300 : 100);
+    };
+    const playFeedback = type => {
+        // Synthesized confirmation tones would be heard by the open microphone.
+        if(!isMic) playTone(note, type);
+    };
     
     const isPro = ((state.currentUser.difficulty === 'pro' && state.game.mode === 'coin') || state.game.mode === 'song');
     
@@ -557,13 +615,12 @@ export function handleInput(note, el) {
         let earned = 0;
 
         if(isPro) {
-            const onset = gradeTimedOnset(Date.now(), state.game.nextBeatTime, currentBPM);
+            const onset = gradeTimedOnset(playedAtMs, state.game.nextBeatTime, currentBPM);
             if(onset !== 'on-time') {
                 state.game.mistakes++;
                 updateAccuracyUI();
-                playTone(note, 'bad');
-                el.classList.add('wrong');
-                setTimeout(() => el.classList.remove('wrong'), 300);
+                playFeedback('bad');
+                markKey('wrong');
                 return;
             }
             earned = 5;
@@ -574,9 +631,8 @@ export function handleInput(note, el) {
             state.game.hits = (state.game.hits || 0) + 1; // Increment hits
             updateAccuracyUI(); // Update accuracy UI
 
-            el.classList.add('active');
-            setTimeout(()=>el.classList.remove('active'), 100);
-            playTone(note, 'good');
+            markKey('active');
+            playFeedback('good');
             
             const currSvg = document.getElementById(`note-${state.game.idx}`);
             let animX = 0, animY = 0;
@@ -634,13 +690,12 @@ export function handleInput(note, el) {
         } else {
              state.game.mistakes++;
              updateAccuracyUI();
-             playTone(note, 'bad');
+             playFeedback('bad');
         }
         
     } else {
-        playTone(note, 'bad');
-        el.classList.add('wrong');
-        setTimeout(()=>el.classList.remove('wrong'), 300);
+        playFeedback('bad');
+        markKey('wrong');
         state.game.mistakes++;
         updateAccuracyUI(); // Update accuracy on wrong input
     }
@@ -649,6 +704,7 @@ export function handleInput(note, el) {
 export function endGame() {
     if(state.game.phase !== 'playing') return;
     state.game.phase = 'finished';
+    stopMicrophone();
     cancelSessionTimers();
     
     const overlay = document.getElementById('countdown-overlay');
@@ -734,6 +790,7 @@ export function endGame() {
 }
 
 export function exitGame() {
+    stopMicrophone();
     state.game.phase = 'idle';
     state.game.sessionToken = (state.game.sessionToken || 0) + 1;
     cancelSessionTimers();

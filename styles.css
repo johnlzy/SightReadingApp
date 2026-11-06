@@ -310,3 +310,86 @@ button:active { transform: translateY(4px); box-shadow: none; }
     background: #4CAF50; /* Start Green */
     transition: width 0.3s ease, background-color 0.3s ease;
 }
+
+
+/* v3.0 — Real piano input and private, explicit microphone calibration */
+.input-mode-panel {
+    width: min(100%, 520px);
+    margin-top: 18px;
+    padding: 14px;
+    background: rgba(255,255,255,0.8);
+    border-radius: 18px;
+    text-align: center;
+}
+.input-mode-panel h4 { margin: 0 0 12px; }
+.input-mode-buttons { display: flex; justify-content: center; flex-wrap: wrap; gap: 10px; }
+.input-mode-buttons button { font-size: 0.95rem; padding: 12px 15px; }
+.input-mode-buttons .selected { background: var(--primary); box-shadow: 0 0 0 3px rgba(255,105,180,0.22); }
+#input-mode-help { font-size: 0.82rem; color: #666; margin-bottom: 0; }
+.mic-modal {
+    position: fixed;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    z-index: 1100;
+    background: rgba(30,30,45,0.73);
+    padding: 14px;
+}
+.mic-modal[hidden], .mic-game-status[hidden] { display: none !important; }
+.mic-dialog {
+    max-width: 430px;
+    width: 100%;
+    max-height: 92dvh;
+    overflow-y: auto;
+    padding: 24px;
+    background: #fff;
+    border-radius: 22px;
+    text-align: center;
+    box-shadow: 0 14px 35px rgba(0,0,0,0.25);
+}
+.mic-dialog h2 { margin: 0 0 10px; color: var(--primary); font-size: 1.45rem; }
+.mic-dialog p { line-height: 1.35; }
+.mic-readout {
+    background: #f3fbff;
+    border-radius: 16px;
+    margin: 12px 0;
+    padding: 16px;
+}
+.mic-readout-label { display: block; color: #666; }
+#mic-calibration-note { display: block; font-size: 3rem; color: #228b68; }
+.mic-meter { background: #d9e6ef; border-radius: 7px; height: 9px; overflow: hidden; }
+#mic-level-fill { background: #31af82; height: 100%; width: 0%; transition: width .12s; }
+.mic-privacy { font-size: .8rem; color: #686868; }
+.mic-actions { display: flex; justify-content: center; gap: 12px; }
+.mic-actions button:disabled { opacity: .4; cursor: not-allowed; }
+.mic-game-status {
+    position: absolute;
+    top: 70px;
+    right: 8px;
+    /* Keep the touch fallback clickable above the full-screen Start overlay. */
+    z-index: 650;
+    border-radius: 15px;
+    display: flex;
+    gap: 9px;
+    align-items: center;
+    background: rgba(255,255,255,.96);
+    color: #256348;
+    padding: 8px 12px;
+    font-size: .85rem;
+    box-shadow: 0 3px 10px rgba(0,0,0,.1);
+}
+.mic-live-dot {
+    width: 9px; height: 9px; border-radius: 50%;
+    background: #22a46d;
+    animation: micPulse 1.5s infinite;
+}
+@keyframes micPulse { 50% { opacity: .35; } }
+.game-wrapper.mic-mode .keyboard-area { display: none; }
+@media (max-width: 540px) {
+    .mic-game-status { top: 64px; right: 6px; padding: 6px; }
+    .mic-game-status .btn-sm { font-size: .72rem; padding: 7px; }
+    .mic-dialog { padding: 16px; }
+}
+@media (orientation: landscape) and (max-height: 500px) {
+    .mic-game-status { top: 48px; }
+}
