@@ -13,6 +13,30 @@
 A browser-based sight-reading game for children. Practice on the on-screen piano, or
 use the device microphone to play notes on a **real acoustic piano**.
 
+## What's improved in v4.3.1: playable, stable piano keys
+
+- **Compact keyboard** is the default. White keys stay within a reasonable
+  physical width (26–32 CSS px) even when an exercise spans several octaves.
+  Use **Make keys bigger** for comfortable keys (34–43 CSS px), or
+  **Low / High** for deliberate one-octave panning. Touch dragging remains
+  available. Each child keeps their own size preference.
+- **No auto-follow keyboard:** the piano moves to the first note at the
+  beginning of an exercise, but *never scrolls to the next required key*
+  while the child is playing. The child's finger does not chase moving keys.
+- **Visible score play line:** scrolling notes pass a fixed green marker in
+  the staff, independent of the touch keyboard's position. Visual movement
+  and rhythm scoring use the same tempo-based beat clock.
+- **Improved touch timing:** use the pointer event timestamp to reduce
+  event-handler scheduling error. Forgiving quarter-note windows are kept
+  separate from tighter windows around half-beat notes, preventing adjacent
+  hit windows from overlapping.
+- **No invented microphone guarantees:** microphone input retains its
+  existing calibration and confidence gating; actual acoustic-piano timing
+  must still be tested with different devices.
+
+See the new pure keyboard/clock tests and browser regressions for phones,
+tablets, and desktop.
+
 ## What's new in V4.3
 
 **One-viewport design:** Home uses well-spaced Play, Learning and My Piano
