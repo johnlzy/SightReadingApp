@@ -55,7 +55,7 @@ window.showParentPanel = showParentPanel;
 window.hideParentPanel = hideParentPanel;
 window.handleAddCredit = handleAddCredit;
 window.parentSetTimeAllowance = parentSetTimeAllowance;
-window.parentGrantMusicTime = parentGrantMusic;
+window.parentGrantMusicTime = parentGrantMusicTime;
 window.resumeFromIdle = resumeFromIdle;
 
 window.showNewUserForm = showNewUserForm;
