@@ -324,6 +324,11 @@
                     </div>
                     <div id="workshop-categories" class="workshop-categories" role="group" aria-label="Choose an item category"></div>
                     <div id="store-grid" class="workshop-grid"></div>
+                    <nav id="workshop-page-controls" class="workshop-page-controls" aria-label="More Workshop items" hidden>
+                        <button id="workshop-page-prev" onclick="changeWorkshopPage(-1)" class="btn-secondary btn-sm" aria-label="Previous Workshop items">←</button>
+                        <span id="workshop-page-label">1/1</span>
+                        <button id="workshop-page-next" onclick="changeWorkshopPage(1)" class="btn-secondary btn-sm" aria-label="Next Workshop items">→</button>
+                    </nav>
                 </section>
             </div>
         </div>
