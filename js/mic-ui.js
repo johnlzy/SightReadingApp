@@ -37,10 +37,10 @@ export function syncInputModeUI() {
     if (live) live.hidden = !mic;
 }
 
-export function useTouchInput() {
+export function useTouchInput(persist = true) {
     stopMicrophone();
     state.inputMode = 'touch';
-    saveUserPreference('input','touch');
+    if(persist) saveUserPreference('input','touch');
     syncInputModeUI();
 }
 
