@@ -4,10 +4,13 @@ import {
     selectAvatar, setRegDiff, setClef, goToStore, goToSongs, 
     updateLanding, showScreen as showScreenAlias,
     handleNewUserClick, handleUserDelete, showParentPanel, hideParentPanel, handleAddCredit,
+    parentSetTimeAllowance, parentGrantMusicTime,
     loadUsers, handleCreateUserUI, handleLogoutUI
 } from './js/ui.js';
-import { startGame, exitGame, beginRound, updateNotePosition } from './js/game.js';
+import { startGame, exitGame, beginRound, updateNotePosition, onPlayTimeExpired } from './js/game.js';
 import { state, setHitX } from './js/state.js';
+import { pausePlayBudget, resumePlayBudget, touchPlayBudget, resumeFromIdle, onPlaytimeExpired,
+    deactivatePlayBudget, hideTimeUpOverlay } from './js/app-budget.js';
 import {
     openMicrophoneSetup, closeMicrophoneSetup, confirmMicrophoneSetup,
     useTouchInput, syncInputModeUI, restoreMicTimingAdjustment, setMicTimingAdjustment
@@ -47,6 +50,9 @@ window.handleUserDelete = handleUserDelete;
 window.showParentPanel = showParentPanel;
 window.hideParentPanel = hideParentPanel;
 window.handleAddCredit = handleAddCredit;
+window.parentSetTimeAllowance = parentSetTimeAllowance;
+window.parentGrantMusicTime = parentGrantMusic;
+window.resumeFromIdle = resumeFromIdle;
 
 window.showNewUserForm = showNewUserForm;
 window.hideNewUserForm = hideNewUserForm;
@@ -66,9 +72,11 @@ window.setRegDiff = (lvl, el) => {
 
 window.createUser = handleCreateUserUI; 
 window.logout = () => {
+    pausePlayBudget();
     closeMicrophoneSetup();
     useTouchInput();
     handleLogoutUI();
+    hideTimeUpOverlay();
 };
 
 window.setClef = setClef;
@@ -85,15 +93,20 @@ window.confirmMicrophoneSetup = confirmMicrophoneSetup;
 window.useTouchInput = useTouchInput;
 window.setMicTimingAdjustment = setMicTimingAdjustment;
 
+onPlaytimeExpired(onPlayTimeExpired);
+document.addEventListener('pointerdown', touchPlayBudget, { passive: true });
+document.addEventListener('keydown', touchPlayBudget, { passive: true });
 document.addEventListener('visibilitychange', () => {
-    if (!document.hidden) return;
-    // Never leave the microphone active in the background.
-    closeMicrophoneSetup();
-    if (document.getElementById('screen-game').classList.contains('active')) {
-        exitGame();
+    if(document.hidden) {
+        pausePlayBudget();
+        closeMicrophoneSetup();
+        if(document.getElementById('screen-game').classList.contains('active')) exitGame();
+        useTouchInput();
+    } else {
+        resumePlayBudget();
     }
-    useTouchInput();
 });
+window.addEventListener('pagehide', pausePlayBudget);
 
 window.addEventListener('resize', handleResize);
 handleResize();
