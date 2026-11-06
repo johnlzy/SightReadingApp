@@ -38,10 +38,16 @@ Auditions continue to use durable Save & Leave checkpoints. Leaving an
 ordinary unfinished timed round exits without recording a completed result;
 persisting those rounds between browser launches is not yet supported.
 
-**Manual sheet pages:** Longer stationary monophonic exercises use visible
-previous/next score pages instead of automatically scrolling while the learner
-plays. This phase improves notation consistency but does **not** implement or
-certify polyphonic Grade-8-level piano evaluation with a monophonic microphone.
+**Manual sheet pages:** Longer stationary exercises use visible previous/next
+score pages instead of automatically scrolling during play.
+
+**Two-Staff Reading Studio:** A new independent grand-staff score shows
+both hands with correctly positioned treble and bass clefs, straightforward
+harmonies, and manual page turns. Children play at their own pace and may
+ask a parent or teacher for feedback. The browser microphone **does not grade
+simultaneous notes or chords**, so this mode never invents an accuracy score.
+This is a useful independent-reading stepping stone, not Grade-8-certified
+automated music evaluation.
 
 See [implementation contract](docs/product/v4.3-implementation-spec.md).
 
