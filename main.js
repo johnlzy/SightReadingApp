@@ -7,7 +7,7 @@ import {
     parentSetTimeAllowance, parentGrantMusicTime,
     loadUsers, handleCreateUserUI, handleLogoutUI
 } from './js/ui.js';
-import { startGame, exitGame, beginRound, updateNotePosition, onPlayTimeExpired, togglePhraseHints, pauseMusicSession, resumeMusicSession } from './js/game.js';
+import { startGame, exitGame, beginRound, updateNotePosition, onPlayTimeExpired, togglePhraseHints, changePhrasePage, pauseMusicSession, resumeMusicSession } from './js/game.js';
 import { state, setHitX } from './js/state.js';
 import { workshopAction, hearWorkshopSound, changeWorkshopPage } from './js/workshop-ui.js';
 import { pausePlayBudget, resumePlayBudget, touchPlayBudget, resumeFromIdle, onPlaytimeExpired,
@@ -93,6 +93,7 @@ window.changeWorkshopPage = changeWorkshopPage;
 window.hearWorkshopSound = hearWorkshopSound;
 window.startGame = startGame;
 window.togglePhraseHints = togglePhraseHints;
+window.changePhrasePage = changePhrasePage;
 window.goToSongs = goToSongs;
 window.changeSongPage = changeSongPage;
 window.setHomeTab = setHomeTab;
