@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Fun Sight Reading v3.0</title>
+    <title>Fun Sight Reading v3.1</title>
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@300;400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
     <style>
@@ -59,6 +59,14 @@
                 <div class="mic-meter"><div id="mic-level-fill"></div></div>
             </div>
             <p id="mic-status" role="status" aria-live="polite">Waiting for microphone permission...</p>
+            <div class="mic-timing-adjust">
+                <label for="mic-timing-adjust">Microphone timing compensation:
+                    <strong id="mic-timing-value">0 ms</strong>
+                </label>
+                <input id="mic-timing-adjust" type="range" min="-250" max="250" step="25" value="0"
+                    oninput="setMicTimingAdjustment(this.value)" />
+                <small>If notes are consistently marked Late, increase this value. Leave at 0 to start.</small>
+            </div>
             <p class="mic-privacy">Sound stays on your device. No audio is recorded or uploaded. The mic stops when you leave setup or the game.</p>
             <div class="mic-actions">
                 <button class="btn-secondary" onclick="closeMicrophoneSetup()">Cancel</button>
@@ -188,11 +196,12 @@
                 <div class="stat-group">Time: <span id="game-timer">0</span>s</div>
                 <div class="stat-group">Coins: <span id="game-coins">0</span></div>
                 <div class="acc-group">
-                    <div class="acc-label">Accuracy</div>
+                    <div class="acc-label">Pitch</div>
                     <div class="acc-track">
                         <div id="acc-bar-fill" class="acc-fill"></div>
                     </div>
                 </div>
+                <span id="game-rhythm" class="rhythm-indicator" hidden>Rhythm —</span>
             </div>
         </div>
         
@@ -206,6 +215,7 @@
                 <span>Listening: <strong id="mic-game-note">—</strong></span>
                 <button class="btn-sm btn-secondary" onclick="useTouchInput()">Use touch keys</button>
             </div>
+            <div id="timing-feedback" class="timing-feedback" hidden role="status" aria-live="polite"></div>
             <div class="sheet-music-area">
                 <svg id="music-svg" class="staff-svg" viewBox="0 0 1000 340" preserveAspectRatio="xMinYMid slice">
                     <g stroke="#333" stroke-width="2">
@@ -233,6 +243,11 @@
             <h1 style="color:var(--primary); font-size:3rem; margin-bottom:10px;">Great Job! 🎉</h1>
             <h2 style="color:#555">Time: <span id="res-time"></span>s</h2>
             <h2 id="res-accuracy" style="color:var(--primary); margin-top:0;">Accuracy: 100%</h2>
+            <div class="skill-results">
+                <strong id="res-pitch">Pitch: —</strong>
+                <strong id="res-rhythm" hidden>Rhythm: —</strong>
+            </div>
+            <div id="res-timing-breakdown" class="rhythm-breakdown" hidden></div>
             <h2 style="color:var(--accent)">Coins Earned: +<span id="res-coins"></span></h2>
             <div id="res-msg" style="color:var(--primary); font-weight:bold; margin-bottom:20px; font-size:1.2rem; text-align:center;"></div>
             
