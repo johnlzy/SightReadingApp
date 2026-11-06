@@ -641,6 +641,7 @@ function startProGame() {
                  else if(issue === 'late') state.game.rhythmLate++;
                  else state.game.rhythmMisses++;
                  showRhythmFeedback(issue || 'Miss');
+                 captureNoteOutcome(issue || 'miss', now);
                  state.game.mistakes++;
                  state.game.idx++;
                  state.game.pitchRecordedIndex = -1;
@@ -686,8 +687,7 @@ export function handleInput(note, el, playedAtMs = Date.now(), source = 'touch')
     if(state.game.phase !== 'playing' || state.game.idx >= state.game.notes.length) return;
     if(source === 'microphone' && state.inputMode !== 'microphone') return;
     const isMic = source === 'microphone';
-    const isTimed = state.game.mode === 'song'
-        || (state.currentUser.difficulty === 'pro' && state.game.mode === 'coin');
+    const isTimed = isTimedExercise();
     if(!el && typeof document.querySelectorAll === 'function') {
         el = [...document.querySelectorAll('#keyboard [data-note]')]
             .find(key => key.dataset.note === note) || null;
@@ -707,6 +707,7 @@ export function handleInput(note, el, playedAtMs = Date.now(), source = 'touch')
         feedbackAudio('bad');
         markKey('wrong');
         state.game.pitchErrors++;
+        state.game.noteWrongCount++;
         state.game.mistakes++;
         updateAccuracyUI();
         if(isTimed) showRhythmFeedback('Wrong note');
@@ -715,6 +716,7 @@ export function handleInput(note, el, playedAtMs = Date.now(), source = 'touch')
 
     recordCorrectPitch();
     let earned = isTimed ? 0 : 1;
+    let rhythmGrade = null;
 
     if(isTimed) {
         const evaluation = assessOnset(
@@ -734,6 +736,7 @@ export function handleInput(note, el, playedAtMs = Date.now(), source = 'touch')
             return;
         }
         const initialMistake = state.game.noteTimingIssue;
+        rhythmGrade = initialMistake || evaluation.judgement;
         if(initialMistake === 'early') {
             state.game.rhythmEarly++;
             showRhythmFeedback('early');
@@ -785,6 +788,7 @@ export function handleInput(note, el, playedAtMs = Date.now(), source = 'touch')
         if(head) head.setAttribute('fill', 'var(--primary)');
     }
 
+    captureNoteOutcome(rhythmGrade, playedAtMs);
     state.game.idx++;
     state.game.pitchRecordedIndex = -1;
     showCurrentNote();
@@ -809,8 +813,7 @@ export function endGame() {
     const totalTime = parseFloat(((Date.now() - state.game.startTime)/1000).toFixed(1));
     updateAccuracyUI();
     const summary = performanceSummary(state.game);
-    const isTimed = state.game.mode === 'song'
-        || (state.game.mode === 'coin' && state.currentUser.difficulty === 'pro');
+    const isTimed = isTimedExercise();
     const accuracy = isTimed
         ? Math.min(summary.pitch, summary.rhythm) : summary.pitch;
     let finalCoins = state.game.coins;
@@ -838,7 +841,26 @@ export function endGame() {
 
     if(!state.currentUser.scores) state.currentUser.scores = { coin: { easy:[], medium:[], hard:[], pro:[] }, songs: {} };
 
-    if(state.game.mode === 'coin') {
+    if(state.game.mode === 'practice' || state.game.mode === 'check') {
+        const learning = ensureLearning(state.currentUser);
+        const progress = finishLearningSession(learning, {
+            mode:state.game.mode,
+            clef:state.currentClef,
+            difficulty:state.currentUser.difficulty,
+            outcomes:state.game.outcomes
+        });
+        const firstTry = progress.score;
+        finalCoins = 0;
+        if(accEl) accEl.textContent = state.game.mode === 'check'
+            ? 'Skill Check: ' + firstTry + '% first try'
+            : 'Practice: ' + firstTry + '% first try';
+        if(pitchResult) pitchResult.textContent = 'First-try notes: ' +
+            progress.correct + ' / ' + progress.total;
+        msg = state.game.mode === 'check'
+            ? 'Independent skill check saved. Compare your next result on the Learning Dashboard.'
+            : 'Nice practice! Your next round will focus on notes that need review.';
+        saveCurrentUser();
+    } else if(state.game.mode === 'coin') {
         const arr = state.currentUser.scores.coin[state.currentUser.difficulty];
         let bonus = 0;
         if(totalTime < 15) bonus = 25;
