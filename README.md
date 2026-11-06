@@ -1,7 +1,28 @@
-# Fun Sight Reading — v3.1
+# Fun Sight Reading — v3.2
 
 A browser-based sight-reading game for children. Practice on the on-screen piano, or
 use the device microphone to play notes on a **real acoustic piano**.
+
+## Adaptive learning (v3.2)
+
+Choose **Adaptive Practice** for a free practice session. The game learns
+which staff notes were answered correctly on the **first attempt**, tracked
+separately for treble and bass clefs, and repeats documented weak notes more
+often. Pro learners also revisit note durations with weak onset accuracy.
+Regular songs and Coin Run feed this learning model, too. No learning data is
+uploaded; existing users are migrated automatically without losing scores.
+
+**Skill Check** is a free, untimed assessment consisting of a fresh, balanced
+note sequence drawn without looking at the child's learned mastery. It measures
+first-try accuracy and response time and never updates the mastery model.
+The note vocabulary is shared with practice, but **the sequences are new**.
+This is a within-app progress benchmark, not a standardized or clinically
+validated educational assessment.
+
+The **My Learning Journey** panel shows practiced notes, strong notes, focus
+notes, and recent Skill Check scores. Improvements should be judged by
+Skill Checks, not only by rising scores on repeatedly practiced patterns.
+Adaptive Practice and Skill Check do not spend daily credits.
 
 ## Using a real piano
 
