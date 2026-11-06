@@ -279,10 +279,10 @@
                     <div class="menu-icon">🎶</div>
                     <div>Song Mode</div>
                 </div>
-                <div class="menu-card" onclick="showParentPanel()">
-                    <div class="menu-icon">🔒</div>
-                    <div>Parent</div>
-                </div>
+                <button class="menu-card" onclick="startGrandStaffReader()" aria-label="Read a two-staff piano piece independently">
+                    <div class="menu-icon">🎼</div>
+                    <div>Two-Staff Piece</div>
+                </button>
             </div>
             </section>
         </div>
@@ -427,7 +427,7 @@
                 <span id="audition-level">Discovery Level 1</span>
             </div>
             <div class="audition-top-actions">
-                <button class="btn-sm btn-secondary" onclick="auditionSkipNote()" title="Move past a difficult note">Skip note</button>
+                <button id="audition-skip-btn" class="btn-sm btn-secondary" onclick="auditionSkipNote()" title="Move past a difficult note">Skip note</button>
                 <button class="btn-sm btn-secondary" id="audition-restart-btn" onclick="auditionStartFresh()" title="Start a fresh first concert">Restart</button>
             </div>
         </div>
@@ -437,6 +437,12 @@
             <div id="audition-score" class="stationary-score" aria-label="Music notation that stays still while playing"></div>
             <p id="audition-status" class="score-status" aria-live="polite"></p>
             <div id="audition-keys" class="keyboard-area" aria-label="Unlabelled piano keyboard for first-sight reading"></div>
+            <nav id="grand-score-actions" class="grand-score-actions" aria-label="Two-staff score pages" hidden>
+                <button id="grand-page-prev" onclick="grandTurnPage(-1)" class="btn-secondary btn-sm" aria-label="Previous page">← Page</button>
+                <span id="grand-page-label">Page 1 / 2</span>
+                <button id="grand-page-next" onclick="grandTurnPage(1)" class="btn-secondary btn-sm" aria-label="Next page">Next →</button>
+                <button class="btn-primary btn-sm" onclick="finishGrandScore()">Finished playing</button>
+            </nav>
             <div id="audition-actions" class="score-actions" hidden>
                 <button class="btn-secondary" onclick="auditionHarder()">🌟 Try a harder melody</button>
                 <button class="btn-secondary" onclick="auditionAnother()">🎵 Another melody</button>
