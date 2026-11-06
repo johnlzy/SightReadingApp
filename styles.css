@@ -458,3 +458,37 @@ button:active { transform: translateY(4px); box-shadow: none; }
     .timing-feedback { top: 64px; font-size: .75rem; }
     .rhythm-indicator { font-size: .7rem; }
 }
+
+/* v3.2 — small, accessible per-player progress overview. */
+.learning-panel {
+    width: min(100%, 560px);
+    border-radius: 20px;
+    background: #fff;
+    padding: 16px;
+    box-shadow: 0 4px 14px rgba(50,50,80,.06);
+    margin: 18px auto 0;
+    text-align: left;
+}
+.learning-heading { display:flex; justify-content:space-between; align-items:start; gap:8px; }
+.learning-heading h3 { margin:0; color:#40644d; font-size:1.12rem; }
+.learning-heading p { font-size:.75rem; color:#73787a; margin:4px 0 10px; }
+#learning-clef { background:#eff6f1; color:#44654c; border-radius:12px; padding:5px 8px; font-size:.76rem; }
+.learning-stats { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; }
+.learning-stats > div { display:flex; flex-direction:column; text-align:center; background:#f3f8f4; border-radius:12px; padding:10px 3px; }
+.learning-stats strong { font-size:1.28rem; color:#3f7e57; }
+.learning-stats small { color:#67746b; font-size:.68rem; margin-top:2px; }
+#learning-focus { font-size:.87rem; color:#53625b; line-height:1.4; margin:12px 2px 8px; }
+.learning-check-chart { display:flex; height:74px; gap:8px; align-items:flex-end; border-bottom:1px solid #dce6df; }
+.learning-check-chart:empty { display:none; }
+.learning-check-bar { flex:1 1 0; max-width:44px; min-width:12px; border-radius:5px 5px 0 0; background:#6bb68a; position:relative; }
+.learning-check-bar[data-score-low="true"] { background:#eda675; }
+.learning-check-bar span {
+    position:absolute; bottom:100%; width:100%; left:0; color:#577061;
+    text-align:center; font-size:.65rem; margin-bottom:2px;
+}
+.learning-trend { font-size:.75rem; color:#707570; margin:8px 0 0; }
+button.menu-card { font-family:inherit; border:0; color:var(--text); cursor:pointer; font-weight:normal; font-size:inherit; }
+button.menu-card:focus-visible { outline:3px solid #456eab; outline-offset:3px; }
+@media (orientation:landscape) and (max-height:500px) {
+    .learning-panel { margin-top:10px; padding:10px; }
+}
