@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Fun Sight Reading v3.1</title>
+    <title>Fun Sight Reading v3.2</title>
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@300;400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
     <style>
@@ -146,6 +146,24 @@
                 <p id="input-mode-help" aria-live="polite">Tap the on-screen piano keys. No microphone is used.</p>
             </div>
 
+            <section class="learning-panel" aria-labelledby="learning-title">
+                <div class="learning-heading">
+                    <div>
+                        <h3 id="learning-title">🌱 My Learning Journey</h3>
+                        <p id="learning-subtitle">Your notes, one step at a time.</p>
+                    </div>
+                    <span id="learning-clef">Treble</span>
+                </div>
+                <div class="learning-stats">
+                    <div><strong id="learning-practiced">0/5</strong><small>Notes practiced</small></div>
+                    <div><strong id="learning-mastered">0</strong><small>Strong notes</small></div>
+                    <div><strong id="learning-checks">0</strong><small>Skill checks</small></div>
+                </div>
+                <p id="learning-focus" aria-live="polite">Your first practice helps identify notes to review.</p>
+                <div class="learning-check-chart" id="learning-check-chart" aria-label="Previous skill-check results"></div>
+                <p id="learning-trend" class="learning-trend">Try a Skill Check to establish a starting point.</p>
+            </section>
+
             <h4 style="margin-bottom:5px; margin-top:20px;">My Instruments</h4>
             <div class="instrument-bag" id="landing-bag"></div>
 
@@ -154,6 +172,14 @@
                     <div class="menu-icon">🏪</div>
                     <div>Store</div>
                 </div>
+                <button class="menu-card" onclick="startGame('practice')">
+                    <div class="menu-icon">🌱</div>
+                    <div>Adaptive Practice</div>
+                </button>
+                <button class="menu-card" onclick="startGame('check')">
+                    <div class="menu-icon">🎯</div>
+                    <div>Skill Check</div>
+                </button>
                 <div class="menu-card" onclick="startGame('coin')">
                     <div class="menu-icon">🏃‍♀️</div>
                     <div>Coin Run</div>

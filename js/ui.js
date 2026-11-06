@@ -3,6 +3,7 @@ import { INSTRUMENTS, SONG_DB } from './config.js';
 import { playRun } from './audio.js';
 import { saveCurrentUser, deleteUser, createUser, loginUser, verifyPin, hasParentPin, setParentPin, addAdminCredits, logout as logoutData } from './storage.js';
 import { startGame } from './game.js';
+import { ensureLearning, progressSummary } from './learning.js';
 
 export function showScreen(id) {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
@@ -158,6 +159,7 @@ export function updateLanding() {
     
     const creds = state.currentUser.credits !== undefined ? state.currentUser.credits : 0;
     document.getElementById('landing-credits').innerText = creds;
+    renderLearningDashboard();
 
     const bag = document.getElementById('landing-bag');
     bag.innerHTML = '';
@@ -184,10 +186,65 @@ export function updateLanding() {
     });
 }
 
+export function renderLearningDashboard() {
+    if(!state.currentUser) return;
+    const learning = ensureLearning(state.currentUser);
+    const { mastered, practiced, total, weak, checks } = progressSummary(
+        learning, state.currentClef, state.currentUser.difficulty
+    );
+    const ids = {
+        'learning-clef': state.currentClef === 'treble' ? 'Treble clef' : 'Bass clef',
+        'learning-practiced': practiced + '/' + total,
+        'learning-mastered': String(mastered),
+        'learning-checks': String(checks.length),
+        'learning-focus': weak.length
+            ? 'Focus notes: ' + weak.map(x=>x.note).join(', ') +
+                '. Adaptive Practice will revisit these.'
+            : practiced === 0
+                ? 'Start Adaptive Practice to discover which notes need extra attention.'
+                : 'Keep practicing! More attempts will reveal your strongest and weakest notes.'
+    };
+    for(const [id,value] of Object.entries(ids)) {
+        const el = document.getElementById(id);
+        if(el) el.textContent = value;
+    }
+    const chart = document.getElementById('learning-check-chart');
+    if(chart) {
+        chart.replaceChildren();
+        for(const [i,check] of checks.entries()) {
+            const bar = document.createElement('div');
+            bar.className = 'learning-check-bar';
+            bar.style.height = Math.max(5,check.score) + '%';
+            bar.dataset.scoreLow = String(check.score < 70);
+            bar.title = 'Check ' + (i+1) + ': ' + check.score + '% first try';
+            bar.setAttribute('aria-label',bar.title);
+            const label = document.createElement('span');
+            label.textContent = check.score + '%';
+            bar.appendChild(label);
+            chart.appendChild(bar);
+        }
+    }
+    const trend = document.getElementById('learning-trend');
+    if(trend) {
+        if(checks.length >= 2) {
+            const change = checks.at(-1).score - checks.at(-2).score;
+            trend.textContent = 'Last Skill Check: ' + checks.at(-1).score +
+                '% first try (' + (change >= 0 ? '+' : '') + change +
+                ' points from the previous check).';
+        } else if(checks.length) {
+            trend.textContent = 'Starting benchmark: ' + checks[0].score +
+                '% first try. Take another Skill Check after some practice.';
+        } else {
+            trend.textContent = 'No Skill Checks yet. Take one to set a baseline on a fresh sequence.';
+        }
+    }
+}
+
 export function setClef(c) {
     state.currentClef = c;
     document.getElementById('clef-treble').classList.toggle('selected', c==='treble');
     document.getElementById('clef-bass').classList.toggle('selected', c==='bass');
+    renderLearningDashboard();
 }
 
 export function goToStore() {
@@ -309,6 +366,14 @@ export function renderHighScores() {
     
     let scores = []; // Array of objects {name, score}
     let isTime = false;
+
+    if(state.game.mode === 'practice' || state.game.mode === 'check') {
+        label.textContent = state.game.mode === 'check'
+            ? 'Skill Check results are saved in My Learning Journey.'
+            : 'Adaptive Practice results help select your next exercises.';
+        list.textContent = 'Progress is personal — it is not part of the coin leaderboard.';
+        return;
+    }
 
     if(state.game.mode === 'coin') {
         const diff = state.currentUser.difficulty;
