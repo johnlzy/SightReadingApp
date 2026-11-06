@@ -66,3 +66,38 @@ test('maps numeric pitches to named notes without requiring a MIDI device', () =
     assert.equal(midiToNote(76), 'E5');
     assert.throws(() => midiToNote(-1), /Pitch number/);
 });
+
+
+test('recognizes legato pitch changes without requiring silence', () => {
+    const gate = new NoteEventGate({ captureLagMs: 0 });
+    const note = (midi, rms = 0.15) => ({ midi, confidence: 0.97, cents: 2, rms });
+    assert.equal(gate.push(note(60), 1000), null);
+    assert.equal(gate.push(note(60), 1065).midiNote, 60);
+    assert.equal(gate.push(note(62), 1260), null);
+    const d = gate.push(note(62), 1325);
+    assert.equal(d.midiNote, 62);
+    assert.equal(d.onsetTimeMs, 1260);
+    assert.equal(gate.push(note(60), 1530), null);
+    assert.equal(gate.push(note(60), 1595).midiNote, 60);
+});
+
+test('a fresh volume attack re-triggers an identical note, sustained resonance does not', () => {
+    const gate = new NoteEventGate({ captureLagMs: 0 });
+    const note = rms => ({ midi: 69, confidence: 0.97, cents: 0, rms });
+    gate.push(note(0.12), 1000);
+    assert.equal(gate.push(note(0.12), 1065).midiNote, 69);
+    assert.equal(gate.push(note(0.115), 1350), null);
+    assert.equal(gate.push(note(0.11), 1420), null);
+    assert.equal(gate.push(note(0.20), 1600), null);
+    const repeat = gate.push(note(0.22), 1665);
+    assert.equal(repeat?.midiNote, 69);
+    assert.equal(repeat?.onsetTimeMs, 1600);
+    assert.equal(gate.push(note(0.22), 1740), null);
+});
+
+test('capture latency correction is attached to first stable candidate, not final confirmation', () => {
+    const gate = new NoteEventGate({ captureLagMs: 85 });
+    const a4 = { midi: 69, confidence: 0.96, cents: 1, rms: 0.14 };
+    assert.equal(gate.push(a4, 1000), null);
+    assert.equal(gate.push(a4, 1070).onsetTimeMs, 915);
+});
