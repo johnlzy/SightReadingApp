@@ -1,6 +1,7 @@
 import { state } from './state.js';
 import { SONG_DB, TREBLE_Y, BASS_Y } from './config.js';
 import { playTone, playRun, playClick } from './audio.js';
+import { transposeOctaves, keyboardNotesFor, durationNotation, gradeTimedOnset, validateMelody } from './music.js';
 import { showScreen, renderHighScores, updateLanding } from './ui.js';
 import { saveCurrentUser, deductCredit } from './storage.js';
 
@@ -137,11 +138,7 @@ export function generateNotes() {
     
     if(state.game.mode === 'song') {
         const songData = SONG_DB[state.game.songId].melody; 
-        state.game.notes = songData.map(item => {
-            let n = item.n;
-            if(state.currentClef === 'bass') return n.replace('5','4').replace('4','3');
-            return n;
-        });
+        state.game.notes = validateMelody(songData, state.currentClef);
         state.game.durations = songData.map(item => item.d);
     } else {
         const pool = [];
@@ -220,6 +217,7 @@ export function renderSheet() {
     const noteGroup = document.getElementById('notes-group');
     const svgContainer = document.getElementById('music-svg');
     noteGroup.innerHTML = '';
+    svgContainer.querySelectorAll('.clef-symbol').forEach(element => element.remove());
     
     const oldLine = document.getElementById('hit-line');
     if(oldLine) oldLine.remove();
@@ -236,6 +234,7 @@ export function renderSheet() {
     svgContainer.insertBefore(line, noteGroup);
 
     const clefG = document.createElementNS("http://www.w3.org/2000/svg", "g");
+    clefG.setAttribute('class', 'clef-symbol');
     const clefPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
     
     if(state.currentClef === 'treble') {
@@ -263,19 +262,20 @@ export function renderSheet() {
         g.setAttribute('id', `note-${i}`);
         
         const dur = state.game.durations[i] || 1;
+        const notation = durationNotation(dur);
         currentX += (dur * PIXELS_PER_BEAT);
 
-        let needsLine = false;
-        if(y >= 220 && (y-220)%20 === 0) needsLine = true;
-        if(y <= 100 && (100-y)%20 === 0) needsLine = true;
-        
-        if(needsLine) {
-            const l = document.createElementNS("http://www.w3.org/2000/svg", "line");
-            l.setAttribute('x1', -16); l.setAttribute('x2', 16);
-            l.setAttribute('y1', 0); l.setAttribute('y2', 0);
-            l.setAttribute('stroke', '#000');
-            g.appendChild(l);
-        }
+        // Draw every ledger line required for notes above/below the staff.
+        const ledgerPositions = [];
+        for(let ly = 220; ly <= y; ly += 20) ledgerPositions.push(ly - y);
+        for(let ly = 100; ly >= y; ly -= 20) ledgerPositions.push(ly - y);
+        ledgerPositions.forEach(offset => {
+            const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+            line.setAttribute('x1', -16); line.setAttribute('x2', 16);
+            line.setAttribute('y1', offset); line.setAttribute('y2', offset);
+            line.setAttribute('stroke', '#000');
+            g.appendChild(line);
+        });
 
         const oval = document.createElementNS("http://www.w3.org/2000/svg", "ellipse");
         oval.setAttribute('rx', 12); oval.setAttribute('ry', 9);
@@ -283,7 +283,7 @@ export function renderSheet() {
         oval.setAttribute('stroke', '#000');
         oval.setAttribute('stroke-width', '2');
         
-        if(dur >= 2) {
+        if(notation.hollow) {
              oval.setAttribute('fill', '#fff'); 
         } else {
              oval.setAttribute('class', 'note-head filled'); 
@@ -291,7 +291,7 @@ export function renderSheet() {
         }
         g.appendChild(oval);
 
-        if (dur < 4) { 
+        if (notation.stem) { 
             const stem = document.createElementNS("http://www.w3.org/2000/svg", "line");
             stem.setAttribute('stroke', '#000');
             stem.setAttribute('stroke-width', 2);
@@ -306,7 +306,7 @@ export function renderSheet() {
             }
             g.appendChild(stem);
             
-            if (dur === 0.5) {
+            if (notation.flag) {
                 const flag = document.createElementNS("http://www.w3.org/2000/svg", "path");
                 flag.setAttribute('fill', 'none');
                 flag.setAttribute('stroke', '#000');
@@ -318,6 +318,15 @@ export function renderSheet() {
                 }
                 g.appendChild(flag);
             }
+        }
+
+        if(notation.dotted) {
+            const dot = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+            dot.setAttribute('cx', 22);
+            dot.setAttribute('cy', y % 20 === 0 ? -5 : 0);
+            dot.setAttribute('r', 3);
+            dot.setAttribute('fill', '#000');
+            g.appendChild(dot);
         }
 
         if(note.includes('#')) {
@@ -334,39 +343,57 @@ export function renderSheet() {
 export function renderKeyboard() {
     const kb = document.getElementById('keyboard');
     kb.innerHTML = '';
-    const octave = state.currentClef === 'treble' ? 4 : 3;
-    const whites = ['C','D','E','F','G','A','B','C'];
-    
-    whites.forEach((w, i) => {
-        const k = document.createElement('div');
-        k.className = 'white-key';
-        const n = w + (i===7 ? octave+1 : octave);
-        k.dataset.note = n;
-        k.innerText = n;
-        k.onpointerdown = (e) => {
-            e.preventDefault();
-            handleInput(n, k);
-        };
-        kb.appendChild(k);
-    });
+    const sequence = state.game.notes;
+    const availableNotes = keyboardNotesFor(sequence, state.currentClef);
+    const whiteCount = availableNotes.filter(n => !n.includes('#')).length;
+    const keyWidth = Math.max(38, Math.floor(kb.clientWidth / Math.min(8, whiteCount)));
+    const blackWidth = Math.round(keyWidth * 0.58);
 
-    const blacks = [
-        {n:'C#', l:9}, {n:'D#', l:21.5}, {n:'F#', l:46.5}, {n:'G#', l:59}, {n:'A#', l:71.5} 
-    ];
+    const keybed = document.createElement('div');
+    keybed.className = 'keyboard-keys';
+    keybed.style.width = (whiteCount * keyWidth) + 'px';
+    kb.appendChild(keybed);
 
-    blacks.forEach(b => {
-        const k = document.createElement('div');
-        k.className = 'black-key';
-        k.style.left = b.l + '%';
-        const n = b.n + octave;
-        k.dataset.note = n;
-        k.onpointerdown = (e) => {
-            e.preventDefault(); 
-            e.stopPropagation(); 
-            handleInput(n, k);
+    let whiteIndex = 0;
+    availableNotes.forEach(note => {
+        const isBlack = note.includes('#');
+        const key = document.createElement('div');
+        key.className = isBlack ? 'black-key' : 'white-key';
+        key.dataset.note = note;
+        if(isBlack) {
+            key.style.left = (whiteIndex * keyWidth - blackWidth / 2) + 'px';
+            key.style.width = blackWidth + 'px';
+        } else {
+            key.style.flex = '0 0 ' + keyWidth + 'px';
+            key.innerText = note;
+            whiteIndex++;
+        }
+        key.onpointerdown = event => {
+            event.preventDefault();
+            event.stopPropagation();
+            handleInput(note, key);
         };
-        kb.appendChild(k);
+        keybed.appendChild(key);
     });
+    focusCurrentKey();
+}
+
+function focusCurrentKey() {
+    const kb = document.getElementById('keyboard');
+    const target = state.game.notes[state.game.idx];
+    const key = [...kb.querySelectorAll('[data-note]')].find(el => el.dataset.note === target);
+    if(!key) return;
+    const left = Math.max(0, key.offsetLeft - kb.clientWidth / 2 + key.clientWidth / 2);
+    kb.scrollTo({ left, behavior: 'smooth' });
+}
+
+function showCurrentNote() {
+    const note = document.getElementById(`note-${state.game.idx}`);
+    if(note) {
+        note.classList.remove('inactive');
+        note.classList.add('current');
+    }
+    focusCurrentKey();
 }
 
 export function beginRound() {
