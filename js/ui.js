@@ -9,6 +9,7 @@ import { ensureLearning, progressSummary } from './learning.js';
 import { ensureEconomy } from './economy.js';
 import { ensureDailyQuest, questMessage } from './quests.js';
 import { renderPipScene } from './companion.js';
+import { restoreAudition, auditionProgressLabel } from './audition-draft.js';
 import { openWorkshop } from './workshop-ui.js';
 import { syncInputModeUI } from './mic-ui.js';
 let parentZoneAuthorized = false;
@@ -221,15 +222,22 @@ export function updateLanding() {
         remaining === Infinity ? '∞' : Math.ceil(Math.max(0,remaining ?? 0)/300);
     renderLearningDashboard();
     const placed = state.currentUser.placement?.status === 'provisional';
+    const draft = restoreAudition(state.currentUser,state.currentUser.auditionDraft);
     const hero = document.getElementById('today-mission');
     const action = document.getElementById('journey-btn');
-    if(hero) hero.textContent = placed
-        ? 'Reading Level ' + (state.currentUser.readingLevel ??
-            state.currentUser.placement.level) +
-          ' · Pip has a new note adventure for you today.'
-        : 'Meet Pip at your first concert. Show the music you already know!';
-    if(action) action.textContent = placed
-        ? '🌱 Continue my adventure' : '🎵 Play my first concert';
+    if(hero) hero.textContent = draft
+        ? 'Your first concert is saved at note '+Math.min(8,draft.index+1)+
+            ' of 8. You can finish when you are ready.'
+        : placed
+            ? 'Reading Level ' + (state.currentUser.readingLevel ??
+                state.currentUser.placement.level) +
+              ' · Pip has a new note adventure for you today.'
+            : 'Meet Pip at your first concert. Show the music you already know!';
+    if(action) action.textContent = draft
+        ? auditionProgressLabel(draft)
+        : placed ? '🌱 Continue my adventure' : '🎵 Play my first concert';
+    const retry = document.getElementById('audition-retry-btn');
+    if(retry)retry.hidden=Boolean(draft)||!placed;
 
     const bag = document.getElementById('landing-bag');
     bag.innerHTML = '';
