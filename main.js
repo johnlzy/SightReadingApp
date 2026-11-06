@@ -7,7 +7,8 @@ import {
     parentSetTimeAllowance, parentGrantMusicTime,
     loadUsers, handleCreateUserUI, handleLogoutUI
 } from './js/ui.js';
-import { startGame, exitGame, beginRound, updateNotePosition, onPlayTimeExpired, togglePhraseHints, changePhrasePage, pauseMusicSession, resumeMusicSession } from './js/game.js';
+import { startGame, exitGame, beginRound, updateNotePosition, onPlayTimeExpired, togglePhraseHints, changePhrasePage, pauseMusicSession, resumeMusicSession, toggleKeyboardSize, panKeyboard } from './js/game.js';
+import { gameHitLineX } from './js/playback-geometry.js';
 import { state, setHitX } from './js/state.js';
 import { workshopAction, hearWorkshopSound, changeWorkshopPage } from './js/workshop-ui.js';
 import { pausePlayBudget, resumePlayBudget, touchPlayBudget, resumeFromIdle, onPlaytimeExpired,
@@ -25,13 +26,11 @@ import {
 // --- Global Initialization ---
 
 function handleResize() {
-    const width = window.innerWidth;
-    
-    if(width < 600) {
-        setHitX(150);
-    } else {
-        setHitX(300);
-    }
+    const staff=document.getElementById('music-svg');
+    const rect=staff?.getBoundingClientRect();
+    const width=rect?.width || window.innerWidth;
+    const height=rect?.height || Math.max(180,window.innerHeight*0.48);
+    setHitX(gameHitLineX(width,height));
 
     if(document.getElementById('screen-game').classList.contains('active')) {
         updateNotePosition(); 
@@ -92,6 +91,8 @@ window.workshopAction = workshopAction;
 window.changeWorkshopPage = changeWorkshopPage;
 window.hearWorkshopSound = hearWorkshopSound;
 window.startGame = startGame;
+window.toggleKeyboardSize = toggleKeyboardSize;
+window.panKeyboard = panKeyboard;
 window.togglePhraseHints = togglePhraseHints;
 window.changePhrasePage = changePhrasePage;
 window.goToSongs = goToSongs;

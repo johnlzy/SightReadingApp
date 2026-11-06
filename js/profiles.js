@@ -22,6 +22,8 @@ export function upgradeProfile(user, createId = newProfileId) {
     if(!['treble','bass'].includes(user.preferences.clef)) user.preferences.clef = 'treble';
     if(!['touch','microphone'].includes(user.preferences.input)) user.preferences.input = 'touch';
     if(typeof user.preferences.instrument !== 'string') user.preferences.instrument = 'piano';
+    if(!['compact','comfortable'].includes(user.preferences.keyboardSize))
+        user.preferences.keyboardSize='compact';
     if(!user.placement || typeof user.placement !== 'object') {
         user.placement = {
             status: 'not-started',

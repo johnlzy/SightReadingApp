@@ -394,3 +394,97 @@ html,body {margin:0;width:100%;height:100%;height:100dvh;overflow:hidden;overscr
   #screen-landing .user-info-area {max-width:34vw;}
   #screen-landing #user-display {max-width:70px;}
 }
+
+/* v4.3.1 — play a stable keyboard instead of chasing an auto-scrolling answer.
+   Only the keys pan horizontally, on deliberate swipe or octave navigation. */
+#screen-game .keyboard-dock {
+  flex:0 0 auto;
+  display:flex;
+  flex-direction:column;
+  min-height:0;
+  height:clamp(116px,32dvh,250px);
+  border-top:1px solid #bed2bf;
+  background:#e9f1e8;
+}
+#screen-game .keyboard-toolbar {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:5px;
+  flex:0 0 34px;
+  min-height:34px;
+  padding:3px 7px;
+  color:#2c674a;
+}
+#screen-game .keyboard-toolbar button {
+  min-height:28px;
+  padding:4px 10px;
+  border-radius:9px;
+  font-size:.7rem;
+  box-shadow:none;
+  background:#fffefa;
+  color:#345d49;
+  border:1px solid #d0dfd1;
+}
+#screen-game .keyboard-toolbar button:focus-visible {
+  outline:3px solid #315e9a;
+  outline-offset:1px;
+}
+#screen-game .keyboard-toolbar-title {
+  font-size:.72rem;
+  font-weight:700;
+  color:#47735b;
+  white-space:nowrap;
+}
+#screen-game .keyboard-dock>.keyboard-area {
+  flex:1 1 auto;
+  width:100%;
+  height:auto!important;
+  min-height:0!important;
+  max-height:none!important;
+  overflow-x:auto;
+  overflow-y:hidden;
+  touch-action:pan-x;
+  overscroll-behavior-x:contain;
+  scroll-behavior:auto;
+  scrollbar-width:thin;
+}
+#screen-game .keyboard-dock .keyboard-keys {
+  min-width:0;
+  width:max-content;
+}
+#screen-game .keyboard-dock .white-key {
+  flex-grow:0;
+  min-width:0;
+  padding-bottom:7px;
+  font-size:clamp(.58rem,.9vw,.72rem);
+  border-color:#b3c1b3;
+}
+#screen-game .keyboard-dock .black-key {
+  min-width:0;
+  height:59%;
+}
+#screen-game .game-wrapper.mic-mode .keyboard-dock {display:none;}
+/* The note-play marker belongs to the staff, not to the touch key position. */
+.staff-hit-hint {
+  position:absolute;top:calc(var(--bar-h) + 13px);left:10px;z-index:32;
+  padding:5px 8px;border-radius:9px;
+  color:#316d4d;background:#eef8eee6;font-weight:600;
+  font-size:.71rem;pointer-events:none;
+}
+@media(max-width:620px) {
+  #screen-game .keyboard-dock {height:clamp(116px,35dvh,240px);}
+  #screen-game .keyboard-toolbar {flex-basis:31px;min-height:31px;gap:3px;padding:2px 4px;}
+  #screen-game .keyboard-toolbar button {font-size:.62rem;padding:3px 6px;min-height:27px;}
+  #screen-game .keyboard-toolbar-title {font-size:.63rem;}
+}
+@media(orientation:landscape) and (max-height:460px) {
+  #screen-game .keyboard-dock {height:clamp(87px,36dvh,141px);}
+  #screen-game .keyboard-toolbar {flex-basis:28px;min-height:28px;}
+  #screen-game .keyboard-toolbar button {min-height:24px;font-size:.6rem;padding:2px 6px;}
+}
+
+/* While the lesson awaits Start, the child may still inspect and size the
+   keyboard. Only Start advances the game; pre-start key taps are ignored. */
+#game-start-overlay {pointer-events:none;}
+#game-start-overlay button {pointer-events:auto;}
