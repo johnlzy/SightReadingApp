@@ -7,14 +7,15 @@ import {
     parentSetTimeAllowance, parentGrantMusicTime,
     loadUsers, handleCreateUserUI, handleLogoutUI
 } from './js/ui.js';
-import { startGame, exitGame, beginRound, updateNotePosition, onPlayTimeExpired } from './js/game.js';
+import { startGame, exitGame, beginRound, updateNotePosition, onPlayTimeExpired, togglePhraseHints } from './js/game.js';
 import { state, setHitX } from './js/state.js';
 import { workshopAction, hearWorkshopSound } from './js/workshop-ui.js';
 import { pausePlayBudget, resumePlayBudget, touchPlayBudget, resumeFromIdle, onPlaytimeExpired,
     deactivatePlayBudget, hideTimeUpOverlay } from './js/app-budget.js';
 import {
     startOpeningAdventure, startIndependentReader, closeAudition,
-    auditionSkipNote, auditionHarder, auditionFinish, auditionTimeUp
+    auditionSkipNote, auditionHarder, auditionAnother, auditionFinish, auditionTimeUp,
+    auditionStartFresh
 } from './js/audition-ui.js';
 import {
     openMicrophoneSetup, closeMicrophoneSetup, confirmMicrophoneSetup,
@@ -90,6 +91,7 @@ window.goToStore = goToStore;
 window.workshopAction = workshopAction;
 window.hearWorkshopSound = hearWorkshopSound;
 window.startGame = startGame;
+window.togglePhraseHints = togglePhraseHints;
 window.goToSongs = goToSongs;
 window.showScreen = showScreenAlias;
 window.exitGame = exitGame;
@@ -105,7 +107,9 @@ window.startIndependentReader = startIndependentReader;
 window.closeAudition = closeAudition;
 window.auditionSkipNote = auditionSkipNote;
 window.auditionHarder = auditionHarder;
+window.auditionAnother = auditionAnother;
 window.auditionFinish = auditionFinish;
+window.auditionStartFresh = auditionStartFresh;
 
 onPlaytimeExpired(() => {
     if(!auditionTimeUp()) onPlayTimeExpired();

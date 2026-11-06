@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Melody Garden — Sight Reading v4.1</title>
+    <title>Melody Garden — Sight Reading v4.2</title>
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@300;400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
     <style>
@@ -40,6 +40,12 @@
             <h2>🔒 Parent Zone</h2>
             <p>Player: <strong id="admin-current-user">Player</strong></p>
             <p id="parent-used-time">0 minutes used today</p>
+            <section class="parent-learning-report" aria-label="Reading progress for this child">
+                <h3>Learning snapshot</h3>
+                <p id="parent-reading-level">Reading Level: starting out</p>
+                <p id="parent-reading-focus">Next reading focus: a new melody</p>
+                <p id="parent-reading-check">Fresh phrase check: not yet taken</p>
+            </section>
             <label for="parent-time-allowance">Daily Music Time</label>
             <select id="parent-time-allowance" onchange="parentSetTimeAllowance(this.value)">
                 <option value="0">Paused · 0 min</option>
@@ -180,6 +186,7 @@
                     <div class="garden-hero-buttons">
                         <button class="btn-primary" id="journey-btn" onclick="startOpeningAdventure()">Start my adventure</button>
                         <button class="btn-secondary btn-sm" id="score-reader-btn" onclick="startIndependentReader()">📖 Read a stationary score</button>
+                        <button class="btn-secondary btn-sm" id="audition-retry-btn" onclick="auditionStartFresh()" hidden>🎼 Recheck my level</button>
                     </div>
                 </div>
             </div>
@@ -222,6 +229,16 @@
                 <p id="learning-focus" aria-live="polite">Your first practice helps identify notes to review.</p>
                 <div class="learning-check-chart" id="learning-check-chart" aria-label="Previous skill-check results"></div>
                 <p id="learning-trend" class="learning-trend">Try a Skill Check to establish a starting point.</p>
+                <div class="reading-journey-path">
+                    <strong>📖 Reading Independence</strong>
+                    <span id="reading-level-indicator">Level 1 · Note Detective</span>
+                    <p id="reading-next-skill">Try a stationary melody with notes you know.</p>
+                    <p id="reading-check-progress">No fresh-phrase checks yet.</p>
+                    <div class="reading-journey-actions">
+                        <button class="btn-primary btn-sm" onclick="startGame('phrase')">Read a Melody</button>
+                        <button class="btn-secondary btn-sm" onclick="startGame('phrase-check')">Fresh Phrase Check</button>
+                    </div>
+                </div>
             </section>
 
             <h4 style="margin-bottom:5px; margin-top:20px;">My Instrument Sounds</h4>
@@ -307,10 +324,10 @@
 
 <div id="screen-game" class="screen" style="padding:0; overflow:hidden;">
         <div class="top-bar" style="position:absolute; top:0; left:0; width:100%;">
-            <button class="btn-secondary" onclick="exitGame()" style="padding:5px 15px;">❌</button>
+            <button class="btn-secondary btn-sm" onclick="exitGame()" title="Leave this round; unfinished work is not scored" style="padding:6px 10px;">← Leave</button>
             <div class="stats-bar">
                 <div class="stat-group">Time: <span id="game-timer">0</span>s</div>
-                <div class="stat-group">Sparks: <span id="game-coins">0</span></div>
+                <div class="stat-group"><span id="game-counter-label">Points</span>: <span id="game-coins">0</span></div>
                 <div class="acc-group">
                     <div class="acc-label">Pitch</div>
                     <div class="acc-track">
@@ -332,6 +349,11 @@
                 <button class="btn-sm btn-secondary" onclick="useTouchInput()">Use touch keys</button>
             </div>
             <div id="timing-feedback" class="timing-feedback" hidden role="status" aria-live="polite"></div>
+            <div id="phrase-score" class="phrase-score" hidden aria-label="Unmoving staff music for a complete phrase"></div>
+            <div id="phrase-hint-controls" class="phrase-hint-controls" hidden>
+                <span>Read the whole melody without moving prompts.</span>
+                <button id="phrase-hint-button" class="btn-secondary btn-sm" aria-pressed="false" onclick="togglePhraseHints()">Show key names (practice only)</button>
+            </div>
             <div class="sheet-music-area">
                 <svg id="music-svg" class="staff-svg" viewBox="0 0 1000 340" preserveAspectRatio="xMinYMid slice">
                     <g stroke="#333" stroke-width="2">
@@ -356,20 +378,25 @@
 
     <div id="screen-audition" class="screen">
         <div class="top-bar">
-            <button class="btn-secondary btn-sm" onclick="closeAudition()" aria-label="Leave audition">← Back</button>
+            <button class="btn-secondary btn-sm" onclick="closeAudition()" aria-label="Save and leave audition">💾 Save & Leave</button>
             <div class="score-title">
                 <strong id="audition-heading">Pip's First Concert</strong>
                 <span id="audition-level">Discovery Level 1</span>
             </div>
-            <button class="btn-sm btn-secondary" onclick="auditionSkipNote()">Skip a note</button>
+            <div class="audition-top-actions">
+                <button class="btn-sm btn-secondary" onclick="auditionSkipNote()" title="Move past a difficult note">Skip note</button>
+                <button class="btn-sm btn-secondary" id="audition-restart-btn" onclick="auditionStartFresh()" title="Start a fresh first concert">Restart</button>
+            </div>
         </div>
         <div class="score-practice-area scroll-content">
-            <p class="score-status" id="audition-progress">Read the whole score, then play your notes.</p>
+            <p class="score-status" id="audition-progress" aria-live="polite">Read the whole score, then play your notes.</p>
+            <p class="audition-resume-note" id="audition-save-note">Your concert is saved after each note. You can leave and come back.</p>
             <div id="audition-score" class="stationary-score" aria-label="Music notation that stays still while playing"></div>
             <p id="audition-status" class="score-status" aria-live="polite"></p>
             <div id="audition-keys" class="keyboard-area" aria-label="Unlabelled piano keyboard for first-sight reading"></div>
             <div id="audition-actions" class="score-actions" hidden>
                 <button class="btn-secondary" onclick="auditionHarder()">🌟 Try a harder melody</button>
+                <button class="btn-secondary" onclick="auditionAnother()">🎵 Another melody</button>
                 <button class="btn-primary" onclick="auditionFinish()">Finish my concert</button>
             </div>
         </div>

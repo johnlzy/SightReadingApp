@@ -1,5 +1,6 @@
 import { state } from './state.js';
 import { ensureLearning } from './learning.js';
+import { ensureJourney } from './learning-journey.js';
 import { upgradeProfile, upgradeProfileList, findProfileIndex, newProfileId, savePreference } from './profiles.js';
 import { ensureBudget, localDayKey } from './play-budget.js';
 import { ensureEconomy } from './economy.js';
@@ -50,6 +51,7 @@ function preparePlayer(user) {
     }
     if(!user.scores.songs || typeof user.scores.songs !== 'object') user.scores.songs = {};
     ensureLearning(user);
+    ensureJourney(user);
     ensureBudget(user, localDayKey());
     ensureEconomy(user);
     ensureDailyQuest(user);

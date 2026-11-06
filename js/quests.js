@@ -21,7 +21,7 @@ export function ensureDailyQuest(user,day=localDayKey()) {
  */
 export function recordDailyQuest(user,{sessionId,mode,outcomes,day=localDayKey()}={}) {
     const quest=ensureDailyQuest(user,day);
-    if(typeof sessionId!=='string'||!sessionId||!['coin','practice','song'].includes(mode)
+    if(typeof sessionId!=='string'||!sessionId||!['coin','practice','song','phrase'].includes(mode)
         ||!Array.isArray(outcomes)||quest.sessionIds.includes(sessionId)) {
         return {added:0,completed:quest.claimed,bonus:0};
     }

@@ -12,6 +12,8 @@ import { remainingSeconds } from './play-budget.js';
 import { ensureEconomy, grantSparks } from './economy.js';
 import { recordDailyQuest } from './quests.js';
 import { renderPipScene } from './companion.js';
+import { generateReadingPhrase, finishReadingPhrase } from './learning-journey.js';
+import { createScoreDocument, staticScoreSvg } from './score.js';
 import {
     ensureLearning, generateAdaptiveExercise, generateSkillCheck,
     recordOutcome, finishLearningSession
@@ -42,7 +44,7 @@ function captureNoteOutcome(rhythmGrade = null, timeMs = Date.now()) {
         latencyMs: isTimedExercise() ? null : Math.max(0,timeMs - (game.noteStartedAt || timeMs))
     };
     game.outcomes.push(item);
-    if(game.mode !== 'check') {
+    if(game.mode !== 'check' && game.mode !== 'phrase-check') {
         recordOutcome(ensureLearning(state.currentUser), item);
         if(Number.isInteger(state.currentUser.idx)) saveCurrentUser();
     }
@@ -141,6 +143,8 @@ export function startGame(mode, songIdx=null, isRetry=false) {
     state.game.noteStartedAt = 0;
     state.game.outcomes = [];
     state.game.exerciseKind = mode;
+    state.game.phraseSpec = null;
+    state.game.hintsUsed = false;
     state.game.nextBeatTime = 0;
     state.game.sessionToken = (state.game.sessionToken || 0) + 1;
     state.game.phase = 'ready';
@@ -164,6 +168,9 @@ export function startGame(mode, songIdx=null, isRetry=false) {
 
     cancelSessionTimers();
 
+    const counterLabel = document.getElementById('game-counter-label');
+    if(counterLabel)counterLabel.textContent =
+        ['phrase','phrase-check'].includes(mode) ? 'Notes' : mode === 'coin' ? 'Points' : 'Progress';
     document.getElementById('game-coins').innerText = 0;
     document.getElementById('game-timer').innerText = 0;
     updateAccuracyUI(); // Reset both skill displays
@@ -179,13 +186,25 @@ export function startGame(mode, songIdx=null, isRetry=false) {
     window.dispatchEvent(new Event('resize')); 
     
     const noteGroup = document.getElementById('notes-group');
+    const staticPhrase = mode === 'phrase' || mode === 'phrase-check';
+    document.getElementById('game-start-overlay')
+        ?.classList.toggle('static-start',staticPhrase);
+    const gameView = document.querySelector('.game-wrapper');
+    gameView?.classList.toggle('static-phrase-mode',staticPhrase);
+    gameView?.classList.remove('phrase-show-labels');
+    const hintButton=document.getElementById('phrase-hint-button');
+    if(hintButton)hintButton.setAttribute('aria-pressed','false');
+    const hint = document.getElementById('phrase-hint-controls');
+    if(hint)hint.hidden = mode !== 'phrase';
+    const noteView = document.getElementById('phrase-score');
+    if(noteView)noteView.hidden=!staticPhrase;
     noteGroup.classList.remove('animate-scroll'); 
     updateNotePosition(); 
     
     void noteGroup.offsetWidth; 
-    noteGroup.classList.add('animate-scroll'); 
+    if(!staticPhrase) noteGroup.classList.add('animate-scroll'); 
     
-    if(isRetry && !['practice','check'].includes(mode) && state.game.lastNotes.length > 0) {
+    if(isRetry && !['practice','check','phrase','phrase-check'].includes(mode) && state.game.lastNotes.length > 0) {
         state.game.notes = [...state.game.lastNotes];
         state.game.durations = [...state.game.lastDurations];
     } else {
@@ -196,6 +215,14 @@ export function startGame(mode, songIdx=null, isRetry=false) {
     
     renderSheet();
     renderKeyboard();
+    if(staticPhrase && noteView) {
+        const score=createScoreDocument({
+            notes:state.game.notes,durations:state.game.durations,clef:state.currentClef,
+            title:state.game.phraseSpec?.title||'A Fresh Melody',
+            bpm:state.game.phraseSpec?.bpm||72
+        });
+        noteView.innerHTML=staticScoreSvg(score);
+    }
 }
 
 export function retryGame() {
@@ -238,6 +265,14 @@ export function generateNotes() {
         });
         state.game.notes = exercise.notes;
         state.game.durations = exercise.durations;
+    } else if(state.game.mode === 'phrase' || state.game.mode === 'phrase-check') {
+        const kind=state.game.mode === 'phrase-check' ? 'check' : 'practice';
+        const spec=generateReadingPhrase(state.currentUser,{
+            clef:state.currentClef,kind
+        });
+        state.game.phraseSpec=spec;
+        state.game.notes=[...spec.notes];
+        state.game.durations=[...spec.durations];
     } else if(state.game.mode === 'check') {
         const learning = ensureLearning(state.currentUser);
         const exercise = generateSkillCheck({
@@ -472,7 +507,7 @@ export function renderKeyboard() {
             key.style.width = blackWidth + 'px';
         } else {
             key.style.flex = '0 0 ' + keyWidth + 'px';
-            key.innerText = note;
+            if(!['phrase','phrase-check'].includes(state.game.mode))key.innerText=note;
             whiteIndex++;
         }
         key.onpointerdown = event => {
@@ -486,6 +521,7 @@ export function renderKeyboard() {
 }
 
 function focusCurrentKey() {
+    if(state.game.mode === 'phrase' || state.game.mode === 'phrase-check')return;
     const kb = document.getElementById('keyboard');
     const target = state.game.notes[state.game.idx];
     const key = [...kb.querySelectorAll('[data-note]')].find(el => el.dataset.note === target);
@@ -765,6 +801,10 @@ export function handleInput(note, el, playedAtMs = Date.now(), source = 'touch')
     }
 
     state.game.hits++;
+    if(['phrase','phrase-check'].includes(state.game.mode)) {
+        const counter=document.getElementById('game-coins');
+        if(counter)counter.textContent=String(state.game.hits);
+    }
     updateAccuracyUI();
     markKey('active');
     feedbackAudio('good');
@@ -855,7 +895,26 @@ export function endGame() {
 
     if(!state.currentUser.scores) state.currentUser.scores = { coin: { easy:[], medium:[], hard:[], pro:[] }, songs: {} };
 
-    if(state.game.mode === 'practice' || state.game.mode === 'check') {
+    if(state.game.mode === 'phrase' || state.game.mode === 'phrase-check') {
+        const result=finishReadingPhrase(state.currentUser,{
+            kind:state.game.mode === 'phrase-check'?'check':'practice',
+            clef:state.currentClef,level:state.game.phraseSpec.level,
+            notes:state.game.notes,outcomes:state.game.outcomes,
+            excerptId:state.game.phraseSpec.excerptId,
+            hintsUsed:state.game.hintsUsed,
+            sessionId:state.game.sessionId
+        });
+        finalCoins=0;
+        if(accEl)accEl.textContent=(state.game.mode==='phrase-check'
+            ?'Fresh Phrase Check: ':'Melody Reading: ')+result.score+'% first try';
+        if(pitchResult)pitchResult.textContent='First-try notes: '+result.correct+' / '+result.total;
+        msg=state.game.mode==='phrase-check'
+            ? 'Your fresh melody result is saved separately from practice.'
+            : state.game.hintsUsed
+                ? 'Wonderful effort! Keep practicing, then try again without hints.'
+                : 'You read a complete stationary melody. Try a fresh phrase next!';
+        saveCurrentUser();
+    } else if(state.game.mode === 'practice' || state.game.mode === 'check') {
         const learning = ensureLearning(state.currentUser);
         const progress = finishLearningSession(learning, {
             mode:state.game.mode,
@@ -998,4 +1057,18 @@ function endForBudget() {
     const label = document.getElementById('budget-nearly-done');
     if(label) label.hidden = true;
     showTimeUpOverlay();
+}
+
+/** Key labels are a teaching scaffold and are NEVER available in blind checks. */
+export function togglePhraseHints() {
+    if(state.game.mode!=='phrase' || !['ready','playing'].includes(state.game.phase))return false;
+    const el=document.querySelector('.game-wrapper');
+    const show=!el?.classList.contains('phrase-show-labels');
+    el?.classList.toggle('phrase-show-labels',show);
+    if(show)state.game.hintsUsed=true;
+    document.querySelectorAll('#keyboard .white-key').forEach(key=>{
+        key.textContent=show?key.dataset.note:'';
+    });
+    document.getElementById('phrase-hint-button')?.setAttribute('aria-pressed',String(show));
+    return show;
 }

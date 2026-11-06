@@ -9,6 +9,8 @@ import { ensureLearning, progressSummary } from './learning.js';
 import { ensureEconomy } from './economy.js';
 import { ensureDailyQuest, questMessage } from './quests.js';
 import { renderPipScene } from './companion.js';
+import { restoreAudition, auditionProgressLabel } from './audition-draft.js';
+import { readingJourneySummary } from './learning-journey.js';
 import { openWorkshop } from './workshop-ui.js';
 import { syncInputModeUI } from './mic-ui.js';
 let parentZoneAuthorized = false;
@@ -119,6 +121,22 @@ export function showParentPanel() {
         document.getElementById('parent-used-time').textContent = b
             ? Math.round(b.usedSeconds/60) + ' minutes used today' : 'No player selected';
         document.getElementById('parent-time-allowance').value = String(b?.dailySeconds ?? 'unlimited');
+        if(state.currentUser) {
+            const reading=readingJourneySummary(state.currentUser,state.currentClef);
+            const text = (id,value)=>{
+                const el=document.getElementById(id);
+                if(el)el.textContent=value;
+            };
+            text('parent-reading-level',reading.level===null
+                ? 'Reading Level: not assessed yet (try the opening concert)'
+                : 'Reading Level '+reading.level+
+                    ' (based on current in-app evidence; not an examination grade)');
+            text('parent-reading-focus','Next focus: '+reading.focus.description);
+            text('parent-reading-check',reading.last
+                ? 'Most recent independent phrase: '+reading.last.score+
+                    '% first-try · '+reading.last.clef+' clef'
+                : 'Independent phrase checks: not yet taken');
+        }
     });
 }
 
@@ -221,15 +239,22 @@ export function updateLanding() {
         remaining === Infinity ? '∞' : Math.ceil(Math.max(0,remaining ?? 0)/300);
     renderLearningDashboard();
     const placed = state.currentUser.placement?.status === 'provisional';
+    const draft = restoreAudition(state.currentUser,state.currentUser.auditionDraft);
     const hero = document.getElementById('today-mission');
     const action = document.getElementById('journey-btn');
-    if(hero) hero.textContent = placed
-        ? 'Reading Level ' + (state.currentUser.readingLevel ??
-            state.currentUser.placement.level) +
-          ' · Pip has a new note adventure for you today.'
-        : 'Meet Pip at your first concert. Show the music you already know!';
-    if(action) action.textContent = placed
-        ? '🌱 Continue my adventure' : '🎵 Play my first concert';
+    if(hero) hero.textContent = draft
+        ? 'Your first concert is saved at note '+Math.min(8,draft.index+1)+
+            ' of 8. You can finish when you are ready.'
+        : placed
+            ? 'Reading Level ' + (state.currentUser.readingLevel ??
+                state.currentUser.placement.level) +
+              ' · Pip has a new note adventure for you today.'
+            : 'Meet Pip at your first concert. Show the music you already know!';
+    if(action) action.textContent = draft
+        ? auditionProgressLabel(draft)
+        : placed ? '🌱 Continue my adventure' : '🎵 Play my first concert';
+    const retry = document.getElementById('audition-retry-btn');
+    if(retry)retry.hidden=Boolean(draft)||!placed;
 
     const bag = document.getElementById('landing-bag');
     bag.innerHTML = '';
@@ -294,6 +319,27 @@ export function renderLearningDashboard() {
             bar.appendChild(label);
             chart.appendChild(bar);
         }
+    }
+    const reading=readingJourneySummary(state.currentUser,state.currentClef);
+    const readingLabels = {
+        1:'Note Detective',2:'Staff Explorer',3:'Melody Maker',
+        4:'Page Reader',5:'Rhythm Navigator',6:'Two-Staff Explorer',
+        7:'Fluent Musician',8:'Phrase Performer',
+        9:'Independent Pianist',10:'Concert Reader'
+    };
+    const rd={
+        'reading-level-indicator':reading.level===null
+            ? 'Explore your own reading level'
+            : 'Level '+reading.level+' · '+readingLabels[reading.level],
+        'reading-next-skill':reading.focus.description,
+        'reading-check-progress':reading.last
+            ? 'Latest fresh phrase: '+reading.last.score+'% first try. '+
+                reading.checks.length+' checks saved.'
+            : 'Try a fresh phrase check to see how your reading transfers.'
+    };
+    for(const [id,value] of Object.entries(rd)){
+        const el=document.getElementById(id);
+        if(el)el.textContent=value;
     }
     const trend = document.getElementById('learning-trend');
     if(trend) {
@@ -393,10 +439,14 @@ export function renderHighScores() {
     let scores = []; // Array of objects {name, score}
     let isTime = false;
 
-    if(state.game.mode === 'practice' || state.game.mode === 'check') {
-        label.textContent = state.game.mode === 'check'
-            ? 'Skill Check results are saved in My Learning Journey.'
-            : 'Adaptive Practice results help select your next exercises.';
+    if(['practice','check','phrase','phrase-check'].includes(state.game.mode)) {
+        label.textContent = state.game.mode === 'phrase-check'
+            ? 'Your new-phrase checks are saved separately from practice.'
+            : state.game.mode === 'phrase'
+                ? 'Your stationary melody practice is now in My Learning Journey.'
+                : state.game.mode === 'check'
+                    ? 'Skill Check results are saved in My Learning Journey.'
+                    : 'Adaptive Practice results help select your next exercises.';
         list.textContent = 'Progress is personal — it is not part of the coin leaderboard.';
         return;
     }

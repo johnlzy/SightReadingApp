@@ -1,4 +1,4 @@
-# Melody Garden — V4.1 Companion & Workshop
+# Melody Garden — V4.2 Learning Journey
 
 > **Planning for v4:** The proposed product overhaul is documented in
 > [v4 master redesign specification](docs/product/v4-master-redesign.md) and
@@ -6,10 +6,46 @@
 > [caregiver Music Pass playtime controls](docs/product/v4-parent-playtime-controls.md),
 > [Reading Independence Ladder](docs/product/v4-reading-independence-ladder.md),
 > and [Opening Audition](docs/product/v4-opening-audition.md).
-> These are design proposals only; they do **not** change the released v3.2 game.
+> These documents describe the longer-term roadmap. Features already built
+> in v4.0–v4.2 are identified below; advanced engraving and two-hand scoring
+> remain future work.
 
 A browser-based sight-reading game for children. Practice on the on-screen piano, or
 use the device microphone to play notes on a **real acoustic piano**.
+
+## What's new in V4.2
+
+**First Concert now saves your progress as you play.** There is a clear
+**Save & Leave** control at the top of the audition. When the child returns,
+the home screen offers **Resume my concert**, reopening the **same musical
+phrase at the same note**, even after a page reload or profile switch.
+Wrong-note attempts and already completed audition rounds remain intact, so
+stopping does not distort first-try placement. **Restart** deliberately
+replaces the unfinished concert only after confirmation. A gentle **Another
+melody** option helps children build confidence before choosing a harder
+challenge. Daily Music Pass limits never turn incomplete auditions into
+failures.
+
+**Reading Journey introduces complete, stationary musical phrases.**
+The **Read a Melody** mode presents musically patterned, 4/4 single-line
+scores that do not scroll or guide the eye to the next note. The score is
+visible **before** the player presses Start. A voluntary experience hint can
+begin with a longer phrase, but does **not** assign a reading level. The virtual
+keyboard's labels are hidden by default. In *practice only*, a child may
+ask to reveal key names; that attempt is marked **assisted**.
+
+**Fresh Phrase Check** independently presents an unseen musical phrase
+chosen without reading the learner's skill weights. Those results are stored
+in a separate history and do not update adaptive note mastery. The
+Learning Journey and Parent Zone explain the suggested next note for
+spaced review and show the most recent independent-phrase result.
+
+**Known limitations:** This is a monophonic, two-/four-bar foundation,
+not a professionally engraved two-hand piano score or a validated
+ABRSM Grade-8 assessment. Complex piano notation and full timed-song
+pause/resume remain future milestones. Input from an actual piano needs
+physical-device validation. See
+[the v4.2 gameplay audit](docs/product/v4.2-gameplay-audit.md).
 
 ## What's new in V4.1
 
