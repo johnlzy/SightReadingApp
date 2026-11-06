@@ -150,3 +150,17 @@ test('parent dashboard reports independent reading evidence for the selected chi
     await expect(page.locator('#parent-reading-check')).toContainText('100%');
     await expect(page.locator('#parent-reading-level')).toContainText('Reading Level');
 });
+
+test('experienced child starts with a longer musical phrase without a false Level 1 label',async({page})=>{
+    await login(page,1);
+    await expect(page.locator('#reading-level-indicator')).toContainText('Explore your own');
+    await page.locator('.reading-journey-actions button').first().click();
+    const details=await page.evaluate(async()=>{
+        const {state}=await import('/js/state.js');
+        return {level:state.game.phraseSpec.level,
+            count:state.game.notes.length,
+            assigned:state.currentUser.readingLevel};
+    });
+    expect(details).toEqual({level:4,count:16,assigned:null});
+    await expect(page.locator('#phrase-score svg')).toBeVisible();
+});
