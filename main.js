@@ -14,7 +14,7 @@ import { pausePlayBudget, resumePlayBudget, touchPlayBudget, resumeFromIdle, onP
     deactivatePlayBudget, hideTimeUpOverlay } from './js/app-budget.js';
 import {
     startOpeningAdventure, startIndependentReader, closeAudition,
-    auditionSkipNote, auditionHarder, auditionFinish, auditionTimeUp,
+    auditionSkipNote, auditionHarder, auditionAnother, auditionFinish, auditionTimeUp,
     auditionStartFresh
 } from './js/audition-ui.js';
 import {
@@ -107,6 +107,7 @@ window.startIndependentReader = startIndependentReader;
 window.closeAudition = closeAudition;
 window.auditionSkipNote = auditionSkipNote;
 window.auditionHarder = auditionHarder;
+window.auditionAnother = auditionAnother;
 window.auditionFinish = auditionFinish;
 window.auditionStartFresh = auditionStartFresh;
 
