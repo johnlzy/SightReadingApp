@@ -14,6 +14,15 @@ export function noteToMidi(note) {
     return parseNote(note).midi;
 }
 
+/** Internal pitch number to the sharp-spelled note names used by the existing piano. */
+export function midiToNote(midi) {
+    if (!Number.isInteger(midi) || midi < 0 || midi > 127) {
+        throw new Error('Pitch number must be between 0 and 127');
+    }
+    const names = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+    return names[midi % 12] + (Math.floor(midi / 12) - 1);
+}
+
 export function transposeOctaves(note, octaves) {
     const { letter, accidental, octave } = parseNote(note);
     if (!Number.isInteger(octaves)) throw new Error('Octave shift must be an integer');
