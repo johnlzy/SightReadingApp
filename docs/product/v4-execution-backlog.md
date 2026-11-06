@@ -1,5 +1,6 @@
 # SightReadingApp v4 — Execution Backlog, Contracts and Release Gates
 Status: **Documentation-only execution plan** accompanying [the master spec](./v4-master-redesign.md).
+Learning progression and placement: [Reading Independence Ladder](./v4-reading-independence-ladder.md) and [Opening Audition](./v4-opening-audition.md). Multi-child: [Profiles](./v4-multi-child-grade-pathways.md).
 Reference branch: main v3.2.0. This file does not authorize gameplay changes or alter production. See the detailed [Parent Playtime Controls](./v4-parent-playtime-controls.md) for the Music Pass contract.
 
 ## A. Contribution workstreams
@@ -21,6 +22,9 @@ No domain module should directly query DOM nodes, create audio contexts, or call
 - V4-01 Design tokens and accessible layout → V4-02 Home & results redesign → **V4-15 Music Pass parental time budgets** → V4-03 Guided session state machine.
 - V4-04 Unified, idempotent domain events → V4-05 Migration + economy ledger.
 - V4-06 First-try + source-confidence audit → V4-07 Curriculum/transfer check prototype.
+- **V4-16 stable player identity** → **V4-25 audition/placement MVP** → V4-03 guided session with ability-appropriate entry.
+- **V4-20 stationary score renderer spike** → **V4-21 guidance policy** → V4-22 independent multi-level curriculum.
+- V4-23 advanced two-staff human-supported assessment depends on V4-20/V4-21; the current monophonic mic cannot score simultaneous chords.
 
 **P1 — memorable release**
 - V4-08 Companion art and reactions depends on V4-02/V4-04.
@@ -52,6 +56,16 @@ No domain module should directly query DOM nodes, create audio contexts, or call
 | V4-13 | Familiar rehearsal vs unseen performance, stars and stage themes | existing 15 songs play; valid difficulty / unlock migration; no paywall |
 | V4-14 | Research pilot, WCAG audit, asset licensing, QA on real pianos | pre/post unseen phrase result, delayed retention, parental stop UX and safety metrics documented |
 | **V4-15 (P0)** | **Parent Music Pass controller:** daily 5-minute units, settings/override UI, active-time accounting across all child modes, parent gate, pause/lock/grace | 15-minute suggested default editable; all modes count; background/parent/calibration excluded; stop at phrase or ≤45s; unfinished check unscored; refresh/midnight/overrides idempotent |
+| **V4-16 (P0)** | Stable local multi-player identity and per-player preferences | array index→immutable ID migration; profiles/learning/companion/Music Passes isolated; switch stops mic and saves partial work |
+| **V4-17 (P0)** | Optional musical-experience onboarding separate from demonstrated reading skill | grade or experience may seed an audition but **does not** set or lock level |
+| **V4-18 (P1)** | Beginner and advanced content branches from one ability-based ladder | both learners enter useful challenge without infantile presentation; higher-level static scores possible |
+| **V4-19 (P1)** | Household dashboard | independent progress and Music Pass limits; no sibling ranking |
+| **V4-20 (P0)** | ScoreDocument + static score engraving feasibility spike | realistic one-staff/grand-staff example readable on tablet; true polyphonic notation and manual pages; no auto-scroll |
+| **V4-21 (P0)** | Guided Note / Phrase / Independent Score policy | independent mode hides all key labels, target highlights and moving notes |
+| **V4-22 (P1)** | Ten internal reading milestones and prerequisite graph | music complexity and independence are separate; no ABRSM grade mapping or beginner grind gate |
+| **V4-23 (P1)** | Human/student-assisted advanced musical evaluation | no fabricated numeric mic score for simultaneous two-hand chords |
+| **V4-24 (P1)** | Original, validated intermediate/advanced phrase bank | measures/key/voices align; unfamiliar material reviewed by teachers |
+| **V4-25 (P0)** | **Friendly audition placement** with bounded adaptive unseen items, harder stretch and confidence confirmation | high-skill user skips low tiers, low placement never earns extra currency, low-confidence mic data remains unknown, retries do not train placement evaluator |
 
 ## D. Key event contracts and reducer plan
 
@@ -136,17 +150,19 @@ Sample decision thresholds (not claims): ≥80% of pilot children independently 
 
 ## H. PR execution order and merge gates
 
-1. **PR A — v4.0 UI foundation:** tokens + home/result + accessibility snapshots; no profile schema changes.
-2. **PR B — Music Pass parent limits (P0):** versioned daily time policy, per-player controller, parent UI, in-progress phrase grace and mode-wide E2E enforcement.
-3. **PR C — guided session engine:** pure session state machine + presenter; integrated with ParentBudget time events.
-4. **PR D — learning validity:** scaffold policy, skill registry, phrase templates and unbiased transfer checks.
-5. **PR E — Pip artwork:** one polished character, four expressions, reduced-motion mode, no gameplay-state mutation.
-6. **PR F — store + migration:** cosmetic Sparks, idempotent grants, owned/equipped catalog and previews, independent of Music Passes.
-7. **PR G — missions + garden:** recommended quest, world milestone reducer, companion reactions.
-8. **PR H — child/parent learning journey:** mastery pathways, readable progress summaries and adult limit history.
-9. **PR I — song staging + validation:** performance polish, accessibility/device QA and educational pilot readout.
+1. **PR A — profile safety + entrance:** immutable per-child identity, preferences, migration and accessible first-use onboarding.
+2. **PR B — Music Pass parent limits (P0):** one per-child time controller, parent grant UI, phrase grace, mode-wide E2E checks.
+3. **PR C — audition vertical slice:** friendly, grade-independent placement, optional harder challenge, unseen phrase tests, confidence/uncertainty and quick retake.
+4. **PR D — stationary score renderer prototype:** choose supported engraving layer using one-staff and grand-staff examples; preserve existing game modes.
+5. **PR E — UI and guided session:** polished Home/results, guided journey, independent score switch and pause/finish controls.
+6. **PR F — curriculum evidence:** prerequisites, phrase templates, progressively reduced hints, retention checks and honest two-hand evaluation.
+7. **PR G — Pip and workshop:** original companion, idempotent cosmetic Sparks, equipped items and migration.
+8. **PR H — missions/world journey:** quest recommendations and independent reading achievements.
+9. **PR I — household learning dashboard:** per-child mastery, parent controls and audition history.
+10. **PR J — advanced scores and validation:** original higher-level excerpts, accessibility and real-device piano pilot.
 
-**Merge discipline:** each PR uses a dedicated branch, passing node unit tests, mobile/tablet Chromium tests and any new design-system screenshot assertions. Music Pass integration tests must cover every child mode, resets, pause/background, parent override and interrupted Skill Checks. Keep production app usable after *every* merge. Use feature flags for partial v4 flows. Do not delete legacy game/learning fields before migrations and exports are verified.
+**Merge discipline:** each PR uses a dedicated branch, passing node unit tests, mobile/tablet Chromium tests and any new design-system screenshot assertions. Music Pass integration tests must cover every child mode, resets, pause/background, parent override and interrupted Skill Checks.
+Placement tests must include high ability, novice, inconsistent effort, deliberate selection of an easy task, repeated harder challenges, mic uncertainty and profile switching. Independent Score tests assert static page coordinates while the musician plays. Audition activity must obey each child's Music Pass allowance and stop/resume without inventing failures. Keep production app usable after *every* merge. Use feature flags for partial v4 flows. Do not delete legacy game/learning fields before migrations and exports are verified.
 
 ## I. Explicit exclusions for first v4 release
 
@@ -164,6 +180,9 @@ The design/spec review approves:
 - exact accessible art tokens and primary navigation labels,
 - first benchmark phrase-bank coverage and mic uncertainty policy,
 - migration mapping and data ownership,
+- an age- and examination-grade-neutral progression policy, from guided notes to stationary full piano scores,
+- friendly audition with optional stretch challenge, placement confidence and immediate re-placement,
+- clear policy for two-hand/polyphonic music given current monophonic microphone limitations,
 - caregiver allowance presets, suggested 15-minute default, option for Unlimited, and the proposed 45-second phrase grace.
 
 Only then should implementation PR A start. Design reviews should test a **single vertical slice** rather than committing immediately to every content world and store asset.
