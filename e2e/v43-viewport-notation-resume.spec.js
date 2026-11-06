@@ -160,16 +160,19 @@ test('background visibility pauses the active game without exiting or scoring a 
     await expect.poll(()=>page.evaluate(async()=>{
       const {state}=await import('/js/state.js');return state.game.phase;
     })).toBe('playing');
-    await page.evaluate(()=>{
+    await page.evaluate(async()=>{
+        const {state}=await import('/js/state.js');
+        state.inputMode='microphone'; // fake a child who selected real piano
         Object.defineProperty(document,'hidden',{configurable:true,value:true});
         document.dispatchEvent(new Event('visibilitychange'));
     });
     await expect(page.locator('#game-pause-overlay')).toBeVisible();
     const during=await page.evaluate(async()=>{
       const {state}=await import('/js/state.js');
-      return {phase:state.game.phase,idx:state.game.idx};
+      return {phase:state.game.phase,idx:state.game.idx,input:state.inputMode};
     });
     expect(during.phase).toBe('paused');
+    expect(during.input).toBe('microphone'); // preserve real-piano choice
     await page.evaluate(()=>{
         Object.defineProperty(document,'hidden',{configurable:true,value:false});
         document.dispatchEvent(new Event('visibilitychange'));
@@ -179,6 +182,12 @@ test('background visibility pauses the active game without exiting or scoring a 
       return {phase:state.game.phase,idx:state.game.idx};
     });
     expect(later).toEqual(during);
+    // Return to touch for this browser-only test (the separate synthetic
+    // microphone tests exercise real audio capture).
+    await page.evaluate(async()=>{
+        const {state}=await import('/js/state.js');
+        state.inputMode='touch';
+    });
     await page.locator('#resume-game-button').click();
     await expect.poll(()=>page.evaluate(async()=>{
       const {state}=await import('/js/state.js');return state.game.phase;
