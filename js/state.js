@@ -9,7 +9,9 @@ export const state = {
     
     // Game Session State
 game: { 
-        mode: 'coin', 
+        mode: 'coin',
+        phase: 'idle', // idle | ready | countdown | playing | finished
+        sessionToken: 0, 
         notes: [],
         durations: [],
         idx: 0, 
@@ -17,6 +19,8 @@ game: {
         noteTime: 0, 
         coins: 0, 
         timerInt: null,
+        countdownTimeout: null,
+        animFrame: null,
         metronomeInt: null,
         nextBeatTime: 0,
         songId: -1, 
