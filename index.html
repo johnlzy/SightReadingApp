@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Melody Garden — Sight Reading v4.1</title>
+    <title>Melody Garden — Sight Reading v4.2</title>
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@300;400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
     <style>
@@ -40,6 +40,12 @@
             <h2>🔒 Parent Zone</h2>
             <p>Player: <strong id="admin-current-user">Player</strong></p>
             <p id="parent-used-time">0 minutes used today</p>
+            <section class="parent-learning-report" aria-label="Reading progress for this child">
+                <h3>Learning snapshot</h3>
+                <p id="parent-reading-level">Reading Level: starting out</p>
+                <p id="parent-reading-focus">Next reading focus: a new melody</p>
+                <p id="parent-reading-check">Fresh phrase check: not yet taken</p>
+            </section>
             <label for="parent-time-allowance">Daily Music Time</label>
             <select id="parent-time-allowance" onchange="parentSetTimeAllowance(this.value)">
                 <option value="0">Paused · 0 min</option>
@@ -223,6 +229,16 @@
                 <p id="learning-focus" aria-live="polite">Your first practice helps identify notes to review.</p>
                 <div class="learning-check-chart" id="learning-check-chart" aria-label="Previous skill-check results"></div>
                 <p id="learning-trend" class="learning-trend">Try a Skill Check to establish a starting point.</p>
+                <div class="reading-journey-path">
+                    <strong>📖 Reading Independence</strong>
+                    <span id="reading-level-indicator">Level 1 · Note Detective</span>
+                    <p id="reading-next-skill">Try a stationary melody with notes you know.</p>
+                    <p id="reading-check-progress">No fresh-phrase checks yet.</p>
+                    <div class="reading-journey-actions">
+                        <button class="btn-primary btn-sm" onclick="startGame('phrase')">Read a Melody</button>
+                        <button class="btn-secondary btn-sm" onclick="startGame('phrase-check')">Fresh Phrase Check</button>
+                    </div>
+                </div>
             </section>
 
             <h4 style="margin-bottom:5px; margin-top:20px;">My Instrument Sounds</h4>
@@ -311,7 +327,7 @@
             <button class="btn-secondary" onclick="exitGame()" style="padding:5px 15px;">❌</button>
             <div class="stats-bar">
                 <div class="stat-group">Time: <span id="game-timer">0</span>s</div>
-                <div class="stat-group">Sparks: <span id="game-coins">0</span></div>
+                <div class="stat-group">Notes: <span id="game-coins">0</span></div>
                 <div class="acc-group">
                     <div class="acc-label">Pitch</div>
                     <div class="acc-track">
@@ -333,6 +349,11 @@
                 <button class="btn-sm btn-secondary" onclick="useTouchInput()">Use touch keys</button>
             </div>
             <div id="timing-feedback" class="timing-feedback" hidden role="status" aria-live="polite"></div>
+            <div id="phrase-score" class="phrase-score" hidden aria-label="Unmoving staff music for a complete phrase"></div>
+            <div id="phrase-hint-controls" class="phrase-hint-controls" hidden>
+                <span>Read the whole melody without moving prompts.</span>
+                <button id="phrase-hint-button" class="btn-secondary btn-sm" aria-pressed="false" onclick="togglePhraseHints()">Show key names (practice only)</button>
+            </div>
             <div class="sheet-music-area">
                 <svg id="music-svg" class="staff-svg" viewBox="0 0 1000 340" preserveAspectRatio="xMinYMid slice">
                     <g stroke="#333" stroke-width="2">
