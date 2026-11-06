@@ -1,4 +1,5 @@
 import { state } from './state.js';
+import { ensureLearning } from './learning.js';
 
 // REMOVED: import from ui.js to break the cycle
 
@@ -26,6 +27,7 @@ function checkDailyCredits(user) {
         if(!Array.isArray(user.scores.coin[difficulty])) user.scores.coin[difficulty] = [];
     }
     if(!user.scores.songs || typeof user.scores.songs !== 'object') user.scores.songs = {};
+    ensureLearning(user);
 
     if (user.lastLogin !== today) {
         if (user.credits < 8) user.credits = 8;
@@ -72,7 +74,8 @@ export function createUser() {
         lastLogin: today,
         instruments: ['piano'],
         unlockedSongs: 0,
-        scores: { coin: { easy: [], medium: [], hard: [], pro: [] }, songs: {} }
+        scores: { coin: { easy: [], medium: [], hard: [], pro: [] }, songs: {} },
+        learning: { version:1, notes:{}, rhythms:{}, sessions:[], checks:[], checkCount:0 }
     };
     list.push(newUser);
     localStorage.setItem('fsr_users_v2', JSON.stringify(list));
