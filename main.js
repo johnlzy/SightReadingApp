@@ -7,7 +7,7 @@ import {
     parentSetTimeAllowance, parentGrantMusicTime,
     loadUsers, handleCreateUserUI, handleLogoutUI
 } from './js/ui.js';
-import { startGame, exitGame, beginRound, updateNotePosition, onPlayTimeExpired, togglePhraseHints } from './js/game.js';
+import { startGame, exitGame, beginRound, updateNotePosition, onPlayTimeExpired, togglePhraseHints, pauseMusicSession, resumeMusicSession } from './js/game.js';
 import { state, setHitX } from './js/state.js';
 import { workshopAction, hearWorkshopSound } from './js/workshop-ui.js';
 import { pausePlayBudget, resumePlayBudget, touchPlayBudget, resumeFromIdle, onPlaytimeExpired,
@@ -96,6 +96,8 @@ window.goToSongs = goToSongs;
 window.showScreen = showScreenAlias;
 window.exitGame = exitGame;
 window.beginRound = beginRound;
+window.pauseMusicSession = pauseMusicSession;
+window.resumeMusicSession = resumeMusicSession;
 window.updateLanding = updateLanding;
 window.openMicrophoneSetup = openMicrophoneSetup;
 window.closeMicrophoneSetup = closeMicrophoneSetup;
@@ -120,11 +122,12 @@ document.addEventListener('visibilitychange', () => {
     if(document.hidden) {
         pausePlayBudget();
         closeMicrophoneSetup();
-        if(document.getElementById('screen-game').classList.contains('active')) exitGame();
+        if(document.getElementById('screen-game').classList.contains('active')) pauseMusicSession();
         if(document.getElementById('screen-audition').classList.contains('active')) closeAudition();
         useTouchInput(false);
     } else {
-        resumePlayBudget();
+        if(state.game.phase!=='paused'&&state.game.phase!=='resuming')
+            resumePlayBudget();
     }
 });
 window.addEventListener('pagehide', pausePlayBudget);
