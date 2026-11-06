@@ -1,0 +1,355 @@
+/* Melody Garden v4.3 — single-viewport layout system.
+   Vertical space belongs to the active task, not a long scrolling page.
+   At tiny sizes lists/controls can use local overflow as an accessibility
+   fallback rather than becoming clipped or unreachable. */
+:root {
+  --garden-cream:#f8f8ef;
+  --garden-ink:#29483e;
+  --garden-leaf:#3f7960;
+  --garden-blue:#dff0f9;
+  --garden-coral:#ec977f;
+  --garden-edge:#dfebde;
+  --garden-glass:#fffefa;
+  --space-xs:6px;
+  --space-sm:10px;
+  --space-md:15px;
+  --bar-h:56px;
+  --radius-card:20px;
+}
+html,body {margin:0;width:100%;height:100%;height:100dvh;overflow:hidden;overscroll-behavior:none;}
+.screen {height:100%;height:100dvh;overflow:hidden;}
+.screen .top-bar {
+  min-height:var(--bar-h);height:var(--bar-h);padding:6px 14px;
+  gap:8px;box-shadow:0 3px 20px #385a4116;
+}
+.top-bar button,.top-bar .btn-secondary {min-height:38px;}
+.top-bar h3 {margin:0;font-size:1.03rem;color:var(--garden-ink);}
+.user-info-area {min-width:0;gap:6px;}
+#user-display {display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:22vw;}
+.coins-display {display:flex;align-items:center;justify-content:flex-end;gap:6px;min-width:0;font-size:.8rem;text-shadow:none;}
+.header-parent-btn {background:#e7f4ea;color:#34654c;box-shadow:none;border-radius:14px;padding:7px 9px;font-size:.8rem;min-height:36px;}
+.header-parent-btn:hover,.home-tab:hover {background:#d5eada;}
+.pass-chip,.spark-balance {margin:0;padding:5px 8px;border-radius:12px;font-size:.73rem;}
+.scroll-content {min-height:0;padding:var(--space-md);padding-bottom:var(--space-md);}
+#screen-landing .home-console {
+  display:grid;grid-template-columns:minmax(0,1.12fr) minmax(0,.98fr) minmax(0,.92fr);
+  grid-template-rows:minmax(0,1.05fr) minmax(0,.95fr);
+  grid-template-areas:"focus learn play" "controls learn play";
+  gap:12px;width:100%;height:100%;overflow:hidden;
+  align-items:stretch;
+}
+.home-focus,.home-controls,.home-menu,.learning-panel {min-width:0;min-height:0;}
+.home-focus {grid-area:focus;display:grid;grid-template-rows:minmax(0,1fr) auto;gap:10px;}
+.home-focus .garden-hero {
+  display:grid;width:100%;height:100%;margin:0;padding:12px;
+  grid-template-columns:minmax(70px,34%) minmax(0,1fr);gap:10px;
+  border-radius:var(--radius-card);min-height:0;
+}
+.home-focus .home-pip-scene {width:100%;max-width:135px;min-height:0;height:100%;align-self:center;}
+.home-focus .home-pip-scene .pip-room {width:100%;height:100%;}
+.home-focus .garden-hero-copy {min-width:0;display:flex;flex-direction:column;justify-content:center;}
+.home-focus .garden-hero-copy h2 {font-size:clamp(1.04rem,1.6vw,1.55rem);margin:3px 0;line-height:1.17;}
+.home-focus .garden-hero-copy p {margin:4px 0;font-size:clamp(.72rem,.9vw,.86rem);line-height:1.25;}
+.home-focus .garden-hero-buttons {display:grid;grid-template-columns:1fr;gap:5px;}
+.home-focus .garden-hero-buttons button {width:100%;min-height:33px;padding:6px 8px;font-size:.74rem;line-height:1.2;box-shadow:none;}
+.home-focus .garden-hero-buttons #journey-btn {background:#3f825b;}
+.home-focus .garden-hero-buttons #score-reader-btn {background:#e8f3eb;color:#3a674c;}
+.home-focus .quest-strip {
+  margin:0;width:100%;min-height:54px;padding:7px 10px;
+  border-radius:15px;box-shadow:none;
+}
+.quest-strip .quest-icon {width:34px;height:34px;font-size:1.12rem;border-radius:10px;}
+.quest-strip strong {font-size:.75rem;}
+.quest-strip p {font-size:.68rem;line-height:1.2;margin:2px 0 0;}
+.quest-strip .quest-spark {font-size:.68rem;padding:4px 6px;}
+.home-controls {grid-area:controls;display:flex;flex-direction:column;gap:6px;padding:11px 13px;
+  border-radius:var(--radius-card);background:var(--garden-glass);
+  border:1px solid var(--garden-edge);overflow:hidden;}
+.home-section-heading {font-size:.95rem;margin:0 0 5px;color:#35634f;}
+.home-small-heading {font-size:.75rem;color:#63806d;margin:2px 0 -2px;}
+.home-controls .toggle-group {margin:2px 0;padding:3px;border:1px solid #e4eee3;gap:4px;transform:none;}
+.home-controls .toggle-opt {padding:6px 12px;font-size:.78rem;}
+.home-controls .input-mode-panel {width:100%;padding:7px 0;margin:0;background:transparent;}
+.home-controls .input-mode-panel h4 {display:none;}
+.home-controls .input-mode-buttons {gap:5px;flex-wrap:nowrap;}
+.home-controls .input-mode-buttons button {font-size:.73rem;padding:7px 8px;min-height:38px;flex:1 1 0;}
+.home-controls #input-mode-help {font-size:.65rem;line-height:1.2;margin:5px 0 0;}
+.home-controls>h4 {margin:3px 0 1px!important;font-size:.75rem;color:#607b6c;}
+.home-controls .instrument-bag {min-height:45px;flex:0 1 auto;width:100%;gap:6px;margin:0;padding:3px 0;overflow-x:auto;overflow-y:hidden;}
+.home-controls .inst-item {min-width:36px;min-height:36px;font-size:1rem;padding:4px;flex-shrink:0;}
+.home-tabbar {display:none;}
+#screen-landing .learning-panel {
+  grid-area:learn;display:flex;flex-direction:column;gap:7px;
+  margin:0;width:100%;max-width:none;padding:14px;
+  border:1px solid var(--garden-edge);border-radius:var(--radius-card);
+  overflow:hidden;box-shadow:none;
+}
+.learning-panel .learning-heading h3 {font-size:1rem;}
+.learning-panel .learning-heading p {font-size:.7rem;margin:2px 0;}
+.learning-panel .learning-stats {gap:5px;flex-shrink:0;}
+.learning-panel .learning-stats>div {padding:7px 3px;}
+.learning-panel .learning-stats strong {font-size:1.13rem;}
+.learning-panel .learning-stats small {font-size:.62rem;}
+.learning-panel #learning-focus,.learning-panel #reading-next-skill {
+  font-size:.77rem;line-height:1.32;margin:2px 0;
+}
+.learning-panel #learning-trend {font-size:.7rem;margin:0;line-height:1.3;}
+.learning-panel .learning-check-chart {height:56px;flex-shrink:0;}
+.learning-panel .reading-journey-path {min-height:0;gap:5px;padding:11px;margin-top:auto;overflow:hidden;}
+.learning-panel .reading-journey-path p {margin:0;font-size:.73rem;}
+.home-menu {grid-area:play;display:flex;flex-direction:column;gap:9px;padding:13px;
+  border:1px solid var(--garden-edge);border-radius:var(--radius-card);
+  background:var(--garden-glass);overflow:hidden;}
+.home-menu .reading-journey-actions {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin:0;}
+.home-menu .reading-journey-actions button {font-size:.73rem;padding:8px 5px;min-height:42px;white-space:normal;line-height:1.13;}
+.home-menu .card-menu {display:grid;flex:1;min-height:0;min-width:0;
+  width:100%;margin:0;max-width:none;grid-template-columns:repeat(2,minmax(0,1fr));
+  grid-template-rows:repeat(3,minmax(0,1fr));gap:8px;align-content:stretch;}
+.home-menu .menu-card {
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:4px;width:100%;height:100%;min-width:0;min-height:0;
+  border:1px solid #e3ede1;box-shadow:none;border-radius:14px;
+  padding:7px 4px;font-size:clamp(.69rem,.85vw,.9rem);line-height:1.2;
+}
+.home-menu .menu-icon {font-size:clamp(1.2rem,1.75vw,1.8rem);margin:0;}
+.home-menu .menu-card:hover {background:#eff9ee;border-color:#a2cdaa;}
+#screen-landing .learning-panel .reading-journey-actions{display:none;}
+/* Songbook: exactly one page of songs, with explicit navigation. */
+#screen-songs .song-grid-console {
+  flex:1;display:grid;min-height:0;overflow:hidden;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  grid-template-rows:repeat(4,minmax(0,1fr));
+  gap:9px;padding:14px;align-content:stretch;
+}
+#screen-songs .song-item {margin:0;width:100%;max-width:none;min-height:0;
+  border:1px solid var(--garden-edge);border-radius:13px;box-shadow:none;
+  font-size:.85rem;padding:9px 12px;gap:7px;}
+#screen-songs .song-item strong {font-size:.86rem;line-height:1.1;}
+#screen-songs .song-item small {font-size:.67rem;color:#6b776c;line-height:1.2;}
+.song-page-controls {flex:0 0 51px;display:flex;justify-content:center;align-items:center;gap:15px;
+  background:#fffefa;padding:6px 8px;border-top:1px solid var(--garden-edge);}
+.song-page-controls span {font-size:.8rem;color:#556e5c;font-weight:700;}
+.song-page-controls button {min-height:36px;padding:7px 15px;font-size:.8rem;}
+.song-page-controls button:disabled {opacity:.4;cursor:default;}
+/* Workshop: full category in a bounded grid; paginate long sound catalogue. */
+#screen-store .workshop-content {
+  display:grid;grid-template-rows:auto minmax(0,1fr);
+  gap:10px;overflow:hidden;padding:12px;min-height:0;
+}
+#screen-store .workshop-intro h2 {font-size:clamp(1.1rem,2vw,1.4rem);margin:1px 0;}
+#screen-store .workshop-intro p {font-size:.73rem;line-height:1.2;}
+#screen-store .workshop-layout {height:100%;min-height:0;align-items:stretch;gap:11px;}
+#screen-store .workshop-preview,#screen-store .workshop-catalog {
+  min-height:0;height:100%;overflow:hidden;padding:12px;border-radius:18px;
+}
+#screen-store .workshop-preview {position:static;display:flex;flex-direction:column;gap:7px;}
+#screen-store .workshop-scene {height:auto;flex:1 1 35%;min-height:60px;}
+#screen-store .workshop-preview-info {flex-shrink:0;gap:8px;}
+#screen-store .workshop-preview-icon {width:42px;height:42px;font-size:1.3rem;}
+#screen-store .workshop-preview-info h3 {font-size:.9rem;margin:0;}
+#screen-store .workshop-preview-info p {font-size:.7rem;}
+#screen-store .workshop-hint {font-size:.65rem;}
+#screen-store .workshop-preview-actions button {padding:8px 11px;min-height:38px;font-size:.75rem;}
+#screen-store .workshop-status {font-size:.7rem;}
+#screen-store .workshop-catalog {display:flex;flex-direction:column;gap:5px;}
+#screen-store .workshop-categories {flex:0 0 auto;padding:4px 0;}
+#screen-store .workshop-category {padding:7px 10px;min-height:36px;}
+#screen-store .workshop-grid {display:grid;flex:1;min-height:0;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  grid-template-rows:repeat(2,minmax(0,1fr));gap:7px;overflow:hidden;}
+#screen-store .workshop-item {height:100%;min-height:0;gap:4px;padding:6px;font-size:.73rem;}
+#screen-store .workshop-item-icon {font-size:1.5rem;}
+#screen-store .workshop-item strong {font-size:.72rem;}
+#screen-store .workshop-item-price {font-size:.65rem;}
+.workshop-page-controls {display:flex;flex:0 0 34px;align-items:center;justify-content:center;gap:10px;}
+.workshop-page-controls button {padding:6px 12px;font-size:.75rem;min-height:30px;}
+.workshop-page-controls span {font-size:.7rem;color:#5a6e62;}
+/* Results use columns when possible, a compact panel when space is short. */
+#screen-result .result-console {flex:1;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,.85fr);
+  align-items:stretch;gap:14px;overflow:hidden;padding:15px;min-height:0;}
+.result-primary {display:flex;align-items:center;flex-direction:column;justify-content:center;
+  min-height:0;overflow:hidden;gap:6px;padding:10px;background:#fffefa;border:1px solid var(--garden-edge);
+  border-radius:20px;}
+.result-primary h1 {font-size:clamp(1.35rem,3vw,2.3rem)!important;margin:0!important;}
+.result-primary h2 {font-size:clamp(.95rem,1.5vw,1.35rem)!important;margin:0!important;}
+.result-primary #res-msg {margin:0!important;font-size:clamp(.83rem,1.2vw,1rem)!important;line-height:1.3;}
+.result-primary .result-pip-scene {width:min(210px,45%);height:clamp(80px,19vh,138px);}
+.result-primary #res-timing-breakdown {font-size:.72rem;}
+.result-side {display:flex;flex-direction:column;gap:8px;min-height:0;overflow:hidden;}
+.result-side .score-box {flex:1;min-height:0;overflow:hidden;width:100%;max-width:none;padding:11px;}
+.result-side .score-box h3 {font-size:.9rem;}
+.result-side .score-box .score-row {padding:4px 0;font-size:.78rem;}
+.result-actions {margin:0;flex:0 0 auto;gap:8px!important;flex-wrap:wrap;}
+.result-actions button {font-size:.83rem!important;padding:9px 13px!important;min-height:40px;}
+/* Score and piano share the viewport. Music never forces the page to scroll. */
+#screen-game .top-bar {height:var(--bar-h);}
+#screen-game .game-wrapper {height:100%;min-height:0;}
+#screen-game .keyboard-area {height:clamp(86px,30dvh,230px);min-height:0;max-height:none;flex:0 0 auto;}
+#screen-game .game-wrapper.static-phrase-mode #phrase-score {
+  padding:calc(var(--bar-h) + 40px) 10px 5px;overflow:hidden;
+  align-items:center;min-height:0;
+}
+#screen-game .static-phrase-mode #phrase-score .independent-score-svg {
+  min-width:0;max-width:100%;max-height:100%;width:100%;height:100%;object-fit:contain;
+}
+.game-pause-overlay {position:absolute;inset:0;z-index:650;
+  display:grid;place-items:center;padding:14px;background:#204c3eca;}
+.game-pause-overlay[hidden]{display:none!important;}
+.game-pause-card {width:min(390px,95vw);padding:22px;background:#fffefa;
+  border:1px solid #f2ecd1;border-radius:24px;text-align:center;
+  box-shadow:0 15px 45px #18372f50;}
+.game-pause-card h2 {font-size:1.3rem;color:#376c50;margin:0 0 7px;}
+.game-pause-card p {font-size:.84rem;color:#5c7767;line-height:1.4;margin:0 0 14px;}
+.pause-sigil {width:58px;height:58px;background:#f5eebd;border-radius:50%;
+  font-size:2rem;color:#4a7e5b;display:grid;place-items:center;margin:0 auto 10px;}
+.pause-session-actions {display:flex;gap:9px;flex-wrap:wrap;justify-content:center;}
+.pause-session-actions button {font-size:.86rem;padding:10px 15px;min-height:40px;}
+#game-start-overlay.static-start {padding-bottom:calc(30dvh + 8px);}
+#screen-audition .score-practice-area {
+  display:grid;flex:1;grid-template-columns:minmax(0,1fr);
+  grid-template-rows:auto auto minmax(0,1fr) auto auto auto;
+  justify-items:center;gap:5px;padding:calc(var(--bar-h) + 5px) 10px 10px;
+  min-height:0;overflow:hidden;
+}
+#screen-audition .stationary-score {width:min(100%,680px);height:100%;
+  min-height:0;max-height:100%;overflow:hidden;padding:6px;display:grid;place-items:center;}
+#screen-audition .independent-score-svg {
+  min-width:0;width:100%;height:100%;max-height:100%;object-fit:contain;
+}
+#screen-audition #audition-keys {height:clamp(82px,21dvh,165px);min-height:0;max-height:none;width:min(100%,680px);}
+#screen-audition .score-status {font-size:.73rem;line-height:1.22;margin:0;}
+#screen-audition .audition-resume-note {font-size:.66rem;padding:4px 10px;}
+#screen-audition .score-actions {flex-wrap:wrap;gap:5px;justify-content:center;}
+#screen-audition .score-actions button {font-size:.75rem;padding:7px 10px;min-height:34px;}
+/* Profile selection: keep its normal path visible; only deep creation form may scroll locally. */
+#screen-register>.scroll-content {overflow:hidden;min-height:0;padding:12px;gap:10px;}
+#screen-register #new-user-form {max-height:min(76dvh,680px);overflow-y:auto;}
+/* Tablet and narrow desktop: panel navigation eliminates vertical stacking. */
+@media(max-width:1079px){
+  #screen-landing .home-console {
+    grid-template-columns:minmax(0,1fr);
+    grid-template-rows:auto auto minmax(0,1fr);
+    grid-template-areas:"focus" "tabs" "panel";gap:8px;padding:9px;
+  }
+  .home-focus {grid-area:focus;display:grid;grid-template-rows:minmax(0,1fr) auto;gap:5px;}
+  .home-focus .garden-hero {grid-template-columns:minmax(70px,24%) minmax(0,1fr);height:100%;min-height:0;}
+  .home-focus .quest-strip {height:42px;min-height:0;}
+  .home-focus .quest-strip .quest-icon {width:29px;height:29px;}
+  .home-focus .garden-hero-buttons {display:flex;flex-wrap:wrap;gap:5px;}
+  .home-focus .garden-hero-buttons button {flex:1 1 140px;width:auto;}
+  .home-tabbar {grid-area:tabs;display:flex;justify-content:center;gap:6px;min-height:0;}
+  .home-tab {flex:1 1 0;border-radius:12px;padding:7px 10px;
+    min-height:35px;font-size:.8rem;background:#e7f2e7;color:#4b765c;
+    box-shadow:none;border:1px solid #d7e5d4;}
+  .home-tab.selected {background:#3f7960;color:#fff;border-color:#3f7960;}
+  #screen-landing .home-controls,#screen-landing .home-menu,#screen-landing .learning-panel {
+    grid-area:panel;display:none;min-height:0;height:100%;width:100%;margin:0;
+  }
+  #screen-landing .home-console[data-tab="play"] .home-menu {display:flex;}
+  #screen-landing .home-console[data-tab="learn"] .learning-panel {display:flex;}
+  #screen-landing .home-console[data-tab="setup"] .home-controls {display:flex;}
+  .home-menu {padding:10px;}
+  .home-menu .card-menu {grid-template-columns:repeat(3,minmax(0,1fr));
+    grid-template-rows:repeat(2,minmax(0,1fr));gap:7px;}
+  .home-menu .menu-card {font-size:clamp(.77rem,1.7vw,1rem);}
+  .home-menu .menu-icon {font-size:clamp(1.2rem,3vw,1.75rem);}
+  .home-controls {justify-content:center;max-width:none;}
+  .learning-panel .reading-journey-path {margin-top:6px;}
+  #screen-store .workshop-layout {grid-template-columns:minmax(0,.95fr) minmax(0,1.05fr);}
+}
+@media(max-width:620px){
+  :root {--bar-h:52px;}
+  .screen .top-bar {padding:5px 8px;gap:4px;}
+  .top-bar button {font-size:.73rem;padding:6px 8px;min-height:32px;}
+  #user-display {font-size:.81rem!important;max-width:95px;}
+  .coins-display {font-size:.69rem;gap:4px;}
+  .pass-chip,.spark-balance {font-size:.64rem;padding:4px 5px;}
+  .header-parent-btn {font-size:.7rem;padding:5px;min-height:32px;}
+  #screen-landing .home-console {gap:6px;padding:7px;}
+  .home-focus .garden-hero {padding:8px;gap:8px;border-radius:16px;grid-template-columns:73px minmax(0,1fr);}
+  .home-focus .garden-hero-copy h2 {font-size:1.08rem;}
+  .home-focus .garden-hero-copy p {font-size:.73rem;}
+  .home-focus .eyebrow {font-size:.59rem;}
+  .home-focus .garden-hero-buttons {gap:4px;}
+  .home-focus .garden-hero-buttons button {font-size:.7rem;min-height:29px;padding:5px;}
+  .home-focus .home-pip-scene {width:73px;max-width:73px;}
+  .home-focus .quest-strip {padding:5px 8px;border-radius:12px;}
+  .quest-strip .quest-spark {font-size:.61rem;}
+  .home-tab {font-size:.75rem;min-height:33px;padding:6px;}
+  .home-menu .home-section-heading {font-size:.85rem;}
+  .home-menu .reading-journey-actions button {font-size:.75rem;padding:6px;min-height:40px;}
+  .home-menu .menu-card {font-size:.72rem;padding:5px;}
+  .home-menu .menu-icon {font-size:1.38rem;}
+  #screen-songs .song-grid-console {grid-template-columns:1fr;grid-template-rows:repeat(8,minmax(0,1fr));gap:5px;padding:8px;}
+  #screen-songs .song-item {padding:5px 9px;font-size:.74rem;}
+  #screen-songs .song-item strong {font-size:.78rem;}
+  #screen-songs .song-item small {font-size:.63rem;}
+  #screen-store .workshop-content {gap:5px;padding:7px;}
+  #screen-store .workshop-intro h2 {font-size:1rem;}
+  #screen-store .workshop-intro p {font-size:.68rem;}
+  #screen-store .workshop-layout {grid-template-columns:1fr;grid-template-rows:minmax(0,.85fr) minmax(0,1.15fr);gap:6px;}
+  #screen-store .workshop-preview {padding:7px;gap:4px;}
+  #screen-store .workshop-scene {flex:1;min-height:60px;}
+  #screen-store .workshop-preview-info {gap:5px;}
+  #screen-store .workshop-preview-icon {width:31px;height:31px;font-size:1.1rem;}
+  #screen-store .workshop-preview-info h3 {font-size:.82rem;}
+  #screen-store .workshop-preview-info p {font-size:.64rem;}
+  #screen-store .workshop-hint {display:none;}
+  #screen-store .workshop-preview-actions button {padding:5px 8px;font-size:.69rem;min-height:32px;}
+  #screen-store .workshop-catalog {padding:7px;gap:3px;}
+  #screen-store .workshop-item-icon {font-size:1.15rem;}
+  #screen-store .workshop-item strong {font-size:.65rem;}
+  #screen-store .workshop-grid {grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;}
+  #screen-result .result-console {grid-template-columns:1fr;grid-template-rows:minmax(0,1.1fr) minmax(0,.9fr);gap:6px;padding:6px;}
+  #screen-result .result-primary {gap:2px;padding:6px;}
+  #screen-result .result-primary h1 {font-size:1.23rem!important;}
+  #screen-result .result-primary h2 {font-size:.84rem!important;}
+  #screen-result .result-primary #res-msg {font-size:.74rem!important;}
+  #screen-result .result-primary .result-pip-scene {height:70px;width:150px;}
+  #screen-result .result-side {gap:4px;}
+  #screen-result .result-side .score-box {padding:5px;}
+  #screen-result .result-side .score-box h3 {font-size:.75rem;}
+  .result-actions button {font-size:.75rem!important;padding:6px 10px!important;min-height:33px;}
+  #screen-game .keyboard-area {height:clamp(85px,29dvh,230px);}
+  #game-start-overlay.static-start {padding-bottom:calc(29dvh + 9px);}
+}
+@media(orientation:landscape) and (max-height:460px){
+  :root{--bar-h:43px;}
+  .screen .top-bar{height:var(--bar-h);min-height:var(--bar-h);}
+  .home-focus {grid-template-rows:minmax(0,1fr) 29px;}
+  .home-focus .garden-hero {grid-template-columns:65px minmax(0,1fr);padding:4px 8px;}
+  .home-focus .home-pip-scene {max-width:65px;height:100%;width:65px;}
+  .home-focus .garden-hero-copy h2 {font-size:.92rem;}
+  .home-focus .garden-hero-copy p {display:none;}
+  .home-focus .garden-hero-buttons button {min-height:25px;padding:3px;font-size:.66rem;}
+  .home-focus .quest-strip {height:29px;min-height:0;padding:2px 8px;}
+  .home-focus .quest-strip .quest-icon {width:24px;height:24px;font-size:.95rem;}
+  .home-focus .quest-strip p {font-size:.65rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .home-tab {min-height:27px;padding:3px;font-size:.72rem;}
+  .home-menu {gap:4px;padding:5px;}
+  .home-menu .home-section-heading {margin:0;font-size:.75rem;}
+  .home-menu .reading-journey-actions button {min-height:28px;padding:3px;font-size:.68rem;}
+  .home-menu .card-menu {gap:4px;}
+  .home-menu .menu-icon {font-size:1.05rem;}
+  .home-menu .menu-card {gap:1px;padding:2px;font-size:.65rem;}
+  .learning-panel .learning-heading p,.learning-panel #learning-trend,.learning-panel .learning-check-chart {display:none;}
+  .learning-panel .reading-journey-path {padding:4px;}
+  #screen-store .workshop-content {grid-template-rows:32px minmax(0,1fr);}
+  #screen-store .workshop-intro h2 {font-size:.95rem;}
+  #screen-store .workshop-intro .eyebrow,#screen-store .workshop-intro p {display:none;}
+  #screen-store .workshop-layout {grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);grid-template-rows:1fr;}
+  #screen-store .workshop-preview-info p,#screen-store .workshop-hint {display:none;}
+  #screen-store .workshop-scene {min-height:50px;}
+  #screen-result .result-console {grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-rows:1fr;}
+  #screen-result .result-primary .result-pip-scene {display:none;}
+  #screen-audition .score-practice-area {padding:calc(var(--bar-h) + 2px) 7px 5px;gap:2px;}
+  #screen-audition #audition-keys {height:82px;}
+  #screen-audition .score-status {font-size:.63rem;}
+  #screen-audition .audition-resume-note {display:none;}
+  #screen-audition .score-actions button {min-height:28px;font-size:.66rem;padding:3px 6px;}
+  #screen-game .keyboard-area {height:clamp(80px,35dvh,155px);}
+  #game-start-overlay.static-start {padding-bottom:calc(35dvh + 3px);}
+}
+@media(prefers-reduced-motion:reduce){
+  .screen,button,.home-tab,.note,.pip-figure {transition:none!important;animation:none!important;}
+}
