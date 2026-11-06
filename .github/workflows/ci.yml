@@ -1,11 +1,11 @@
 name: Regression tests
 on:
   push:
-    branches: [main, fix/v2.5-stabilization]
+    branches: [main, test/v2.5-mobile-browser-validation]
   pull_request:
 
 jobs:
-  test:
+  unit:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -14,3 +14,21 @@ jobs:
           node-version: '22'
       - run: npm run check
       - run: npm test
+
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-audit --no-fund
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-failure
+          path: test-results/
+          retention-days: 7
