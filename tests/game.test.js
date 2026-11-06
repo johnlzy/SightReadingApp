@@ -30,6 +30,16 @@ ids.get('game-start-overlay').style.display = 'none';
 
 const { handleInput, exitGame } = await import('../js/game.js');
 
+test.beforeEach(() => {
+    Object.assign(state.game, {
+        pitchCorrect: 0, pitchErrors: 0, pitchMisses: 0,
+        pitchRecordedIndex: -1, rhythmOnTime: 0, rhythmPerfect: 0,
+        rhythmGood: 0, rhythmEarly: 0, rhythmLate: 0, rhythmMisses: 0,
+        absoluteOnsetErrorMs: 0, noteTimingIssue: null
+    });
+});
+
+
 test('inputs are ignored during the countdown and after a finished round', () => {
     state.currentUser = { difficulty: 'pro' };
     Object.assign(state.game, { mode: 'coin', notes: ['C4'], durations: [1],
@@ -50,12 +60,17 @@ test('correct pitch outside the onset window counts as a mistake, not a hit', ()
     handleInput('C4', element());
     assert.equal(state.game.idx, 0);
     assert.equal(state.game.hits, 0);
-    assert.equal(state.game.mistakes, 1);
+    assert.equal(state.game.pitchCorrect, 1);
+    assert.equal(state.game.pitchErrors, 0);
+    assert.equal(state.game.rhythmOnTime, 0);
+    assert.equal(state.game.noteTimingIssue, 'early');
 
     state.game.nextBeatTime = Date.now();
     handleInput('C4', element());
     assert.equal(state.game.idx, 1);
     assert.equal(state.game.hits, 1);
+    assert.equal(state.game.pitchCorrect, 1); // repeated attempts score once
+    assert.equal(state.game.rhythmOnTime, 1);
 });
 
 test('exiting a round cancels an outstanding countdown timer', async () => {
@@ -84,4 +99,22 @@ test('microphone notes use the same hit and progress path without a virtual key'
     assert.equal(state.game.coins, 1);
     assert.equal(state.game.idx, 1);
     state.inputMode = 'touch';
+});
+
+
+test('incorrect notes hurt pitch, while mistimed correct notes hurt rhythm only', () => {
+    state.currentUser = { difficulty: 'pro' };
+    state.inputMode = 'touch';
+    Object.assign(state.game, {
+        mode: 'coin', notes: ['C4', 'D4'], durations: [1, 1],
+        idx: 0, hits: 0, mistakes: 0, phase: 'playing',
+        nextBeatTime: Date.now() + 2000
+    });
+    handleInput('E4', element());
+    assert.equal(state.game.pitchErrors, 1);
+    assert.equal(state.game.pitchCorrect, 0);
+    handleInput('C4', element());
+    assert.equal(state.game.pitchCorrect, 1);
+    assert.equal(state.game.rhythmOnTime, 0);
+    assert.equal(state.game.pitchRecordedIndex, 0);
 });
