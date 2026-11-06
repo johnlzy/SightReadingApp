@@ -1,42 +1,124 @@
 import { state } from './state.js';
 import { ensureLearning } from './learning.js';
+import { upgradeProfile, upgradeProfileList, findProfileIndex, newProfileId, savePreference } from './profiles.js';
+import { ensureBudget, localDayKey } from './play-budget.js';
 
-// REMOVED: import from ui.js to break the cycle
-
-// A configurable local parental gate; this is not server-side authentication.
+const PLAYERS_KEY = 'fsr_users_v2';
 const PIN_KEY = 'fsr_parent_pin_v1';
+
+// A local convenience gate, not strong authentication or OS screen-time controls.
 export function hasParentPin() { return !!localStorage.getItem(PIN_KEY); }
 export function setParentPin(pin) {
     if(!/^\d{4,8}$/.test(pin)) return false;
     localStorage.setItem(PIN_KEY, pin);
     return true;
 }
+export function verifyPin(input) {
+    return hasParentPin() && input === localStorage.getItem(PIN_KEY);
+}
 
-/* --- CREDIT LOGIC --- */
+function readPlayers() {
+    try {
+        const raw = JSON.parse(localStorage.getItem(PLAYERS_KEY) || '[]');
+        return upgradeProfileList(raw);
+    } catch {
+        return [];
+    }
+}
+function persistPlayers(list) {
+    localStorage.setItem(PLAYERS_KEY, JSON.stringify(list));
+}
+export function listUsers() {
+    const list = readPlayers();
+    persistPlayers(list); // saves immutable IDs for older profiles exactly once
+    return list;
+}
 
-function checkDailyCredits(user) {
-    const today = new Date().toDateString();
-    if (typeof user.credits === 'undefined') user.credits = 0;
-    if (!user.instruments) user.instruments = ['piano']; 
-    if (typeof user.tCoins === 'undefined') user.tCoins = 0;
-    if (typeof user.bCoins === 'undefined') user.bCoins = 0;
-    if (typeof user.unlockedSongs === 'undefined') user.unlockedSongs = 0;
+function preparePlayer(user) {
+    upgradeProfile(user);
+    if(!Number.isFinite(user.credits)) user.credits = 0;
+    if(!Array.isArray(user.instruments)) user.instruments = ['piano'];
+    if(!Number.isFinite(user.tCoins)) user.tCoins = 0;
+    if(!Number.isFinite(user.bCoins)) user.bCoins = 0;
+    if(!Number.isInteger(user.unlockedSongs)) user.unlockedSongs = 0;
     if(!user.scores || typeof user.scores !== 'object') user.scores = {};
     if(!user.scores.coin || typeof user.scores.coin !== 'object') user.scores.coin = {};
-    for(const difficulty of ['easy', 'medium', 'hard', 'pro']) {
-        if(!Array.isArray(user.scores.coin[difficulty])) user.scores.coin[difficulty] = [];
+    for(const d of ['easy','medium','hard','pro']) {
+        if(!Array.isArray(user.scores.coin[d])) user.scores.coin[d] = [];
     }
     if(!user.scores.songs || typeof user.scores.songs !== 'object') user.scores.songs = {};
     ensureLearning(user);
-
-    if (user.lastLogin !== today) {
-        if (user.credits < 8) user.credits = 8;
-        user.lastLogin = today;
-    }
+    ensureBudget(user, localDayKey());
+    // Keep historical v3 ticket balances for safe migration, but do not
+    // charge per activity once Music Pass time limits are enabled.
     return user;
 }
 
+export function createUser() {
+    const users = listUsers();
+    const newUser = preparePlayer({
+        profileId: newProfileId(),
+        name: state.tempUser.name,
+        avatar: state.tempUser.avatar,
+        difficulty: state.tempUser.diff,
+        tCoins: 0, bCoins: 0, credits: 8,
+        lastLogin: new Date().toDateString(),
+        instruments: ['piano'],
+        unlockedSongs: 0,
+        scores: { coin: { easy: [], medium: [], hard: [], pro: [] }, songs: {} },
+        learning: { version:1, notes:{}, rhythms:{}, sessions:[], checks:[], checkCount:0 }
+    });
+    users.push(newUser);
+    persistPlayers(users);
+    return users.length - 1; // legacy registration interface
+}
+
+export function deleteUser(identifier) {
+    const users = listUsers();
+    const index = findProfileIndex(users, identifier);
+    if(index < 0) return false;
+    const [removed] = users.splice(index, 1);
+    persistPlayers(users);
+    if(state.currentUser?.profileId === removed.profileId) logout();
+    else if(state.currentUser) state.currentUser.idx =
+        findProfileIndex(users, state.currentUser.profileId);
+    return true;
+}
+
+export function loginUser(identifier) {
+    const users = listUsers();
+    const index = findProfileIndex(users, identifier);
+    if(index < 0) return null;
+    const user = preparePlayer(users[index]);
+    state.currentUser = user;
+    state.currentUser.idx = index;
+    state.currentClef = user.preferences.clef;
+    state.currentInstKey = user.preferences.instrument;
+    // Microphone permission and capture must be re-established after login.
+    state.inputMode = 'touch';
+    users[index] = user;
+    persistPlayers(users);
+    return user;
+}
+
+export function saveCurrentUser() {
+    if(!state.currentUser?.profileId) return;
+    const users = listUsers();
+    const index = findProfileIndex(users, state.currentUser.profileId);
+    if(index < 0) return; // never resurrect a deleted sibling's account
+    state.currentUser.idx = index;
+    users[index] = state.currentUser;
+    persistPlayers(users);
+}
+
+export function saveUserPreference(key, value) {
+    if(!state.currentUser) return;
+    savePreference(state.currentUser, key, value);
+    saveCurrentUser();
+}
+
 export function deductCredit() {
+    // Legacy API maintained for existing callers; V4 use the time budget.
     if(!state.currentUser) return false;
     if(state.currentUser.credits > 0) {
         state.currentUser.credits--;
@@ -47,80 +129,14 @@ export function deductCredit() {
 }
 
 export function addAdminCredits(amount) {
-    if(!state.currentUser) return;
+    if(!state.currentUser || !Number.isFinite(amount)) return;
     state.currentUser.credits += amount;
     saveCurrentUser();
 }
 
-export function verifyPin(input) {
-    return hasParentPin() && input === localStorage.getItem(PIN_KEY);
-}
-
-/* --- USER LOGIC --- */
-
-// REMOVED: loadUsers() function (Moved to ui.js)
-
-export function createUser() {
-    const list = JSON.parse(localStorage.getItem('fsr_users_v2') || '[]');
-    const today = new Date().toDateString();
-    
-    const newUser = {
-        name: state.tempUser.name,
-        avatar: state.tempUser.avatar,
-        difficulty: state.tempUser.diff,
-        tCoins: 0,
-        bCoins: 0,
-        credits: 8,
-        lastLogin: today,
-        instruments: ['piano'],
-        unlockedSongs: 0,
-        scores: { coin: { easy: [], medium: [], hard: [], pro: [] }, songs: {} },
-        learning: { version:1, notes:{}, rhythms:{}, sessions:[], checks:[], checkCount:0 }
-    };
-    list.push(newUser);
-    localStorage.setItem('fsr_users_v2', JSON.stringify(list));
-    
-    // Return the new index so UI knows who to log in
-    return list.length - 1;
-}
-
-export function deleteUser(index) {
-    const list = JSON.parse(localStorage.getItem('fsr_users_v2') || '[]');
-    list.splice(index, 1);
-    localStorage.setItem('fsr_users_v2', JSON.stringify(list));
-    // Removed loadUsers call
-}
-
-export function loginUser(index) {
-    const list = JSON.parse(localStorage.getItem('fsr_users_v2') || '[]');
-    let user = list[index];
-    
-    // Check for daily reset
-    user = checkDailyCredits(user);
-    
-    state.currentUser = user;
-    state.currentUser.idx = index; 
-    
-    if(!state.currentUser.scores) {
-        state.currentUser.scores = { coin: { easy: [], medium: [], hard: [] }, songs: {} };
-    }
-
-    list[index] = user;
-    localStorage.setItem('fsr_users_v2', JSON.stringify(list));
-
-    // REMOVED: updateLanding() and showScreen() calls.
-    // The UI will handle this after calling loginUser.
-}
-
-export function saveCurrentUser() {
-    if(state.currentUser === null) return;
-    const list = JSON.parse(localStorage.getItem('fsr_users_v2') || '[]');
-    list[state.currentUser.idx] = state.currentUser;
-    localStorage.setItem('fsr_users_v2', JSON.stringify(list));
-    // Removed updateLanding call (should be handled by caller or state listener if needed)
-}
-
 export function logout() {
     state.currentUser = null;
-    // Removed showScreen and loadUsers calls
+    state.currentClef = 'treble';
+    state.currentInstKey = 'piano';
+    state.inputMode = 'touch';
 }
