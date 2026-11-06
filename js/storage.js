@@ -2,7 +2,14 @@ import { state } from './state.js';
 
 // REMOVED: import from ui.js to break the cycle
 
-export const ADMIN_PIN = "123456";
+// A configurable local parental gate; this is not server-side authentication.
+const PIN_KEY = 'fsr_parent_pin_v1';
+export function hasParentPin() { return !!localStorage.getItem(PIN_KEY); }
+export function setParentPin(pin) {
+    if(!/^\d{4,8}$/.test(pin)) return false;
+    localStorage.setItem(PIN_KEY, pin);
+    return true;
+}
 
 /* --- CREDIT LOGIC --- */
 
@@ -13,6 +20,12 @@ function checkDailyCredits(user) {
     if (typeof user.tCoins === 'undefined') user.tCoins = 0;
     if (typeof user.bCoins === 'undefined') user.bCoins = 0;
     if (typeof user.unlockedSongs === 'undefined') user.unlockedSongs = 0;
+    if(!user.scores || typeof user.scores !== 'object') user.scores = {};
+    if(!user.scores.coin || typeof user.scores.coin !== 'object') user.scores.coin = {};
+    for(const difficulty of ['easy', 'medium', 'hard', 'pro']) {
+        if(!Array.isArray(user.scores.coin[difficulty])) user.scores.coin[difficulty] = [];
+    }
+    if(!user.scores.songs || typeof user.scores.songs !== 'object') user.scores.songs = {};
 
     if (user.lastLogin !== today) {
         if (user.credits < 8) user.credits = 8;
@@ -38,7 +51,7 @@ export function addAdminCredits(amount) {
 }
 
 export function verifyPin(input) {
-    return input === ADMIN_PIN;
+    return hasParentPin() && input === localStorage.getItem(PIN_KEY);
 }
 
 /* --- USER LOGIC --- */
@@ -59,7 +72,7 @@ export function createUser() {
         lastLogin: today,
         instruments: ['piano'],
         unlockedSongs: 0,
-        scores: { coin: { easy: [], medium: [], hard: [] }, songs: {} }
+        scores: { coin: { easy: [], medium: [], hard: [], pro: [] }, songs: {} }
     };
     list.push(newUser);
     localStorage.setItem('fsr_users_v2', JSON.stringify(list));
