@@ -61,6 +61,7 @@ export function createUser() {
         name: state.tempUser.name,
         avatar: state.tempUser.avatar,
         difficulty: state.tempUser.diff,
+        startingComfort: state.tempUser.startingComfort || 'new',
         tCoins: 0, bCoins: 0, credits: 8,
         lastLogin: new Date().toDateString(),
         instruments: ['piano'],
