@@ -1,5 +1,6 @@
 import { state, setAudioCtx } from './state.js';
 import { FREQUENCIES, INSTRUMENTS } from './config.js';
+import { noteFrequency } from './music.js';
 
 export function initAudio() {
     const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -17,7 +18,7 @@ export function playTone(note, type='good', overrideInst=null) {
     const gain = audioCtx.createGain();
     
     let instConfig = overrideInst || INSTRUMENTS[state.currentInstKey] || INSTRUMENTS['piano'];
-    let freq = FREQUENCIES[note] || 440; 
+    let freq = FREQUENCIES[note] ?? noteFrequency(note); 
 
     if(type === 'bad') {
         osc.type = 'sawtooth';
