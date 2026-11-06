@@ -52,5 +52,5 @@ test('background pause does not consume seconds and expiration is notified once'
     ms+=100000;
     clock.tick();
     assert.equal(expired,1);
-    assert.equal(user.playBudget.usedSeconds,15); // capped single heartbeat in active session
+    assert.equal(user.playBudget.usedSeconds,0); // paused policy does not charge grace/background time
 });
