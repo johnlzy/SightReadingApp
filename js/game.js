@@ -1192,6 +1192,13 @@ export async function resumeMusicSession(){
                 for(let i=0;i<game.idx;i++)previousBeats+=game.durations[i]||1;
                 game.visualStartTime=now-previousBeats*msPerBeat;
                 game.nextBeatTime=now;
+                // Snapshot the exact restart moment. Later RAF frames may
+                // legitimately advance this note; tests must not confuse
+                // natural playback with an instant missed beat on resume.
+                game.resumedAtNote=game.idx;
+                game.resumedAtMs=now;
+                game.resumedInitialDeadlineMs=now+
+                    (game.durations[game.idx]||1)*msPerBeat;
                 game.noteTime=now;
                 game.noteStartedAt=now;
                 beginTimedAnimation();
