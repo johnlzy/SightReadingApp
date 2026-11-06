@@ -395,8 +395,8 @@ html,body {margin:0;width:100%;height:100%;height:100dvh;overflow:hidden;overscr
   #screen-landing #user-display {max-width:70px;}
 }
 
-/* v4.3.1 — play a stable keyboard instead of chasing an auto-scrolling answer.
-   Only the keys pan horizontally, on deliberate swipe or octave navigation. */
+/* v4.3.2 — one naturally sized piano keyboard for children's fingers.
+   Panning is deliberately manual and octave controls disable when unnecessary. */
 #screen-game .keyboard-dock {
   flex:0 0 auto;
   display:flex;
@@ -488,3 +488,43 @@ html,body {margin:0;width:100%;height:100%;height:100dvh;overflow:hidden;overscr
    keyboard. Only Start advances the game; pre-start key taps are ignored. */
 #game-start-overlay {pointer-events:none;}
 #game-start-overlay button {pointer-events:auto;}
+
+/* No tiny/comfortable size switch: consistent natural keyboard geometry. */
+#screen-game .keyboard-toolbar {
+  display:grid;
+  grid-template-columns:minmax(75px,1fr) minmax(0,1.3fr) minmax(75px,1fr);
+  column-gap:8px;
+  align-items:center;
+}
+#screen-game .keyboard-toolbar-title {
+  text-align:center;
+  font-weight:700;
+  color:#41674e;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+#screen-game .keyboard-toolbar button:disabled {
+  opacity:.35;
+  cursor:default;
+}
+#screen-game .keyboard-dock .keyboard-keys,
+#audition-keys .keyboard-keys {
+  margin-inline:auto;
+}
+#screen-game .keyboard-dock .white-key {
+  color:#6c8474;
+  font-size:.72rem;
+  border-color:#b2bfb2;
+}
+#screen-game .keyboard-dock .black-key {
+  height:60%;
+}
+@media(max-width:620px) {
+  #screen-game .keyboard-toolbar {
+    grid-template-columns:minmax(61px,1fr) minmax(0,1.4fr) minmax(61px,1fr);
+    column-gap:4px;
+  }
+  #screen-game .keyboard-toolbar-title {font-size:.67rem;}
+  #screen-game .keyboard-toolbar button {font-size:.68rem;}
+}
