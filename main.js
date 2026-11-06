@@ -14,7 +14,8 @@ import { pausePlayBudget, resumePlayBudget, touchPlayBudget, resumeFromIdle, onP
     deactivatePlayBudget, hideTimeUpOverlay } from './js/app-budget.js';
 import {
     startOpeningAdventure, startIndependentReader, closeAudition,
-    auditionSkipNote, auditionHarder, auditionFinish, auditionTimeUp
+    auditionSkipNote, auditionHarder, auditionFinish, auditionTimeUp,
+    auditionStartFresh
 } from './js/audition-ui.js';
 import {
     openMicrophoneSetup, closeMicrophoneSetup, confirmMicrophoneSetup,
@@ -106,6 +107,7 @@ window.closeAudition = closeAudition;
 window.auditionSkipNote = auditionSkipNote;
 window.auditionHarder = auditionHarder;
 window.auditionFinish = auditionFinish;
+window.auditionStartFresh = auditionStartFresh;
 
 onPlaytimeExpired(() => {
     if(!auditionTimeUp()) onPlayTimeExpired();
