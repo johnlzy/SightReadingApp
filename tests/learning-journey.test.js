@@ -74,3 +74,17 @@ test('assisted practice records hints; checks cannot be assisted or incomplete',
         outcomes,sessionId:'assisted',hintsUsed:true
     }),/cannot use hints/);
 });
+
+test('experience hint changes initial phrase complexity without awarding a learning level',()=>{
+    const beginner={profileId:'child-younger',difficulty:'easy',startingComfort:'new',readingLevel:null};
+    const advanced={profileId:'child-older',difficulty:'pro',startingComfort:'experienced',readingLevel:null};
+    assert.equal(readingJourneySummary(beginner).level,null);
+    assert.equal(readingJourneySummary(advanced).level,null);
+    const simple=generateReadingPhrase(beginner,{kind:'practice'});
+    const rich=generateReadingPhrase(advanced,{kind:'practice'});
+    assert.equal(simple.level,1);
+    assert.equal(simple.notes.length,8);
+    assert.equal(rich.level,4);
+    assert.equal(rich.notes.length,16);
+    assert.equal(advanced.readingLevel,null);
+});
