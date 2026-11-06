@@ -1,12 +1,12 @@
 # SightReadingApp v4 — Master Product Redesign Specification
 Status: **Proposal for review**, not an implemented feature set
 Baseline: **v3.2.0 on main** (6 screens, 15 songs, 11 instrument listings, touch and acoustic-piano microphone input, adaptive note practice and separate Skill Checks)
-Target audience (design assumption to validate): **children approximately 6–10**, with adaptations for emerging readers and parent-supported younger learners. Secondary audience: parents and piano teachers.
+Initial household pilot: **two players aged 7 and 10, at very different piano-study stages**. Broader curriculum target: beginning through advanced independent sight-reading, with complex piano notation potentially comparable to upper grades. Age or exam grade never directly determines progression. Secondary audience: parents and teachers.
 Product name (working): **Melody Garden — a Sight Reading Adventure**. Keep "SightReadingApp" as the repository/project identity pending brand review.
 
 ## 1. Product vision and non-negotiables
 
-**Promise to the child:** "Every note you learn brings your musical world to life."
+**Promise to the child:** "Every note you learn brings your musical world to life — and you can show what you already know."
 
 **Promise to the adult:** "Short, enjoyable piano practice with visible, trustworthy evidence of progress on new music and caregiver-controlled playtime."
 
@@ -95,10 +95,10 @@ Future zones: Bass Bay, Accidentals Arcade, and phrase/ledger-line challenges; u
 
 | Screen | New core experience | Important behaviors |
 |---|---|---|
-| **Welcome / Profile** | Friendly profile cards + companion preview + continue | Preserve saved avatars, profiles and instrument ownership. Parent creates account locally; no child email required. |
+| **Welcome / Profile** | Separate personalized local player cards, optional prior experience, companion preview and friendly audition | Stable profile ID, per-child settings and Music Passes; audition determines provisional learning level independently of any piano exam grade. |
 | **Home / Today** | Big **Continue Adventure** action, companion scene, current short goal, earned Sparks and streak-free progress | One primary CTA; modes beneath, not six equal cards. Show “Done for today” after guided practice. |
 | **Adventure Map** | Simple 4-zone path, skill badges, song stages, visible next unlock | Use a limited side-scroll map or compact cards for tiny screens; no hidden maze. |
-| **Game / Practice** | Staff as the hero; clear current note/beat, optional on-screen piano or real-piano mic, calm feedback and pause | Standard/scaffold/assessment viewing modes; optional key labels and hints only where pedagogically appropriate. |
+| **Game / Practice** | Guided notes, stationary phrase view and independent conventional score view with no moving targets | Progressively remove hints; preserve touch/monophonic mic only where scoring is reliable; never auto-scroll during independent score reading. |
 | **Result / Celebration** | Pip's reaction + earned Sparks + *Pitch*, *Rhythm* and *First-try* metrics plus one grounded suggestion | Show what improved; explain uncertainty if mic quality was poor; never claim mastery from one round. |
 | **Songbook / Stage** | Themed performances, preview/listen, difficulty and skill readiness, up to 3 collectible stars for observable criteria | Differentiate familiar rehearsal vs first-sight performance; no unfair mandatory lock due to cosmetics. |
 | **Store / Workshop** | Character items, scene decor, instrument skins, stage effects, try-on preview and equipped state | Visible before/after, clear pricing, kid-safe confirmation, no random rewards. |
@@ -154,6 +154,30 @@ Do not hard-code this allocation permanently; validate with children and compare
 **Independent assessment:** preserve v3.2's mastery-blind note checks, then add *phrase-level* transfer checks with separately generated, musically valid sequences and reference difficulty sets. Keep results distinct by clef, skill tier, touch vs mic and familiar vs unseen material. Do not require a perfect game to pass; thresholds are pilot parameters.
 
 **Microphone caveat:** single-note estimates, repeated attacks and audio latencies are imperfect; persist low-confidence/unscorable events separately and permit correction/retry or touch input. Do not infer “bad rhythm” solely from weak or unstable mic signal.
+
+### 6A. Reading Independence Ladder: from guided notes to static piano scores
+
+**The ultimate learning outcome is independent reading and performance of conventional, stationary sheet music.** A mature learner should be able to view a full piano score and play it without automatic scrolling, moving targets, highlighted next notes, labelled keyboard keys or in-game prompts.
+
+Define **10 internal ability-based learning levels**, from Note Detective and guided note mapping to advanced two-staff polyphonic reading. These are **not ABRSM Grades 1–8**. Optional piano-study grades may inform an opening conversation, never lock or certify level. Upper levels should eventually support sophisticated material comparable in complexity to advanced piano study, including Grade-8-style musical demands, subject to validating notation content and performance assessment.
+
+Separate the dimensions of notational complexity, reading independence and retention. Presentation transitions from **Guided Note → Stationary Phrase → Independent Static Score**, gradually removing labels, highlights, prompts and scrolling. Advanced learners can enter the static-score mode directly if they demonstrate readiness. Normal grand-staff notation requires a new score/engraving system, not merely the current per-note animated SVG.
+
+**Current acoustic microphone is monophonic.** The app may display complex, two-hand scores for independent playing and use student/teacher feedback, but cannot honestly auto-grade polyphonic piano performance. Do not fabricate accuracy or require MIDI.
+
+See [Reading Independence Ladder](./v4-reading-independence-ladder.md).
+
+### 6B. A motivating opening audition for ability-based placement
+
+Introduce a short **3–7 minute friendly first concert** on each child's first use, integrated with the parent Music Pass allowance. Pip asks the learner to *show what they can already do so the game can find more interesting musical challenges*; the audition is not an exam.
+
+Use short **unseen** note and phrase tasks with bounded increasing difficulty, an optional harder "show me what you've got" challenge, and a second fresh confirmation excerpt when confidence is low. Build a **provisional per-skill profile with uncertainty**, not a one-shot permanent global rank. Prefer first-sight and stationary phrases over just fast note tapping; assess rhythm and musical continuity separately when possible.
+
+To reduce incentives to deliberately underperform, make harder suitable content **immediately accessible**, provide no special currency advantage for low placement, and let a child retry/challenge placement at any time. Do **not** accuse children of sandbagging or punish unexpectedly weak performances; they may be tired, nervous or unheard by the microphone.
+
+Children can skip or pause the audition, and parents may adjust the starting learning path. Unscorable microphone data remains unknown rather than failed. Siblings receive independent placements, preferences, progress and Music Passes with stable profile IDs. Only score music the selected input can reliably evaluate.
+
+See [Opening Audition](./v4-opening-audition.md) and [Multi-Child Profiles](./v4-multi-child-grade-pathways.md).
 
 ## 7. Companion progression and child motivation
 
@@ -293,16 +317,16 @@ Required architectural invariants:
 
 ## 11. Release roadmap and scope gates
 
-### v4.0 — Delight, Clarity & Parent Playtime (foundation)
-Deliver: design tokens, iconography, home hierarchy, contextual recommendation, better results, lighter consistent animations, responsive staff/game view, improved learning copy, key-label scaffold modes, and **Music Pass limits enforced across all child-facing modes**. **No new cosmetic currencies yet.**
-Exit gate: 360–390px phone, phone landscape and tablet layouts tested; no regression in skill checks or mic lifecycle; Music Pass timers, daily resets, parent overrides, background pause and graceful end-of-phrase stops pass tests; usability sessions demonstrate children can start and stop practice.
+### v4.0 — Delight, Parent Playtime, Profiles & Audition (foundation)
+Deliver: stable isolated child profiles, friendly ability-based audition MVP, guided/static phrase entry, design tokens, iconography, home hierarchy, contextual recommendation, better results, lighter consistent animations, responsive staff/game view, improved learning copy, key-label scaffold modes, and **Music Pass limits enforced across all child-facing modes**. **No new cosmetic currencies yet.**
+Exit gate: 360–390px phone, phone landscape and tablet layouts tested; no regression in skill checks or mic lifecycle; Music Pass timers, daily resets, parent overrides, background pause and graceful end-of-phrase stops pass tests; usability sessions demonstrate children can start and stop practice. Placement tests must prove strong learners skip beginner material, low-confidence results stay provisional, and audition does not enable Music Pass bypass.
 
 ### v4.1 — Pip & Personalization
 Deliver: Pip companion (original artwork, 4 emotional states), v4 session journey, deterministic micro-quests, cosmetic Sparks ledger, upgraded store with ~12–18 high-quality items, preview/equip/place, versioned migration.
 Exit gate: all rewards idempotent; purchase changes are visible; no learning privileges bought; child can voluntarily stop after one session.
 
 ### v4.2 — Better Learning Journey
-Deliver: skill prerequisite graph, scaffold/hint policy, multi-note phrase tasks, spaced recall schedule, per-skill progress explanations, expanded parent/teacher view, independent phrase checks.
+Deliver: extended independent Reading Ladder, stationary grand-staff score renderer/engraving, skill prerequisite graph, scaffold/hint policy, multi-note phrase tasks, spaced recall schedule, per-skill progress explanations, expanded parent/teacher view, independent phrase checks.
 Exit gate: curriculum produces valid playable phrases; blinded/independent phrase checks distinguish learning from familiarity; low-confidence mic data never falsely penalizes mastery.
 
 ### v4.3 — Adventure & Performances
@@ -345,12 +369,14 @@ Every phase needs:
 - Screen checks at at least 360×640, 390×844, 844×390 and 768×1024; portrait and landscape readability.
 - Accessibility: keyboard navigation, readable contrasts, focus, no color-only feedback, reduced-motion, meaningful screen-reader labels, touch size.
 - Regression checks preserving the full 15-song database, clef behavior, pitch/rhythm scoring and independent v3.2 Skill Checks.
+- Opening audition: unseen tasks, optional stretch, confidence and easy re-placement; no bonus from underperformance.
+- Independent score presentation remains fixed during playback, with no key labels or moving note target; advanced polyphony uses honest human-supported assessment.
 - Explicit assets/license review, budget/performance checks on low-end devices, and Playwright green CI before merge.
 - Parent usability and child observation; automated checks alone are **not** sufficient to claim educational effectiveness.
 
 ## 14. Immediate decisions and first build slice
 
-**Decisions proposed for sign-off:** Melody Garden/Pip as the working creative direction; ages 6–10 first; no real-money purchases; Sparks purely cosmetic; local-first privacy; guided session 5 minutes default; **Music Pass parental control (5-minute units, suggested 15-minute allowance, parent-selectable Unlimited, graceful stop)**; one featured mission at a time; no punitive streaks; no MIDI.
+**Decisions proposed for sign-off:** Melody Garden/Pip as the working creative direction; ages 6–10 first; no real-money purchases; Sparks purely cosmetic; local-first privacy; guided session 5 minutes default; **10 internal ability-based levels, first-use audition with optional stretch and immediate re-challenge, stationary independent piano score as the educational goal**; **Music Pass parental control (5-minute units, suggested 15-minute allowance, parent-selectable Unlimited, graceful stop)**; one featured mission at a time; no punitive streaks; no MIDI.
 
 **First build slice, recommended:** a vertical prototype covering Home → 5-minute guided lesson → Result → Studio Store with **one** polished Pip character and **one** theme. Use existing v3.2 adaptive curriculum for the first prototype, and instrument comparison against unbiased checks before deepening adaptivity. This yields a coherent end-to-end experience without overbuilding the world map.
 
