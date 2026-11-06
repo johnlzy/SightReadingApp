@@ -204,7 +204,8 @@ export function updateLanding() {
     const hero = document.getElementById('today-mission');
     const action = document.getElementById('journey-btn');
     if(hero) hero.textContent = placed
-        ? 'Reading Level ' + state.currentUser.readingLevel +
+        ? 'Reading Level ' + (state.currentUser.readingLevel ??
+            state.currentUser.placement.level) +
           ' · Pip has a new note adventure for you today.'
         : 'Meet Pip at your first concert. Show the music you already know!';
     if(action) action.textContent = placed
