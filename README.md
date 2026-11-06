@@ -6,7 +6,9 @@
 > [caregiver Music Pass playtime controls](docs/product/v4-parent-playtime-controls.md),
 > [Reading Independence Ladder](docs/product/v4-reading-independence-ladder.md),
 > and [Opening Audition](docs/product/v4-opening-audition.md).
-> These are design proposals only; they do **not** change the released v3.2 game.
+> These documents describe the longer-term roadmap. Features already built
+> in v4.0–v4.2 are identified below; advanced engraving and two-hand scoring
+> remain future work.
 
 A browser-based sight-reading game for children. Practice on the on-screen piano, or
 use the device microphone to play notes on a **real acoustic piano**.
@@ -26,7 +28,9 @@ failures.
 
 **Reading Journey introduces complete, stationary musical phrases.**
 The **Read a Melody** mode presents musically patterned, 4/4 single-line
-scores that do not scroll or guide the eye to the next note. The virtual
+scores that do not scroll or guide the eye to the next note. The score is
+visible **before** the player presses Start. A voluntary experience hint can
+begin with a longer phrase, but does **not** assign a reading level. The virtual
 keyboard's labels are hidden by default. In *practice only*, a child may
 ask to reveal key names; that attempt is marked **assisted**.
 
