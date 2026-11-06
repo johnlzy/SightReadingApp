@@ -6,6 +6,10 @@ import { activatePlayBudget, deactivatePlayBudget, pausePlayBudget, resumePlayBu
     currentPlayBudget, configurePlayBudget, addParentPlaytime, canPlayToday } from './app-budget.js';
 import { startGame } from './game.js';
 import { ensureLearning, progressSummary } from './learning.js';
+import { ensureEconomy } from './economy.js';
+import { ensureDailyQuest, questMessage } from './quests.js';
+import { renderPipScene } from './companion.js';
+import { openWorkshop } from './workshop-ui.js';
 import { syncInputModeUI } from './mic-ui.js';
 let parentZoneAuthorized = false;
 
@@ -192,8 +196,19 @@ export function hideNewUserForm() {
 export function updateLanding() {
     if(!state.currentUser) return;
     document.getElementById('user-display').innerText = `${state.currentUser.avatar} ${state.currentUser.name}`;
-    document.getElementById('landing-t-coins').innerText = state.currentUser.tCoins;
-    document.getElementById('landing-b-coins').innerText = state.currentUser.bCoins;
+    const economy=ensureEconomy(state.currentUser);
+    ensureDailyQuest(state.currentUser);
+    const sparkBalance=document.getElementById('landing-sparks');
+    if(sparkBalance) sparkBalance.textContent=String(economy.sparks);
+    // The historical coin balances remain in storage for migration audit.
+    const formerTreble=document.getElementById('landing-t-coins');
+    const formerBass=document.getElementById('landing-b-coins');
+    if(formerTreble)formerTreble.textContent=String(state.currentUser.tCoins);
+    if(formerBass)formerBass.textContent=String(state.currentUser.bCoins);
+    const quest=document.getElementById('daily-quest');
+    if(quest)quest.textContent=questMessage(state.currentUser);
+    const pip=document.getElementById('home-pip-scene');
+    if(pip)renderPipScene(pip,state.currentUser,{mood:'welcome'});
     
     const b = currentPlayBudget();
     const remaining = b?.remaining;
@@ -299,57 +314,9 @@ export function setClef(c) {
     renderLearningDashboard();
 }
 
+// Preserve legacy navigation handlers while the Workshop owns purchasing.
 export function goToStore() {
-    if(!canPlayToday()) return;
-    const isT = (state.currentClef === 'treble');
-    const currency = isT ? state.currentUser.tCoins : state.currentUser.bCoins;
-    document.getElementById('store-currency-icon').innerText = isT ? '🎼' : '𝄢';
-    document.getElementById('store-coins').innerText = currency;
-    document.getElementById('store-title').innerText = isT ? "Treble Store" : "Bass Store";
-    
-    const list = Object.keys(INSTRUMENTS).filter(k => {
-        if(k==='piano') return true;
-        const isLow = ['cello','tuba','bassoon','drum','bassg'].includes(k);
-        return isT ? !isLow : isLow;
-    });
-
-    const grid = document.getElementById('store-grid');
-    grid.innerHTML = '';
-    
-    list.forEach(k => {
-        const item = INSTRUMENTS[k];
-        const owned = state.currentUser.instruments.includes(k);
-        const el = document.createElement('div');
-        el.className = 'store-item';
-        el.innerHTML = `
-            <div style="font-size:3rem; margin-bottom:5px;">${item.name.split(' ')[1]}</div>
-            <strong>${item.name.split(' ')[0]}</strong><br>
-            ${owned ? '<span style="color:#aaa">Owned</span>' : `<span class="price-tag">${item.price}</span>`}
-        `;
-        if(!owned) el.onclick = () => buyItem(k, item.price, isT);
-        grid.appendChild(el);
-    });
-    showScreen('screen-store');
-}
-
-function buyItem(k, price, isT) {
-    if(isT) {
-        if(state.currentUser.tCoins >= price) {
-            state.currentUser.tCoins -= price;
-            state.currentUser.instruments.push(k);
-            saveCurrentUser();
-            goToStore();
-            playRun(k);
-        } else alert("Not enough coins!");
-    } else {
-        if(state.currentUser.bCoins >= price) {
-            state.currentUser.bCoins -= price;
-            state.currentUser.instruments.push(k);
-            saveCurrentUser();
-            goToStore();
-            playRun(k);
-        } else alert("Not enough coins!");
-    }
+    openWorkshop();
 }
 
 export function goToSongs() {
