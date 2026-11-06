@@ -2,6 +2,8 @@ import { state } from './state.js';
 import { ensureLearning } from './learning.js';
 import { upgradeProfile, upgradeProfileList, findProfileIndex, newProfileId, savePreference } from './profiles.js';
 import { ensureBudget, localDayKey } from './play-budget.js';
+import { ensureEconomy } from './economy.js';
+import { ensureDailyQuest } from './quests.js';
 
 const PLAYERS_KEY = 'fsr_users_v2';
 const PIN_KEY = 'fsr_parent_pin_v1';
@@ -49,6 +51,8 @@ function preparePlayer(user) {
     if(!user.scores.songs || typeof user.scores.songs !== 'object') user.scores.songs = {};
     ensureLearning(user);
     ensureBudget(user, localDayKey());
+    ensureEconomy(user);
+    ensureDailyQuest(user);
     // Keep historical v3 ticket balances for safe migration, but do not
     // charge per activity once Music Pass time limits are enabled.
     return user;
