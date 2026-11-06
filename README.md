@@ -1,4 +1,4 @@
-# Melody Garden — V4.0 Foundation
+# Melody Garden — V4.1 Companion & Workshop
 
 > **Planning for v4:** The proposed product overhaul is documented in
 > [v4 master redesign specification](docs/product/v4-master-redesign.md) and
@@ -11,6 +11,36 @@
 A browser-based sight-reading game for children. Practice on the on-screen piano, or
 use the device microphone to play notes on a **real acoustic piano**.
 
+## What's new in V4.1
+
+**Pip now has a real customizable home and Workshop.** The companion is drawn
+locally using CSS with four gentle expressions (welcome, curious, focused,
+celebrating). Hats, accessories, gardens, stage themes, and note trails
+visibly change Pip and are persisted independently for every player.
+
+**Sparks are purely cosmetic.** The first v4.1 login migrates each player's
+historic treble + bass coin balances to Sparks exactly once, while retaining
+the original balances as a migration snapshot. Already owned instrument
+sounds remain usable and can be equipped in the Workshop. Cosmetic purchases
+never unlock lessons, change learning grades, or increase Music Pass time.
+
+The Workshop shows an immediate preview, a clear price, owned/equipped
+states, and a deliberate Buy/Equip action. There are 18 base cosmetic items
+plus legacy-compatible instrument sounds. Nothing is randomized or
+purchased with real money.
+
+**Today's Music Quest** gently encourages first-try sight-reading. Eight
+first-try notes during completed practice, Coin Run or song rounds award a
+one-time 15-Spark daily bonus. Skill Checks and auditions do not contribute
+and are not changed by the quest. Completed practice earns 12 Sparks, a Skill
+Check earns 8 Sparks for participation, and existing score modes retain
+their scoring rules while receiving bounded Sparks.
+
+All Workshop and Garden interactions remain within the caregiver's active
+Music Pass time allowance. The current local PIN cannot protect against
+deliberate browser-storage tampering, so operating-system parental controls
+remain recommended for stricter enforcement.
+
 ## What's new in the V4.0 foundation
 
 - **Separate local learners:** each child has a stable player ID and their own preferences, music progress and daily time allowance. This is not a cloud login; progress remains in the browser.
@@ -19,7 +49,9 @@ use the device microphone to play notes on a **real acoustic piano**.
 - **Independent Reading:** a fixed, non-scrolling single-staff music view with no note-name hints or moving target indicators. Readable grand-staff/polyphonic score engraving and two-hand evaluation remain future milestones.
 - **Garden visual foundation:** welcome scene, companion styling and mobile layout improvements. The mature adventure map, cosmetic workshop and complete curriculum redesign are separate V4 milestones.
 
-The existing v3.2 modes, songs, adaptive practice, and microphone input are preserved. New module entry points: `js/profiles.js`, `js/play-budget.js`, `js/app-budget.js`, `js/score.js`, `js/audition.js`, and `js/audition-ui.js`.
+The existing v3.2 modes, songs, adaptive practice, and microphone input are preserved. The v4.1 modules include `js/economy.js`, `js/quests.js`, `js/companion.js`, and `js/workshop-ui.js`.
+
+New v4.0 module entry points: `js/profiles.js`, `js/play-budget.js`, `js/app-budget.js`, `js/score.js`, `js/audition.js`, and `js/audition-ui.js`.
 
 ## Adaptive learning (v3.2)
 
