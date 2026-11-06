@@ -677,20 +677,29 @@ export function handleInput(note, el, playedAtMs = Date.now(), source = 'touch')
             // Remember the last timing issue for this note, but count it once
             // only if the note is ultimately missed. Repeated input is not
             // a stream of new mistakes.
-            state.game.noteTimingIssue = evaluation.judgement;
+            if(!state.game.noteTimingIssue) state.game.noteTimingIssue = evaluation.judgement;
             showRhythmFeedback(evaluation.judgement, evaluation.offsetMs);
             markKey('wrong');
             updateAccuracyUI();
             return;
         }
-        earned = evaluation.coins;
-        state.game.rhythmOnTime++;
-        if(evaluation.judgement === 'perfect') state.game.rhythmPerfect++;
-        else state.game.rhythmGood++;
-        state.game.absoluteOnsetErrorMs += Math.abs(evaluation.offsetMs);
+        const initialMistake = state.game.noteTimingIssue;
+        if(initialMistake === 'early') {
+            state.game.rhythmEarly++;
+            showRhythmFeedback('early');
+        } else if(initialMistake === 'late') {
+            state.game.rhythmLate++;
+            showRhythmFeedback('late');
+        } else {
+            earned = evaluation.coins;
+            state.game.rhythmOnTime++;
+            if(evaluation.judgement === 'perfect') state.game.rhythmPerfect++;
+            else state.game.rhythmGood++;
+            state.game.absoluteOnsetErrorMs += Math.abs(evaluation.offsetMs);
+            showRhythmFeedback(evaluation.judgement, evaluation.offsetMs);
+        }
         state.game.noteTimingIssue = null;
         state.game.nextBeatTime += state.game.durations[state.game.idx] * (60000 / currentBPM);
-        showRhythmFeedback(evaluation.judgement, evaluation.offsetMs);
     }
 
     state.game.hits++;
