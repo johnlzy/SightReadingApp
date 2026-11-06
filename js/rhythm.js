@@ -13,7 +13,7 @@ export function rhythmWindows(bpm,{shortestAdjacentBeats=null}={}) {
             ? shortestAdjacentBeats*beatMs*0.42 : NaN);
     if(Number.isNaN(overlapLimit))throw new Error('Invalid adjacent note duration');
     const goodMs=Math.min(baseGood,overlapLimit);
-    const perfectMs=Math.min(Math.min(220,Math.max(65,beatMs*0.14)),
+    const perfectMs=Math.min(Math.min(220,Math.max(65,beatMs*0.12)),
         goodMs*0.6);
     return {perfectMs,goodMs};
 }
