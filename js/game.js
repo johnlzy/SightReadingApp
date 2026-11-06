@@ -9,6 +9,9 @@ import { showScreen, renderHighScores, updateLanding } from './ui.js';
 import { saveCurrentUser } from './storage.js';
 import { canPlayToday, showTimeUpOverlay } from './app-budget.js';
 import { remainingSeconds } from './play-budget.js';
+import { ensureEconomy, grantSparks } from './economy.js';
+import { recordDailyQuest } from './quests.js';
+import { renderPipScene } from './companion.js';
 import {
     ensureLearning, generateAdaptiveExercise, generateSkillCheck,
     recordOutcome, finishLearningSession
@@ -115,6 +118,8 @@ export function startGame(mode, songIdx=null, isRetry=false) {
     state.game.budgetEnding = false;
 
     state.game.mode = mode;
+    state.game.sessionId = (typeof crypto !== 'undefined' && crypto.randomUUID)
+        ? crypto.randomUUID() : 'round-'+Date.now()+'-'+Math.random().toString(36).slice(2);
     state.game.songId = songIdx;
     state.game.coins = 0;
     state.game.idx = 0;
@@ -918,13 +923,32 @@ export function endGame() {
         }
     }
     
-    if(state.currentClef==='treble') state.currentUser.tCoins += finalCoins;
-    else state.currentUser.bCoins += finalCoins;
+    // Sparks are separate from historic treble/bass coins. Once-only session
+    // grants prevent duplicated rewards after navigation/repeated callbacks.
+    ensureEconomy(state.currentUser);
+    const sessionKey = state.game.sessionId || ('legacy-'+Date.now()+'-'+Math.random());
+    const reward = state.game.mode === 'practice' ? 12
+        : state.game.mode === 'check' ? 8
+        : state.game.mode === 'coin' ? Math.min(40,Math.max(0,finalCoins))
+        : finalCoins>0 ? Math.min(40,Math.max(15,finalCoins)) : 8;
+    const credited=grantSparks(state.currentUser,reward,'round:'+sessionKey) ? reward : 0;
+    const quest=recordDailyQuest(state.currentUser,{
+        sessionId:sessionKey,mode:state.game.mode,outcomes:state.game.outcomes
+    });
+    const allSparks=credited+quest.bonus;
     saveCurrentUser();
-    
+
     document.getElementById('res-time').innerText = totalTime;
-    document.getElementById('res-coins').innerText = finalCoins;
+    document.getElementById('res-coins').innerText = allSparks;
     document.getElementById('res-msg').innerText = msg;
+    const questReward=document.getElementById('res-quest');
+    if(questReward) {
+        questReward.hidden=!quest.bonus;
+        questReward.textContent=quest.bonus
+            ? '🌟 Daily music quest complete! +'+quest.bonus+' bonus Sparks' : '';
+    }
+    renderPipScene(document.getElementById('result-pip-scene'),
+        state.currentUser,{mood:'celebrate',stage:true});
     
     const retryBtn = document.getElementById('btn-retry');
     retryBtn.style.display = 'block';

@@ -1,11 +1,11 @@
 {
   "name": "sight-reading-app",
   "private": true,
-  "version": "4.0.0-alpha.1",
+  "version": "4.1.0-alpha.1",
   "type": "module",
   "scripts": {
     "test": "node --test",
-    "check": "node --check main.js && node --check js/audio.js && node --check js/config.js && node --check js/game.js && node --check js/music.js && node --check js/state.js && node --check js/storage.js && node --check js/ui.js && node --check js/pitch.js && node --check js/microphone.js && node --check js/mic-ui.js && node --check js/rhythm.js && node --check js/learning.js && node --check js/profiles.js && node --check js/play-budget.js && node --check js/app-budget.js && node --check js/score.js && node --check js/audition.js && node --check js/audition-ui.js",
+    "check": "node --check main.js && node --check js/audio.js && node --check js/config.js && node --check js/game.js && node --check js/music.js && node --check js/state.js && node --check js/storage.js && node --check js/ui.js && node --check js/pitch.js && node --check js/microphone.js && node --check js/mic-ui.js && node --check js/rhythm.js && node --check js/learning.js && node --check js/profiles.js && node --check js/play-budget.js && node --check js/app-budget.js && node --check js/score.js && node --check js/audition.js && node --check js/audition-ui.js && node --check js/economy.js && node --check js/quests.js && node --check js/companion.js && node --check js/workshop-ui.js",
     "test:e2e": "playwright test"
   },
   "engines": {

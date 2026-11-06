@@ -5,7 +5,7 @@ concurrency:
   cancel-in-progress: true
 on:
   push:
-    branches: [main, feat/v4.0-foundations]
+    branches: [main]
   pull_request:
 
 jobs:
