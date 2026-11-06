@@ -179,7 +179,7 @@ test('background visibility pauses the active game without exiting or scoring a 
     });
     const later=await page.evaluate(async()=>{
       const {state}=await import('/js/state.js');
-      return {phase:state.game.phase,idx:state.game.idx};
+      return {phase:state.game.phase,idx:state.game.idx,input:state.inputMode};
     });
     expect(later).toEqual(during);
     // Return to touch for this browser-only test (the separate synthetic
