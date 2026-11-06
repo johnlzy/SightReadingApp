@@ -1,6 +1,7 @@
 import { state } from './state.js';
 import { keyboardNotesFor, midiToNote } from './music.js';
 import { createScoreDocument, staticScoreSvg } from './score.js';
+import { keyboardWhiteWidth } from './keyboard-layout.js';
 import { beginAudition, auditionExercise, submitAuditionNote, skipAuditionNote,
     finishAuditionRound, nextAuditionRound, finalizeAudition } from './audition.js';
 import { startMicrophone, stopMicrophone } from './microphone.js';
@@ -56,7 +57,7 @@ function renderPiano(notes) {
     }
     const notesAvailable=keyboardNotesFor(notes,session.clef);
     const white=notesAvailable.filter(n=>!n.includes('#')).length;
-    const width=Math.max(38,Math.floor((el.clientWidth||420)/Math.min(8,white)));
+    const width=keyboardWhiteWidth(Math.max(1,el.clientWidth||420),white);
     const bed=document.createElement('div');
     bed.className='keyboard-keys';
     bed.style.width=white*width+'px';
