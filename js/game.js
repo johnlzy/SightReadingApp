@@ -14,6 +14,7 @@ import { recordDailyQuest } from './quests.js';
 import { renderPipScene } from './companion.js';
 import { generateReadingPhrase, finishReadingPhrase } from './learning-journey.js';
 import { createScoreDocument, staticScoreSvg } from './score.js';
+import { staffY, ledgerLineYs, clefSvg } from './notation.js';
 import {
     ensureLearning, generateAdaptiveExercise, generateSkillCheck,
     recordOutcome, finishLearningSession
@@ -65,9 +66,6 @@ function cancelSessionTimers() {
     state.game.countdownTimeout = null;
     state.game.animFrame = null;
 }
-
-const PATH_TREBLE = "M26.4 56.7c-.5-3.3-3.6-5.8-7-5.8-4.2 0-7.3 3.5-7.3 7.6 0 2.2 1 4.2 2.6 5.5l-3.3 14.9c-3.6-1.5-6.6-4.3-6.6-9.1 0-6.4 6-12 14.7-12 7.2 0 12.8 3.5 12.8 9.7 0 3.8-2.5 7.7-6.5 11-4.7 4-9.3 7.6-11.4 14.8-.1 .5-.3 1-.3 1.5l-2 9c.8 .2 1.6 .3 2.5 .3 6.1 0 11-4.9 11-10.9 0-2.8-1-5.4-2.7-7.4l-1.3-2.2c-3-3.1-4.7-4.9-4.7-7.9 0-3.3 2.6-6 7.2-6 4.4 0 7 2.8 7 6 0 1.2-.2 2.1-.6 2.9l12-53.6c-1.2-6.1-6.4-11.1-14.4-11.1-9.2 0-16 6.2-16 15.7 0 8.4 6.2 13.3 12.6 17z";
-const PATH_BASS = "M46 76.5C36.9 76.5 29.5 69.1 29.5 60S36.9 43.5 46 43.5c8.7 0 15.8 6.8 16.4 15.4 0 .4 .1 .7 .1 1.1 0 9.1-7.4 16.5-16.5 16.5zm0-29c-6.9 0-12.5 5.6-12.5 12.5S39.1 72.5 46 72.5c6.5 0 11.8-4.9 12.4-11.2-.8-.2-1.6-.3-2.4-.3-10.2 0-18.5-8.3-18.5-18.5 0-.4 0-.8 .1-1.2-5.4 1-9.6 5.2-10.6 10.6 .4-.1 .8-.1 1.2-.1 6.9 0 12.5 5.6 12.5 12.5S45.4 76.5 38.5 76.5c-.4 0-.8 0-1.2-.1 .8 7.4 7.1 13.1 14.7 13.1 8.3 0 15-6.7 15-15s-6.7-15-15-15zm44 2.5c-2.5 0-4.5 2-4.5 4.5s2 4.5 4.5 4.5 4.5-2 4.5-4.5-2-4.5-4.5-4.5zm0 18c-2.5 0-4.5 2-4.5 4.5s2 4.5 4.5 4.5 4.5-2 4.5-4.5-2-4.5-4.5-4.5z";
 
 // Pitch and rhythm are different skills. Never treat an on-pitch but
 // early/late note as a pitch-recognition mistake.
@@ -337,22 +335,8 @@ export function generateNotes() {
     }
 }
 
-function getNoteY(note, clef) {
-    const natural = note.replace(/[#b]/g, '');
-    const letter = natural.charAt(0);
-    const octave = parseInt(natural.slice(1));
-    const refIndex = 0; 
-    const idx = NOTE_ORDER.indexOf(letter);
-
-    if (clef === 'treble') {
-        const refOctave = 4, refY = 220;
-        const steps = (octave - refOctave) * 7 + (idx - refIndex);
-        return refY - (steps * 10);
-    } else {
-        const refOctave = 3, refY = 170; 
-        const steps = (octave - refOctave) * 7 + (idx - refIndex);
-        return refY - (steps * 10);
-    }
+function getNoteY(note,clef){
+    return staffY(note,clef,120,20);
 }
 
 export function renderSheet() {
@@ -375,22 +359,9 @@ export function renderSheet() {
     line.setAttribute('opacity', 0.6);
     svgContainer.insertBefore(line, noteGroup);
 
-    const clefG = document.createElementNS("http://www.w3.org/2000/svg", "g");
-    clefG.setAttribute('class', 'clef-symbol');
-    const clefPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
-    
-    if(state.currentClef === 'treble') {
-        clefG.setAttribute('transform', 'translate(10, 110) scale(3.5)');
-        clefPath.setAttribute('d', PATH_TREBLE);
-        clefPath.setAttribute('transform', 'scale(0.25)');
-    } else {
-        clefG.setAttribute('transform', 'translate(10, 125) scale(3.5)'); 
-        clefPath.setAttribute('d', PATH_BASS);
-        clefPath.setAttribute('transform', 'scale(0.2) translate(-20,0)');
-    }
-    clefPath.setAttribute('fill', '#000');
-    clefG.appendChild(clefPath);
-    svgContainer.appendChild(clefG);
+    // One canonical music glyph and anchor for both clefs and score views.
+    svgContainer.insertAdjacentHTML('beforeend',
+        clefSvg(state.currentClef,12,120,20));
 
     let currentX = 80;
     const PIXELS_PER_BEAT = 120;
@@ -407,10 +378,8 @@ export function renderSheet() {
         const notation = durationNotation(dur);
         currentX += (dur * PIXELS_PER_BEAT);
 
-        // Draw every ledger line required for notes above/below the staff.
-        const ledgerPositions = [];
-        for(let ly = 220; ly <= y; ly += 20) ledgerPositions.push(ly - y);
-        for(let ly = 100; ly >= y; ly -= 20) ledgerPositions.push(ly - y);
+        const ledgerPositions=ledgerLineYs(note,state.currentClef,120,20)
+            .map(yStaff=>yStaff-y);
         ledgerPositions.forEach(offset => {
             const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
             line.setAttribute('x1', -16); line.setAttribute('x2', 16);
