@@ -582,10 +582,21 @@ function startProGame() {
                  document.body.appendChild(float);
                  setTimeout(()=>float.remove(), 1000);
 
+                 // A note can have the correct pitch but the wrong timing.
+                 if(state.game.pitchRecordedIndex !== state.game.idx) {
+                     state.game.pitchMisses++;
+                 }
+                 const issue = state.game.noteTimingIssue;
+                 if(issue === 'early') state.game.rhythmEarly++;
+                 else if(issue === 'late') state.game.rhythmLate++;
+                 else state.game.rhythmMisses++;
+                 showRhythmFeedback(issue || 'Miss');
                  state.game.mistakes++;
-                 updateAccuracyUI(); // Update accuracy on miss
                  state.game.idx++;
-                  showCurrentNote();
+                 state.game.pitchRecordedIndex = -1;
+                 state.game.noteTimingIssue = null;
+                 updateAccuracyUI();
+                 showCurrentNote();
                  
                  const pct = (state.game.idx / state.game.notes.length) * 100;
                  const prog = document.getElementById('progress-fill');
@@ -737,7 +748,12 @@ export function endGame() {
     if(overlay) overlay.style.display = 'none';
 
     const totalTime = parseFloat(((Date.now() - state.game.startTime)/1000).toFixed(1));
-    const accuracy = updateAccuracyUI(); // Get final accuracy
+    updateAccuracyUI();
+    const summary = performanceSummary(state.game);
+    const isTimed = state.game.mode === 'song'
+        || (state.game.mode === 'coin' && state.currentUser.difficulty === 'pro');
+    const accuracy = isTimed
+        ? Math.min(summary.pitch, summary.rhythm) : summary.pitch;
     let finalCoins = state.game.coins;
     let msg = "";
 
@@ -745,6 +761,20 @@ export function endGame() {
     if(accEl) {
         accEl.innerText = `Accuracy: ${accuracy}%`;
         accEl.style.display = 'block';
+    }
+    const pitchResult = document.getElementById('res-pitch');
+    if(pitchResult) pitchResult.textContent = `Pitch: ${summary.pitch}%`;
+    const rhythmResult = document.getElementById('res-rhythm');
+    if(rhythmResult) {
+        rhythmResult.hidden = !isTimed;
+        rhythmResult.textContent = `Rhythm: ${summary.rhythm}%`;
+    }
+    const timingResult = document.getElementById('res-timing-breakdown');
+    if(timingResult) {
+        timingResult.hidden = !isTimed;
+        timingResult.textContent = isTimed
+            ? `Perfect ${summary.perfect} · Good ${summary.good} · Early ${summary.early} · Late ${summary.late} · Missed ${summary.missed} · Typical deviation ${summary.averageDeviationMs ?? '—'} ms`
+            : '';
     }
 
     if(!state.currentUser.scores) state.currentUser.scores = { coin: { easy:[], medium:[], hard:[], pro:[] }, songs: {} };
@@ -775,7 +805,7 @@ export function endGame() {
             accEl.style.display = 'block';
         }
 
-        if(accuracy >= 90) {
+        if(summary.pitch >= 90 && summary.rhythm >= 80) {
             if(!state.currentUser.scores.songs[state.game.songId]) state.currentUser.scores.songs[state.game.songId] = [];
             const arr = state.currentUser.scores.songs[state.game.songId];
             arr.push(totalTime);
@@ -793,7 +823,7 @@ export function endGame() {
                 finalCoins = 0;
             }
         } else {
-            msg = "Need 90% accuracy to pass!";
+            msg = "Goal: at least 90% pitch and 80% rhythm to pass!";
             finalCoins = 0;
         }
     }
