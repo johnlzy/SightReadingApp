@@ -1,7 +1,7 @@
 name: Regression tests
 on:
   push:
-    branches: [main, feat/v3-real-piano-microphone]
+    branches: [main, feat/v3.1-rhythm-and-onsets]
   pull_request:
 
 jobs:

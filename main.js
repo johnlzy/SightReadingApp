@@ -10,7 +10,7 @@ import { startGame, exitGame, beginRound, updateNotePosition } from './js/game.j
 import { state, setHitX } from './js/state.js';
 import {
     openMicrophoneSetup, closeMicrophoneSetup, confirmMicrophoneSetup,
-    useTouchInput, syncInputModeUI
+    useTouchInput, syncInputModeUI, restoreMicTimingAdjustment, setMicTimingAdjustment
 } from './js/mic-ui.js';
 
 // --- Global Initialization ---
@@ -36,6 +36,7 @@ window.initAudio = () => {
     handleResize();
 
     loadUsers();
+    restoreMicTimingAdjustment();
     syncInputModeUI();
     showScreen('screen-register');
 };
@@ -82,6 +83,7 @@ window.openMicrophoneSetup = openMicrophoneSetup;
 window.closeMicrophoneSetup = closeMicrophoneSetup;
 window.confirmMicrophoneSetup = confirmMicrophoneSetup;
 window.useTouchInput = useTouchInput;
+window.setMicTimingAdjustment = setMicTimingAdjustment;
 
 document.addEventListener('visibilitychange', () => {
     if (!document.hidden) return;
