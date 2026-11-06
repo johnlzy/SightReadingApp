@@ -99,10 +99,13 @@ function renderRound() {
 
 export async function startOpeningAdventure() {
     if(!state.currentUser||!canPlayToday())return;
+    if(restoreAudition(state.currentUser,state.currentUser.auditionDraft)) {
+        return startAudition(false); // resume the saved concert before regular practice
+    }
     if(state.currentUser.placement?.status === 'provisional') {
         const {startGame}=await import('./game.js');
         startGame('practice');
-    } else startAudition(false);
+    } else return startAudition(false);
 }
 
 export async function startIndependentReader() {
