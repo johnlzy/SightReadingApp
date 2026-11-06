@@ -110,7 +110,9 @@ test('independent skill checks retain results but do not train mastery', async (
 
 test('adaptive practice respects bass clef and uses rhythmic patterns for pro', async ({page})=>{
     await login(page,'pro');
+    await page.evaluate(()=>window.setHomeTab('setup'));
     await page.locator('#clef-bass').click();
+    await page.evaluate(()=>window.setHomeTab('play'));
     await page.locator('.menu-card').filter({hasText:'Adaptive Practice'}).click();
     const exercise=await page.evaluate(async()=>{
         const {state}=await import('/js/state.js');
