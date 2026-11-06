@@ -13,33 +13,32 @@ async function login(page){
     await page.locator('#screen-register .user-btn').first().click();
     await expect(page.locator('#screen-landing.active')).toBeVisible();
 }
-test('wide-range piano defaults to narrow keys and supports a comfortable size',async({page})=>{
+test('piano keys size themselves naturally without a confusing toggle',async({page})=>{
     const errors=[];page.on('pageerror',e=>errors.push(e.message));
     await login(page);
     await page.evaluate(()=>window.startGame('song',10));
     await expect(page.locator('#screen-game.active')).toBeVisible();
     const piano=page.locator('#keyboard');
-    const start=await piano.evaluate(k=>{
+    const info=await piano.evaluate(k=>{
         const white=k.querySelector('.white-key');
         return {width:white.getBoundingClientRect().width,
             whiteCount:k.querySelectorAll('.white-key').length,
             scrollWidth:k.scrollWidth,viewport:k.clientWidth};
     });
-    expect(start.width).toBeLessThanOrEqual(33);
-    expect(start.width).toBeGreaterThanOrEqual(25);
-    expect(start.whiteCount).toBeGreaterThanOrEqual(14);
-    // Broad scores may fit on larger displays with compact keys.
-    expect(start.scrollWidth).toBeGreaterThanOrEqual(start.viewport);
-    await expect(page.locator('#keyboard-size-label')).toHaveText('Compact keys');
-    await page.locator('#keyboard-size-toggle').click();
-    const larger=await piano.evaluate(k=>k.querySelector('.white-key').getBoundingClientRect().width);
-    expect(larger).toBeGreaterThan(start.width);
-    await expect(page.locator('#keyboard-size-label')).toHaveText('Comfortable keys');
+    expect(info.width).toBeGreaterThanOrEqual(45);
+    expect(info.width).toBeLessThanOrEqual(67);
+    expect(info.whiteCount).toBeGreaterThanOrEqual(14);
+    await expect(page.locator('#keyboard-size-toggle')).toHaveCount(0);
+    await expect(page.locator('#keyboard-range-label')).toContainText('Piano');
+    await expect(page.locator('#keyboard-low')).toBeVisible();
+    await expect(page.locator('#keyboard-high')).toBeVisible();
     const stored=await page.evaluate(async()=>{
         const {state}=await import('/js/state.js');
         return state.currentUser.preferences.keyboardSize;
     });
-    expect(stored).toBe('comfortable');
+    // Existing old preference may exist in storage, but is no longer used
+    // to make keys too small (or force the child to change a setting).
+    expect([undefined,'compact','comfortable']).toContain(stored);
     expect(errors).toEqual([]);
 });
 test('the keyboard never auto-follows the next note while the child plays',async({page})=>{
