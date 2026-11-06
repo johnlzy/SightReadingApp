@@ -12,6 +12,10 @@ import { state, setHitX } from './js/state.js';
 import { pausePlayBudget, resumePlayBudget, touchPlayBudget, resumeFromIdle, onPlaytimeExpired,
     deactivatePlayBudget, hideTimeUpOverlay } from './js/app-budget.js';
 import {
+    startOpeningAdventure, startIndependentReader, closeAudition,
+    auditionSkipNote, auditionHarder, auditionFinish, auditionTimeUp
+} from './js/audition-ui.js';
+import {
     openMicrophoneSetup, closeMicrophoneSetup, confirmMicrophoneSetup,
     useTouchInput, syncInputModeUI, restoreMicTimingAdjustment, setMicTimingAdjustment
 } from './js/mic-ui.js';
@@ -73,6 +77,7 @@ window.setRegDiff = (lvl, el) => {
 window.createUser = handleCreateUserUI; 
 window.logout = () => {
     pausePlayBudget();
+    closeAudition();
     closeMicrophoneSetup();
     useTouchInput();
     handleLogoutUI();
@@ -92,8 +97,16 @@ window.closeMicrophoneSetup = closeMicrophoneSetup;
 window.confirmMicrophoneSetup = confirmMicrophoneSetup;
 window.useTouchInput = useTouchInput;
 window.setMicTimingAdjustment = setMicTimingAdjustment;
+window.startOpeningAdventure = startOpeningAdventure;
+window.startIndependentReader = startIndependentReader;
+window.closeAudition = closeAudition;
+window.auditionSkipNote = auditionSkipNote;
+window.auditionHarder = auditionHarder;
+window.auditionFinish = auditionFinish;
 
-onPlaytimeExpired(onPlayTimeExpired);
+onPlaytimeExpired(() => {
+    if(!auditionTimeUp()) onPlayTimeExpired();
+});
 document.addEventListener('pointerdown', touchPlayBudget, { passive: true });
 document.addEventListener('keydown', touchPlayBudget, { passive: true });
 document.addEventListener('visibilitychange', () => {
@@ -101,6 +114,7 @@ document.addEventListener('visibilitychange', () => {
         pausePlayBudget();
         closeMicrophoneSetup();
         if(document.getElementById('screen-game').classList.contains('active')) exitGame();
+        if(document.getElementById('screen-audition').classList.contains('active')) closeAudition();
         useTouchInput();
     } else {
         resumePlayBudget();
