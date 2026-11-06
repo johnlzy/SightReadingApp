@@ -8,7 +8,7 @@ Product name (working): **Melody Garden — a Sight Reading Adventure**. Keep "S
 
 **Promise to the child:** "Every note you learn brings your musical world to life."
 
-**Promise to the adult:** "Short, enjoyable piano practice with visible, trustworthy evidence of progress on new music."
+**Promise to the adult:** "Short, enjoyable piano practice with visible, trustworthy evidence of progress on new music and caregiver-controlled playtime."
 
 **North star (to validate):** More children voluntarily complete an age-appropriate practice session and improve first-try performance on unseen, musically valid sight-reading phrases after a week of spaced practice.
 
@@ -104,7 +104,7 @@ Future zones: Bass Bay, Accidentals Arcade, and phrase/ledger-line challenges; u
 | **Store / Workshop** | Character items, scene decor, instrument skins, stage effects, try-on preview and equipped state | Visible before/after, clear pricing, kid-safe confirmation, no random rewards. |
 | **Companion Room** | Personalize Pip and studio; show earned decorations and trophies | Rewards visibly persist across screens, not just owned in an array. |
 | **My Learning** | Child-friendly skill garden / mastery map and Skill Check trend | Clearly distinguish practicing from checking; show “Learning”, “Growing”, “Strong”, “Review”. |
-| **Parent / Teacher** | Read-only progress summary, skill strands, elapsed practice, optional timer/feedback settings, confidence explanations | Parent gate and separate adult wording; no rankings of children; export locally only if later supported and reviewed. |
+| **Parent / Teacher** | Read-only progress summary, skill strands, elapsed practice, Music Pass daily limits and +5/+10 minute caregiver overrides, confidence explanations | Parent gate and separate adult wording; no rankings of children; export locally only if later supported and reviewed. |
 
 ### Home content hierarchy (mobile)
 
@@ -182,7 +182,7 @@ Motivation should be primarily competence (“I can do it”), autonomy (“I ch
 - Preserve every owned instrument.
 - Convert existing treble coins and bass coins **1:1 into Sparks**, using a one-time versioned migration so the total is not double-counted.
 - Keep old balances in a backup field or reversible migration snapshot until verified.
-- Replace credit-limited practice with unlimited practice. Convert legacy daily credits into optional **bonus Sparks** for a few sessions; unused credits must not block exercise access.
+- Replace per-round credit charges with **caregiver-configured Music Pass limits**, covering every child-facing mode. Offer Unlimited as a caregiver choice. Preserve old credits in a versioned migration backup instead of silently converting them into time or Sparks.
 
 ### Starter catalog (illustrative, not final balance)
 
@@ -198,6 +198,19 @@ Motivation should be primarily competence (“I can do it”), autonomy (“I ch
 Suggested economy pilot: ~20–40 Sparks per completed guided session, ~10–20 for a song, and small rewards for optional quests; cap *bonus payout*, not practice eligibility. Ensure an early desirable item is obtainable after roughly **1–2 short sessions**, then space bigger goals across weeks. Test actual price/earn curves before launch.
 
 **Store interaction:** preview → try-on / place decor → clear price and balance → purchase confirmation → joyful reveal → equip/place immediately → see it on Home or Song Stage. Show owned/equipped states, sortable categories, accessible text labels, a “save for later” goal. Avoid mystery boxes, real-money purchases, leaderboard advantage and pay-to-unlock education.
+
+### 8A. Parent-controlled playtime: Music Passes
+
+The current v3 tickets do **not** limit total playtime consistently: Coin Run and Song Mode use credits, while Adaptive Practice and Skill Checks bypass them. v4 introduces a separate caregiver control that covers **all child-facing play**.
+
+- **One Music Pass = five minutes of active foreground play**, metered by the second rather than charged at the start of an exercise. It matches the five-minute adventure without penalizing children who exit early.
+- **Suggested daily allowance: 3 passes / 15 minutes**, editable by parents. Include 0 (Pause), 5, 10, 15, 20, 30 minutes, customizable increments, and Unlimited; allow parent-authorized +5/+10-minute overrides.
+- Count child-facing Home, Adventure, Practice, Songs, Skill Checks, Store, and companion activities. Exclude browser background, explicit Pause, microphone calibration and adult settings. **No mode may bypass the limit.**
+- Give gentle warnings, then finish the current small phrase (maximum **45-second grace**). Save partial work and stop the microphone; an interrupted Skill Check is **incomplete, not failed**.
+- Keep **Music Passes separate from Sparks**: store spending or learning achievements cannot buy extra time.
+- Replace legacy eight-credit tickets via a parent-reviewed, versioned migration. The existing local PIN is a convenience gate and **not tamper-proof**.
+
+See the [Parent Playtime Controls Specification](./v4-parent-playtime-controls.md) for timing, persistence, UI states and acceptance tests.
 
 ## 9. Parent/teacher trust and responsible design
 
@@ -280,9 +293,9 @@ Required architectural invariants:
 
 ## 11. Release roadmap and scope gates
 
-### v4.0 — Delight & Clarity (foundation)
-Deliver: design tokens, iconography, home hierarchy, contextual recommendation, better results, lighter consistent animations, responsive staff/game view, improved learning copy, key-label scaffold modes. **No new currencies yet.**
-Exit gate: 360–390px phone, phone landscape and tablet layouts tested; no regression in skill checks or mic lifecycle; usability sessions demonstrate children can independently start a practice.
+### v4.0 — Delight, Clarity & Parent Playtime (foundation)
+Deliver: design tokens, iconography, home hierarchy, contextual recommendation, better results, lighter consistent animations, responsive staff/game view, improved learning copy, key-label scaffold modes, and **Music Pass limits enforced across all child-facing modes**. **No new cosmetic currencies yet.**
+Exit gate: 360–390px phone, phone landscape and tablet layouts tested; no regression in skill checks or mic lifecycle; Music Pass timers, daily resets, parent overrides, background pause and graceful end-of-phrase stops pass tests; usability sessions demonstrate children can start and stop practice.
 
 ### v4.1 — Pip & Personalization
 Deliver: Pip companion (original artwork, 4 emotional states), v4 session journey, deterministic micro-quests, cosmetic Sparks ledger, upgraded store with ~12–18 high-quality items, preview/equip/place, versioned migration.
@@ -318,7 +331,7 @@ Establish baseline before measuring uplift. Suggested goals are **hypotheses/dec
 
 **Safety and guardrails**
 - No increase in forced practice, anxiety, guilt or reward farming.
-- No loss of progress on migration.
+- No loss of progress on migration, including the transition from round tickets to parental time budgets.
 - No increased microphone permission failures or false correctness penalties.
 - Avoid optimizing solely for time spent in-app; children should be able to finish.
 
@@ -337,7 +350,7 @@ Every phase needs:
 
 ## 14. Immediate decisions and first build slice
 
-**Decisions proposed for sign-off:** Melody Garden/Pip as the working creative direction; ages 6–10 first; no real-money purchases; Sparks purely cosmetic; local-first privacy; guided session 5 minutes default; one featured mission at a time; no punitive streaks; no MIDI.
+**Decisions proposed for sign-off:** Melody Garden/Pip as the working creative direction; ages 6–10 first; no real-money purchases; Sparks purely cosmetic; local-first privacy; guided session 5 minutes default; **Music Pass parental control (5-minute units, suggested 15-minute allowance, parent-selectable Unlimited, graceful stop)**; one featured mission at a time; no punitive streaks; no MIDI.
 
 **First build slice, recommended:** a vertical prototype covering Home → 5-minute guided lesson → Result → Studio Store with **one** polished Pip character and **one** theme. Use existing v3.2 adaptive curriculum for the first prototype, and instrument comparison against unbiased checks before deepening adaptivity. This yields a coherent end-to-end experience without overbuilding the world map.
 
