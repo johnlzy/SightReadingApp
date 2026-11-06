@@ -15,7 +15,7 @@ import { pausePlayBudget, resumePlayBudget, touchPlayBudget, resumeFromIdle, onP
 import {
     startOpeningAdventure, startIndependentReader, closeAudition,
     auditionSkipNote, auditionHarder, auditionAnother, auditionFinish, auditionTimeUp,
-    auditionStartFresh
+    auditionStartFresh, startGrandStaffReader, grandTurnPage, finishGrandScore
 } from './js/audition-ui.js';
 import {
     openMicrophoneSetup, closeMicrophoneSetup, confirmMicrophoneSetup,
@@ -116,6 +116,9 @@ window.auditionHarder = auditionHarder;
 window.auditionAnother = auditionAnother;
 window.auditionFinish = auditionFinish;
 window.auditionStartFresh = auditionStartFresh;
+window.startGrandStaffReader = startGrandStaffReader;
+window.grandTurnPage = grandTurnPage;
+window.finishGrandScore = finishGrandScore;
 
 onPlaytimeExpired(() => {
     if(!auditionTimeUp()) onPlayTimeExpired();
