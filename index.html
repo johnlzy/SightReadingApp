@@ -376,6 +376,11 @@
             </div>
             <div id="timing-feedback" class="timing-feedback" hidden role="status" aria-live="polite"></div>
             <div id="phrase-score" class="phrase-score" hidden aria-label="Unmoving staff music for a complete phrase"></div>
+            <nav id="phrase-page-controls" class="phrase-page-controls" aria-label="Turn the sheet music page" hidden>
+                <button id="phrase-page-prev" onclick="changePhrasePage(-1)" class="btn-secondary btn-sm" aria-label="Previous music page">←</button>
+                <span id="phrase-page-label">1 / 2</span>
+                <button id="phrase-page-next" onclick="changePhrasePage(1)" class="btn-secondary btn-sm" aria-label="Next music page">→</button>
+            </nav>
             <div id="phrase-hint-controls" class="phrase-hint-controls" hidden>
                 <span>Read the whole melody without moving prompts.</span>
                 <button id="phrase-hint-button" class="btn-secondary btn-sm" aria-pressed="false" onclick="togglePhraseHints()">Show key names (practice only)</button>
