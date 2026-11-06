@@ -1,4 +1,4 @@
-# Fun Sight Reading — v3.2
+# Melody Garden — V4.0 Foundation
 
 > **Planning for v4:** The proposed product overhaul is documented in
 > [v4 master redesign specification](docs/product/v4-master-redesign.md) and
@@ -10,6 +10,16 @@
 
 A browser-based sight-reading game for children. Practice on the on-screen piano, or
 use the device microphone to play notes on a **real acoustic piano**.
+
+## What's new in the V4.0 foundation
+
+- **Separate local learners:** each child has a stable player ID and their own preferences, music progress and daily time allowance. This is not a cloud login; progress remains in the browser.
+- **Parent Music Passes:** one pass represents five minutes of actual foreground child activity. The suggested allowance is 15 minutes/day, editable in Parent Zone to 0, 5, 10, 15, 20, 30, 60 or Unlimited, with +5/+10 minute overrides. A grace period lets the child finish a short phrase; interrupted assessments are not recorded as failures. The local PIN is only a convenience gate and cannot replace operating-system parental controls.
+- **Pip's First Concert:** an ability-based opening audition on newly generated stationary monophonic phrases. Placement is provisional; experienced learners can immediately try harder music, without grinding through beginner notes. Musical grade is not used as a level label.
+- **Independent Reading:** a fixed, non-scrolling single-staff music view with no note-name hints or moving target indicators. Readable grand-staff/polyphonic score engraving and two-hand evaluation remain future milestones.
+- **Garden visual foundation:** welcome scene, companion styling and mobile layout improvements. The mature adventure map, cosmetic workshop and complete curriculum redesign are separate V4 milestones.
+
+The existing v3.2 modes, songs, adaptive practice, and microphone input are preserved. New module entry points: `js/profiles.js`, `js/play-budget.js`, `js/app-budget.js`, `js/score.js`, `js/audition.js`, and `js/audition-ui.js`.
 
 ## Adaptive learning (v3.2)
 
