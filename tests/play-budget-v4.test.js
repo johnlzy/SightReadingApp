@@ -9,11 +9,11 @@ test('five-minute Music Passes consume actual active seconds, not entries',()=>{
     const clock=new PlayBudgetClock(user,{now:()=>ms,day:()=> '2026-11-06',save:()=>saves++});
     setDailyAllowance(user,900,'2026-11-06');
     clock.resume();
-    ms+=150000;clock.tick();
+    for(let i=0;i<150;i++){ms+=1000;clock.tick();}
     clock.pause();
     assert.ok(remainingSeconds(user,'2026-11-06')>=749 && remainingSeconds(user,'2026-11-06')<=750.1);
     clock.resume();
-    ms+=150000;clock.tick();
+    for(let i=0;i<150;i++){ms+=1000;clock.tick();}
     assert.ok(remainingSeconds(user,'2026-11-06')>=599);
     assert.ok(saves>1);
 });
