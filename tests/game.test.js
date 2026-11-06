@@ -70,7 +70,9 @@ test('correct pitch outside the onset window counts as a mistake, not a hit', ()
     assert.equal(state.game.idx, 1);
     assert.equal(state.game.hits, 1);
     assert.equal(state.game.pitchCorrect, 1); // repeated attempts score once
-    assert.equal(state.game.rhythmOnTime, 1);
+    assert.equal(state.game.rhythmOnTime, 0); // first strike was early
+    assert.equal(state.game.rhythmEarly, 1);
+    assert.equal(state.game.rhythmMisses, 0);
 });
 
 test('exiting a round cancels an outstanding countdown timer', async () => {
