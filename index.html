@@ -333,7 +333,12 @@
             <button class="btn-secondary" onclick="showScreen('screen-landing')" style="padding:8px 20px;">🔙</button>
             <h3>Song Book</h3>
         </div>
-        <div class="scroll-content" id="song-list-container"></div>
+        <div class="scroll-content song-grid-console" id="song-list-container"></div>
+        <nav class="song-page-controls" aria-label="Songbook pages">
+            <button id="song-page-prev" class="btn-secondary btn-sm" onclick="changeSongPage(-1)" aria-label="Previous songs">← Previous</button>
+            <span id="song-page-label" aria-live="polite">Page 1 of 2</span>
+            <button id="song-page-next" class="btn-secondary btn-sm" onclick="changeSongPage(1)" aria-label="More songs">Next →</button>
+        </nav>
     </div>
 
 <div id="screen-game" class="screen" style="padding:0; overflow:hidden;">
@@ -430,7 +435,8 @@
     </div>
 
     <div id="screen-result" class="screen" style="background:rgba(255,255,255,0.98); z-index:200;">
-        <div class="scroll-content" style="justify-content:center; height:100%;">
+        <div class="scroll-content result-console">
+            <section class="result-primary" aria-label="Your musical achievement">
             <h1 style="color:var(--primary); font-size:3rem; margin-bottom:10px;">Beautiful music! 🎉</h1>
             <div id="result-pip-scene" class="result-pip-scene" aria-label="Pip celebrating your musical progress"></div>
             <h2 style="color:#555">Time: <span id="res-time"></span>s</h2>
@@ -444,17 +450,20 @@
             <p id="res-quest" class="result-quest" hidden></p>
             <div id="res-msg" style="color:var(--primary); font-weight:bold; margin-bottom:20px; font-size:1.2rem; text-align:center;"></div>
             
+            </section>
+            <aside class="result-side" aria-label="Next steps and scores">
             <div class="score-box">
                 <h3 style="margin-top:0; color:#444; text-align:center;">🏆 Leaderboard 🏆</h3>
                 <small style="display:block; text-align:center; color:#888; margin-bottom:10px;" id="score-category-label"></small>
                 <div id="high-score-list"></div>
             </div>
 
-            <div class="toggle-group" style="gap:20px; flex-wrap: wrap; justify-content: center;">
+            <div class="toggle-group result-actions" style="gap:12px; flex-wrap:wrap; justify-content:center;">
                 <button class="btn-secondary" style="font-size:1.2rem; padding:15px 30px;" onclick="updateLanding(); showScreen('screen-landing')">Home</button>
                 <button id="btn-retry" class="btn-primary" style="font-size:1.2rem; padding:15px 30px; display:none; background-color: var(--accent);">Retry 🔄</button>
-                <button class="btn-primary" style="font-size:1.2rem; padding:15px 30px;" onclick="updateLanding(); goToStore()">Shop</button>
+                <button class="btn-primary" style="font-size:1.2rem; padding:15px 30px;" onclick="updateLanding(); goToStore()">Workshop</button>
             </div>
+            </aside>
         </div>
     </div>
     
