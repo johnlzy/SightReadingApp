@@ -366,7 +366,8 @@ button:active { transform: translateY(4px); box-shadow: none; }
     position: absolute;
     top: 70px;
     right: 8px;
-    z-index: 60;
+    /* Keep the touch fallback clickable above the full-screen Start overlay. */
+    z-index: 650;
     border-radius: 15px;
     display: flex;
     gap: 9px;
