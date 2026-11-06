@@ -7,6 +7,7 @@ import { activatePlayBudget, deactivatePlayBudget, pausePlayBudget, resumePlayBu
 import { startGame } from './game.js';
 import { ensureLearning, progressSummary } from './learning.js';
 import { syncInputModeUI } from './mic-ui.js';
+let parentZoneAuthorized = false;
 
 export function showScreen(id) {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
@@ -73,6 +74,7 @@ export function handleCreateUserUI() {
 }
 
 export function handleLogoutUI() {
+    parentZoneAuthorized = false;
     deactivatePlayBudget();
     logoutData();
     showScreen('screen-register');
@@ -98,6 +100,7 @@ export function checkAdmin(callback) {
 
 export function showParentPanel() {
     checkAdmin(() => {
+        parentZoneAuthorized = true;
         pausePlayBudget();
         document.getElementById('admin-modal').style.display = 'flex';
         document.getElementById('admin-current-user').innerText = state.currentUser ? state.currentUser.name : 'Unknown';
@@ -109,14 +112,17 @@ export function showParentPanel() {
 }
 
 export function hideParentPanel() {
+    parentZoneAuthorized = false;
     document.getElementById('admin-modal').style.display = 'none';
     resumePlayBudget();
 }
 export function parentSetTimeAllowance(value) {
+    if(!parentZoneAuthorized) return;
     configurePlayBudget(value === 'unlimited' ? null : Number(value));
     showParentTimeMessage('Saved for this player');
 }
 export function parentGrantMusicTime(seconds) {
+    if(!parentZoneAuthorized) return;
     addParentPlaytime(seconds);
     showParentTimeMessage('Extra time added for today');
 }
