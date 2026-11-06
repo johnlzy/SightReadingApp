@@ -30,7 +30,9 @@ export function upgradeProfile(user, createId = newProfileId) {
     }
     if(!Array.isArray(user.placement.results)) user.placement.results = [];
     if(!Number.isInteger(user.readingLevel) || user.readingLevel < 1 || user.readingLevel > 10) {
-        user.readingLevel = null; // never infer a level from Easy/Hard/Pro or an exam grade
+        const observed = user.placement?.level;
+        user.readingLevel = Number.isInteger(observed) && observed >= 1 && observed <= 10
+            ? observed : null; // Never infer a reading level from Easy/Hard/Pro.
     }
     return user;
 }
