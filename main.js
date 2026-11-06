@@ -4,10 +4,17 @@ import {
     selectAvatar, setRegDiff, setClef, goToStore, goToSongs, 
     updateLanding, showScreen as showScreenAlias,
     handleNewUserClick, handleUserDelete, showParentPanel, hideParentPanel, handleAddCredit,
+    parentSetTimeAllowance, parentGrantMusicTime,
     loadUsers, handleCreateUserUI, handleLogoutUI
 } from './js/ui.js';
-import { startGame, exitGame, beginRound, updateNotePosition } from './js/game.js';
+import { startGame, exitGame, beginRound, updateNotePosition, onPlayTimeExpired } from './js/game.js';
 import { state, setHitX } from './js/state.js';
+import { pausePlayBudget, resumePlayBudget, touchPlayBudget, resumeFromIdle, onPlaytimeExpired,
+    deactivatePlayBudget, hideTimeUpOverlay } from './js/app-budget.js';
+import {
+    startOpeningAdventure, startIndependentReader, closeAudition,
+    auditionSkipNote, auditionHarder, auditionFinish, auditionTimeUp
+} from './js/audition-ui.js';
 import {
     openMicrophoneSetup, closeMicrophoneSetup, confirmMicrophoneSetup,
     useTouchInput, syncInputModeUI, restoreMicTimingAdjustment, setMicTimingAdjustment
@@ -47,6 +54,9 @@ window.handleUserDelete = handleUserDelete;
 window.showParentPanel = showParentPanel;
 window.hideParentPanel = hideParentPanel;
 window.handleAddCredit = handleAddCredit;
+window.parentSetTimeAllowance = parentSetTimeAllowance;
+window.parentGrantMusicTime = parentGrantMusicTime;
+window.resumeFromIdle = resumeFromIdle;
 
 window.showNewUserForm = showNewUserForm;
 window.hideNewUserForm = hideNewUserForm;
@@ -66,9 +76,12 @@ window.setRegDiff = (lvl, el) => {
 
 window.createUser = handleCreateUserUI; 
 window.logout = () => {
+    pausePlayBudget();
+    closeAudition();
     closeMicrophoneSetup();
-    useTouchInput();
+    useTouchInput(false);
     handleLogoutUI();
+    hideTimeUpOverlay();
 };
 
 window.setClef = setClef;
@@ -84,16 +97,30 @@ window.closeMicrophoneSetup = closeMicrophoneSetup;
 window.confirmMicrophoneSetup = confirmMicrophoneSetup;
 window.useTouchInput = useTouchInput;
 window.setMicTimingAdjustment = setMicTimingAdjustment;
+window.startOpeningAdventure = startOpeningAdventure;
+window.startIndependentReader = startIndependentReader;
+window.closeAudition = closeAudition;
+window.auditionSkipNote = auditionSkipNote;
+window.auditionHarder = auditionHarder;
+window.auditionFinish = auditionFinish;
 
-document.addEventListener('visibilitychange', () => {
-    if (!document.hidden) return;
-    // Never leave the microphone active in the background.
-    closeMicrophoneSetup();
-    if (document.getElementById('screen-game').classList.contains('active')) {
-        exitGame();
-    }
-    useTouchInput();
+onPlaytimeExpired(() => {
+    if(!auditionTimeUp()) onPlayTimeExpired();
 });
+document.addEventListener('pointerdown', touchPlayBudget, { passive: true });
+document.addEventListener('keydown', touchPlayBudget, { passive: true });
+document.addEventListener('visibilitychange', () => {
+    if(document.hidden) {
+        pausePlayBudget();
+        closeMicrophoneSetup();
+        if(document.getElementById('screen-game').classList.contains('active')) exitGame();
+        if(document.getElementById('screen-audition').classList.contains('active')) closeAudition();
+        useTouchInput(false);
+    } else {
+        resumePlayBudget();
+    }
+});
+window.addEventListener('pagehide', pausePlayBudget);
 
 window.addEventListener('resize', handleResize);
 handleResize();

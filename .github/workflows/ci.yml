@@ -1,7 +1,11 @@
 name: Regression tests
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
 on:
   push:
-    branches: [main, feat/v3.2-adaptive-learning]
+    branches: [main, feat/v4.0-foundations]
   pull_request:
 
 jobs:

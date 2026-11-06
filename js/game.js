@@ -6,7 +6,9 @@ import { startMicrophone, stopMicrophone, resetMicrophoneNotes } from './microph
 import { assessOnset, performanceSummary } from './rhythm.js';
 import { syncInputModeUI, useTouchInput } from './mic-ui.js';
 import { showScreen, renderHighScores, updateLanding } from './ui.js';
-import { saveCurrentUser, deductCredit } from './storage.js';
+import { saveCurrentUser } from './storage.js';
+import { canPlayToday, showTimeUpOverlay } from './app-budget.js';
+import { remainingSeconds } from './play-budget.js';
 import {
     ensureLearning, generateAdaptiveExercise, generateSkillCheck,
     recordOutcome, finishLearningSession
@@ -47,6 +49,8 @@ function captureNoteOutcome(rhythmGrade = null, timeMs = Date.now()) {
 
 
 function cancelSessionTimers() {
+    clearTimeout(state.game.budgetGraceTimeout);
+    state.game.budgetGraceTimeout = null;
     clearInterval(state.game.timerInt);
     clearInterval(state.game.metronomeInt);
     clearTimeout(state.game.countdownTimeout);
@@ -101,15 +105,14 @@ function recordCorrectPitch() {
 }
 
 export function startGame(mode, songIdx=null, isRetry=false) {
-    if(!state.currentUser) return;
-    const freePractice = mode === 'practice' || mode === 'check';
-    if(!freePractice && state.currentUser.credits <= 0) {
-        alert("You are out of credits for today! Ask a parent for help.");
-        return;
-    }
-    stopMicrophone(); // Release any old capture before starting a new session.
-    if(!freePractice && !deductCredit()) return;
+    if(!state.currentUser || !canPlayToday()) return false;
+    // v4 replaces per-round tickets with metered daily foreground playtime;
+    // all existing game modes draw from the same parent-approved budget.
+    stopMicrophone();
     updateLanding();
+    clearTimeout(state.game.budgetGraceTimeout);
+    state.game.budgetGraceTimeout = null;
+    state.game.budgetEnding = false;
 
     state.game.mode = mode;
     state.game.songId = songIdx;
@@ -136,6 +139,7 @@ export function startGame(mode, songIdx=null, isRetry=false) {
     state.game.nextBeatTime = 0;
     state.game.sessionToken = (state.game.sessionToken || 0) + 1;
     state.game.phase = 'ready';
+    state.game.budgetEnding = false;
     
     // Feature: Tempo scaling based on difficulty for Song Mode
     if (mode === 'song' && songIdx !== null) {
@@ -791,6 +795,10 @@ export function handleInput(note, el, playedAtMs = Date.now(), source = 'touch')
     captureNoteOutcome(rhythmGrade, playedAtMs);
     state.game.idx++;
     state.game.pitchRecordedIndex = -1;
+    // Give a child a humane end-of-phrase stop when the daily budget expires.
+    // The current exercise remains incomplete; no assessment result is saved.
+    const budgetCheckpoint = state.game.budgetEnding &&
+        (state.game.idx % 4 === 0 || state.game.idx >= state.game.notes.length);
     showCurrentNote();
     const pct = state.game.idx / state.game.notes.length * 100;
     const progress = document.getElementById('progress-fill');
@@ -799,6 +807,7 @@ export function handleInput(note, el, playedAtMs = Date.now(), source = 'touch')
     updateNotePosition();
 
     if(!isTimed && state.game.idx >= state.game.notes.length) endGame();
+    else if(budgetCheckpoint && state.game.phase === 'playing') endForBudget();
 }
 
 export function endGame() {
@@ -923,6 +932,7 @@ export function endGame() {
 
     renderHighScores();
     showScreen('screen-result');
+    if(remainingSeconds(state.currentUser) <= 0) showTimeUpOverlay();
     playRun();
 }
 
@@ -935,4 +945,33 @@ export function exitGame() {
     if(overlay) overlay.style.display = 'none';
     showScreen('screen-landing');
     updateLanding();
+}
+
+/** Called by the shared Music Pass clock, never by an individual game mode. */
+export function onPlayTimeExpired() {
+    if(!state.currentUser) return;
+    if(state.game.phase === 'playing') {
+        if(state.game.budgetEnding) return;
+        state.game.budgetEnding = true;
+        state.game.budgetGraceTimeout = setTimeout(endForBudget, 45_000);
+        const label = document.getElementById('budget-nearly-done');
+        if(label) {
+            label.hidden = false;
+            label.textContent = 'Music time is complete — finish this short phrase.';
+        }
+    } else {
+        if(['ready','countdown','arming'].includes(state.game.phase)) exitGame();
+        showTimeUpOverlay();
+    }
+}
+
+function endForBudget() {
+    if(!state.game.budgetEnding && remainingSeconds(state.currentUser) > 0) return;
+    // A partial Skill Check is not scored, and a partial song cannot be
+    // recorded as passed. Practice outcomes already earned remain in memory.
+    if(state.game.mode === 'check') state.game.outcomes = [];
+    exitGame();
+    const label = document.getElementById('budget-nearly-done');
+    if(label) label.hidden = true;
+    showTimeUpOverlay();
 }

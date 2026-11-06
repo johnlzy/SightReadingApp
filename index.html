@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Fun Sight Reading v3.2</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Melody Garden — Sight Reading v4.0</title>
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@300;400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
     <style>
@@ -30,24 +30,54 @@
 
     <div id="overlay-start" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(255,105,180, 0.95); z-index:999; display:flex; justify-content:center; align-items:center; flex-direction:column; color:white;">
         <h1 style="font-size:4rem; margin-bottom:0;">🎹</h1>
-        <h2 style="margin-top:0;">Fun Sight Reading</h2>
-        <p>Turn up volume & Tap to Start</p>
+        <h2 style="margin-top:0;">Melody Garden</h2>
+        <p>Your musical adventure begins here.</p>
         <button class="btn-secondary" style="background:white; color:var(--primary); font-size:1.5rem; padding:15px 40px;" onclick="initAudio()">Let's Play!</button>
     </div>
 
-    <div id="admin-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000; justify-content:center; align-items:center;">
-        <div style="background:white; padding:20px; border-radius:20px; text-align:center; width:90%; max-width:300px;">
-            <h2 style="color:var(--primary); margin-top:0;">Parent Zone 🔒</h2>
-            <p>Admin for: <strong id="admin-current-user">User</strong></p>
-            <p style="font-size:1.2rem;">Credits: <strong id="admin-current-credits">0</strong></p>
-            <div style="display:flex; gap:10px; justify-content:center; margin-bottom:20px;">
-                <button class="btn-primary" onclick="handleAddCredit(1)">+1 Credit</button>
-                <button class="btn-primary" onclick="handleAddCredit(5)">+5 Credits</button>
+    <div id="admin-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.65); z-index:1000; justify-content:center; align-items:center;" role="dialog" aria-modal="true" aria-label="Parent Zone">
+        <div class="parent-dialog">
+            <h2>🔒 Parent Zone</h2>
+            <p>Player: <strong id="admin-current-user">Player</strong></p>
+            <p id="parent-used-time">0 minutes used today</p>
+            <label for="parent-time-allowance">Daily Music Time</label>
+            <select id="parent-time-allowance" onchange="parentSetTimeAllowance(this.value)">
+                <option value="0">Paused · 0 min</option>
+                <option value="300">1 Pass · 5 min</option>
+                <option value="600">2 Passes · 10 min</option>
+                <option value="900">3 Passes · 15 min</option>
+                <option value="1200">4 Passes · 20 min</option>
+                <option value="1800">6 Passes · 30 min</option>
+                <option value="3600">12 Passes · 60 min</option>
+                <option value="unlimited">Unlimited</option>
+            </select>
+            <p class="parent-hint">One Music Pass = 5 minutes of active app time. Practice, songs and the workshop all count. Time pauses when this Parent Zone is open.</p>
+            <div class="parent-actions">
+                <button class="btn-secondary" onclick="parentGrantMusicTime(300)">+5 min today</button>
+                <button class="btn-secondary" onclick="parentGrantMusicTime(600)">+10 min today</button>
             </div>
-            <button class="btn-secondary" onclick="hideParentPanel()">Close</button>
+            <p id="parent-time-status" aria-live="polite"></p>
+            <button class="btn-primary" onclick="hideParentPanel()">Done</button>
         </div>
     </div>
 
+    <div id="budget-overlay" class="budget-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="budget-heading">
+        <div class="budget-card">
+            <div class="pip-face" aria-hidden="true">♫</div>
+            <h2 id="budget-heading">Beautiful playing today!</h2>
+            <p>You've used today's Music Passes. Your garden and notes are safe until tomorrow.</p>
+            <button class="btn-primary" onclick="showParentPanel()">🔒 Ask parent for more time</button>
+            <button class="btn-secondary" onclick="logout()">Switch player</button>
+        </div>
+    </div>
+    <div id="budget-idle" class="budget-overlay" hidden role="dialog" aria-modal="true">
+        <div class="budget-card">
+            <h2>Still making music?</h2>
+            <p>Music time is paused while you're away.</p>
+            <button class="btn-primary" onclick="resumeFromIdle()">Continue playing</button>
+        </div>
+    </div>
+    <div id="budget-nearly-done" class="budget-warning" hidden role="status">Your music time is nearly finished. Find a lovely stopping place!</div>
 
     <div id="mic-modal" class="mic-modal" hidden role="dialog" aria-modal="true" aria-labelledby="mic-title">
         <div class="mic-dialog">
@@ -77,7 +107,8 @@
 
     <div id="screen-register" class="screen">
         <div class="scroll-content">
-            <h2 style="color:var(--primary)">Who is playing?</h2>
+            <h2 style="color:var(--primary)">Who is making music today?</h2>
+            <p class="register-intro">Every musician has their own garden, discoveries, and Music Passes.</p>
             <div id="existing-users-list" class="user-list"></div>
             
             <div style="margin-top:30px; width:100%; display:flex; justify-content:center;">
@@ -98,7 +129,14 @@
                     <div class="emoji-opt" onclick="selectAvatar('🦁', this)">🦁</div>
                 </div>
                 
-                <p>Name: <span id="gen-name" style="color:var(--primary); font-weight:bold; font-size:1.2rem;">...</span> <button class="btn-secondary" style="padding:5px 10px; font-size:0.8rem;" onclick="generateName()">🔄</button></p>
+                <p>Child's nickname (optional): <input id="child-name-input" maxlength="30" placeholder="Or use a fun name below" class="child-name-input" aria-label="Nickname" /></p>
+                <label for="starting-comfort">What kind of music can they read?</label>
+                <select id="starting-comfort" class="child-name-input">
+                    <option value="new">Just starting</option>
+                    <option value="some">Some staff notes</option>
+                    <option value="experienced">Already reads music from a score</option>
+                </select>
+                <p>Fun name: <span id="gen-name" style="color:var(--primary); font-weight:bold; font-size:1.2rem;">...</span> <button class="btn-secondary" style="padding:5px 10px; font-size:0.8rem;" onclick="generateName()">🔄</button></p>
                 
                 <p>Difficulty:</p>
                 <div class="toggle-group">
@@ -124,13 +162,26 @@
                 <button class="btn-sm btn-secondary" style="background:#ddd; color:#555; margin-left:5px;" onclick="logout()">Logout</button>
             </div>
             <div class="coins-display">
-                <span onclick="showParentPanel()" style="cursor:pointer;">🎟️ <span id="landing-credits" style="color:#555">8</span></span> | 
+                <span id="music-passes" class="pass-chip" aria-label="Music time remaining">🎟️ 3 passes</span>
+                <span onclick="showParentPanel()" style="cursor:pointer;" role="button" tabindex="0" aria-label="Parent settings">🔒 Parent</span> | <span id="landing-credits" hidden>3</span>
                 🎼 <span id="landing-t-coins">0</span> | 
                 𝄢 <span id="landing-b-coins">0</span>
             </div>
         </div>
         
         <div class="scroll-content">
+            <div class="garden-hero">
+                <div class="pip-character" role="img" aria-label="Pip, your friendly musical companion"><span>♪</span></div>
+                <div class="garden-hero-copy">
+                    <span class="eyebrow">WELCOME TO MELODY GARDEN</span>
+                    <h2>Every note helps your music grow.</h2>
+                    <p id="today-mission">Choose a musical adventure to begin.</p>
+                    <div class="garden-hero-buttons">
+                        <button class="btn-primary" id="journey-btn" onclick="startOpeningAdventure()">Start my adventure</button>
+                        <button class="btn-secondary btn-sm" id="score-reader-btn" onclick="startIndependentReader()">📖 Read a stationary score</button>
+                    </div>
+                </div>
+            </div>
             <h3 style="margin-bottom:10px;">Select Clef</h3>
             <div class="toggle-group" style="transform:scale(1.1)">
                 <div class="toggle-opt selected" id="clef-treble" onclick="setClef('treble')">Treble 🎼</div>
@@ -261,6 +312,27 @@
 
         <div id="game-start-overlay" style="position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.85); z-index:500; display:flex; justify-content:center; align-items:center;">
             <button class="btn-primary" style="font-size:2rem; padding:20px 50px; box-shadow:0 10px 20px rgba(0,0,0,0.2);" onclick="beginRound()">START</button>
+        </div>
+    </div>
+
+    <div id="screen-audition" class="screen">
+        <div class="top-bar">
+            <button class="btn-secondary btn-sm" onclick="closeAudition()" aria-label="Leave audition">← Back</button>
+            <div class="score-title">
+                <strong id="audition-heading">Pip's First Concert</strong>
+                <span id="audition-level">Discovery Level 1</span>
+            </div>
+            <button class="btn-sm btn-secondary" onclick="auditionSkipNote()">Skip a note</button>
+        </div>
+        <div class="score-practice-area scroll-content">
+            <p class="score-status" id="audition-progress">Read the whole score, then play your notes.</p>
+            <div id="audition-score" class="stationary-score" aria-label="Music notation that stays still while playing"></div>
+            <p id="audition-status" class="score-status" aria-live="polite"></p>
+            <div id="audition-keys" class="keyboard-area" aria-label="Unlabelled piano keyboard for first-sight reading"></div>
+            <div id="audition-actions" class="score-actions" hidden>
+                <button class="btn-secondary" onclick="auditionHarder()">🌟 Try a harder melody</button>
+                <button class="btn-primary" onclick="auditionFinish()">Finish my concert</button>
+            </div>
         </div>
     </div>
 

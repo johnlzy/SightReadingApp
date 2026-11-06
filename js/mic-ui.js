@@ -1,6 +1,8 @@
 import { state } from './state.js';
 import { midiToNote } from './music.js';
 import { startMicrophone, stopMicrophone } from './microphone.js';
+import { saveUserPreference } from './storage.js';
+import { pausePlayBudget, resumePlayBudget } from './app-budget.js';
 
 let calibrationDetected = false;
 const TIMING_KEY = 'fsr_mic_timing_adjustment_v1';
@@ -35,19 +37,22 @@ export function syncInputModeUI() {
     if (live) live.hidden = !mic;
 }
 
-export function useTouchInput() {
+export function useTouchInput(persist = true) {
     stopMicrophone();
     state.inputMode = 'touch';
+    if(persist) saveUserPreference('input','touch');
     syncInputModeUI();
 }
 
 export function closeMicrophoneSetup() {
     stopMicrophone();
     document.getElementById('mic-modal').hidden = true;
+    resumePlayBudget();
 }
 
 /** Request permission only after the child/parent explicitly clicks the mic button. */
 export async function openMicrophoneSetup() {
+    pausePlayBudget();
     stopMicrophone();
     calibrationDetected = false;
     const modal = document.getElementById('mic-modal');
@@ -98,6 +103,8 @@ export function confirmMicrophoneSetup() {
     if (!calibrationDetected) return;
     stopMicrophone(); // Never keep listening between practice rounds.
     state.inputMode = 'microphone';
+    saveUserPreference('input','microphone');
     document.getElementById('mic-modal').hidden = true;
+    resumePlayBudget();
     syncInputModeUI();
 }
