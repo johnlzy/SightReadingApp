@@ -398,8 +398,15 @@
                 </svg>
             </div>
             
-            <div class="keyboard-area" id="keyboard">
+            <div class="keyboard-dock" id="keyboard-dock">
+                <div class="keyboard-toolbar" role="group" aria-label="Piano keyboard view">
+                    <button type="button" class="btn-sm btn-secondary" onclick="panKeyboard(-1)" aria-label="Show lower piano octave">← Low</button>
+                    <span class="keyboard-toolbar-title" id="keyboard-size-label">Compact keys</span>
+                    <button type="button" id="keyboard-size-toggle" class="btn-sm btn-secondary" aria-pressed="false" onclick="toggleKeyboardSize()">Make keys bigger</button>
+                    <button type="button" class="btn-sm btn-secondary" onclick="panKeyboard(1)" aria-label="Show higher piano octave">High →</button>
                 </div>
+                <div class="keyboard-area" id="keyboard" aria-label="Swipe piano left or right to change octaves"></div>
+            </div>
         </div>
 
         <div id="game-start-overlay" style="position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.85); z-index:500; display:flex; justify-content:center; align-items:center;">
