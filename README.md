@@ -1,4 +1,4 @@
-# Fun Sight Reading — v3.0
+# Fun Sight Reading — v3.1
 
 A browser-based sight-reading game for children. Practice on the on-screen piano, or
 use the device microphone to play notes on a **real acoustic piano**.
@@ -12,7 +12,7 @@ use the device microphone to play notes on a **real acoustic piano**.
 5. Start Coin Run or Song Mode and play the notes shown on the staff.
 6. To return to the digital keyboard, choose **Use touch keys**.
 
-The app never records or uploads microphone audio. Analysis happens entirely in
+In v3.1, microphone setup includes a small per-device **timing compensation**\nslider. Adjust it only if correct notes are consistently reported Late\nor Early. The starting value is 0 ms.\n\nThe game now scores pitch recognition separately from rhythm accuracy in\ntimed modes and provides Perfect, Good, Early and Late feedback. Correct\npitches played at the wrong time are no longer treated as misidentified notes.\nSongs require 90% pitch and 80% rhythmic accuracy to unlock.\n\nThe app never records or uploads microphone audio. Analysis happens entirely in
 the browser, and microphone tracks are stopped when you leave calibration or
 a game, switch to touch input, or put the browser tab in the background.
 
