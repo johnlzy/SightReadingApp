@@ -127,8 +127,10 @@ export function showParentPanel() {
                 const el=document.getElementById(id);
                 if(el)el.textContent=value;
             };
-            text('parent-reading-level','Reading Level '+reading.level+
-                ' (based on current in-app evidence; not an examination grade)');
+            text('parent-reading-level',reading.level===null
+                ? 'Reading Level: not assessed yet (try the opening concert)'
+                : 'Reading Level '+reading.level+
+                    ' (based on current in-app evidence; not an examination grade)');
             text('parent-reading-focus','Next focus: '+reading.focus.description);
             text('parent-reading-check',reading.last
                 ? 'Most recent independent phrase: '+reading.last.score+
@@ -326,7 +328,9 @@ export function renderLearningDashboard() {
         9:'Independent Pianist',10:'Concert Reader'
     };
     const rd={
-        'reading-level-indicator':'Level '+reading.level+' · '+readingLabels[reading.level],
+        'reading-level-indicator':reading.level===null
+            ? 'Explore your own reading level'
+            : 'Level '+reading.level+' · '+readingLabels[reading.level],
         'reading-next-skill':reading.focus.description,
         'reading-check-progress':reading.last
             ? 'Latest fresh phrase: '+reading.last.score+'% first try. '+
