@@ -393,3 +393,68 @@ button:active { transform: translateY(4px); box-shadow: none; }
 @media (orientation: landscape) and (max-height: 500px) {
     .mic-game-status { top: 48px; }
 }
+
+/* v3.1 — calibrated microphone timing and separate pitch/rhythm feedback. */
+.rhythm-indicator {
+    padding: 5px 8px;
+    border-radius: 10px;
+    white-space: nowrap;
+    font-size: .76rem;
+    color: #31556b;
+    background: #e5f5fc;
+}
+.rhythm-indicator[hidden], .timing-feedback[hidden],
+#res-rhythm[hidden], #res-timing-breakdown[hidden] { display: none !important; }
+.timing-feedback {
+    position: absolute;
+    top: 112px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 90;
+    pointer-events: none;
+    background: rgba(255,255,255,.96);
+    color: #333;
+    padding: 7px 17px;
+    border-radius: 16px;
+    box-shadow: 0 3px 10px rgba(0,0,0,.08);
+    font-size: .95rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+.timing-feedback[data-grade="perfect"] { color: #087a53; }
+.timing-feedback[data-grade="good"] { color: #4577a1; }
+.timing-feedback[data-grade="early"],
+.timing-feedback[data-grade="late"] { color: #a34d08; }
+.skill-results {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 14px;
+    margin: -3px 0 12px;
+    color: #4e6173;
+    font-size: 1rem;
+}
+.rhythm-breakdown {
+    font-size: .8rem;
+    line-height: 1.5;
+    color: #5e6370;
+    text-align: center;
+    max-width: 360px;
+    margin-bottom: 9px;
+}
+.mic-timing-adjust {
+    display: grid;
+    gap: 8px;
+    text-align: left;
+    margin: 16px 0;
+    padding: 10px 12px;
+    border-radius: 14px;
+    background: #f6f8fc;
+}
+.mic-timing-adjust label { font-size: .87rem; color: #445; }
+.mic-timing-adjust input { width: 100%; accent-color: var(--primary); }
+.mic-timing-adjust small { color: #667; line-height: 1.4; }
+@media (orientation: landscape) and (max-height: 500px) {
+    .timing-feedback { top: 64px; font-size: .75rem; }
+    .rhythm-indicator { font-size: .7rem; }
+}
