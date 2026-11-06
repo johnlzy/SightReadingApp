@@ -1,7 +1,9 @@
 import { state } from './state.js';
 import { INSTRUMENTS, SONG_DB } from './config.js';
 import { playRun } from './audio.js';
-import { saveCurrentUser, deleteUser, createUser, loginUser, verifyPin, hasParentPin, setParentPin, addAdminCredits, logout as logoutData } from './storage.js';
+import { saveCurrentUser, deleteUser, createUser, loginUser, listUsers, saveUserPreference, verifyPin, hasParentPin, setParentPin, addAdminCredits, logout as logoutData } from './storage.js';
+import { activatePlayBudget, deactivatePlayBudget, pausePlayBudget, resumePlayBudget,
+    currentPlayBudget, configurePlayBudget, addParentPlaytime, canPlayToday } from './app-budget.js';
 import { startGame } from './game.js';
 import { ensureLearning, progressSummary } from './learning.js';
 
@@ -12,7 +14,7 @@ export function showScreen(id) {
 }
 
 export function loadUsers() {
-    const list = JSON.parse(localStorage.getItem('fsr_users_v2') || '[]');
+    const list = listUsers();
     const cont = document.getElementById('existing-users-list');
     if (!cont) return; 
     
@@ -33,13 +35,15 @@ export function loadUsers() {
             `;
             row.querySelector('.user-avatar').textContent = u.avatar || '🎹';
             row.querySelector('.user-name').textContent = u.name || 'Player';
-            row.querySelector('.user-difficulty').textContent = `(${u.difficulty || 'easy'})`;
+            row.querySelector('.user-difficulty').textContent = u.placement?.status === 'complete'
+                ? `(Reading Level ${u.placement.level})` : '(Your own music journey)';
             cont.appendChild(row);
         });
 
         cont.querySelectorAll('.user-btn').forEach(btn => {
             btn.onclick = () => {
                 loginUser(parseInt(btn.dataset.index)); 
+                activatePlayBudget();
                 updateLanding();
                 showScreen('screen-landing');
             };
@@ -56,11 +60,13 @@ export function handleCreateUserUI() {
     hideNewUserForm();
     loadUsers();
     loginUser(newIndex);
+    activatePlayBudget();
     updateLanding();
     showScreen('screen-landing');
 }
 
 export function handleLogoutUI() {
+    deactivatePlayBudget();
     logoutData();
     showScreen('screen-register');
     loadUsers();
@@ -85,14 +91,31 @@ export function checkAdmin(callback) {
 
 export function showParentPanel() {
     checkAdmin(() => {
+        pausePlayBudget();
         document.getElementById('admin-modal').style.display = 'flex';
         document.getElementById('admin-current-user').innerText = state.currentUser ? state.currentUser.name : 'Unknown';
-        document.getElementById('admin-current-credits').innerText = state.currentUser ? state.currentUser.credits : 0;
+        const b = currentPlayBudget();
+        document.getElementById('parent-used-time').textContent = b
+            ? Math.round(b.usedSeconds/60) + ' minutes used today' : 'No player selected';
+        document.getElementById('parent-time-allowance').value = String(b?.dailySeconds ?? 'unlimited');
     });
 }
 
 export function hideParentPanel() {
     document.getElementById('admin-modal').style.display = 'none';
+    resumePlayBudget();
+}
+export function parentSetTimeAllowance(value) {
+    configurePlayBudget(value === 'unlimited' ? null : Number(value));
+    showParentTimeMessage('Saved for this player');
+}
+export function parentGrantMusicTime(seconds) {
+    addParentPlaytime(seconds);
+    showParentTimeMessage('Extra time added for today');
+}
+function showParentTimeMessage(message) {
+    const node = document.getElementById('parent-time-status');
+    if(node) node.textContent = message;
 }
 
 export function handleAddCredit(amt) {
@@ -157,8 +180,10 @@ export function updateLanding() {
     document.getElementById('landing-t-coins').innerText = state.currentUser.tCoins;
     document.getElementById('landing-b-coins').innerText = state.currentUser.bCoins;
     
-    const creds = state.currentUser.credits !== undefined ? state.currentUser.credits : 0;
-    document.getElementById('landing-credits').innerText = creds;
+    const b = currentPlayBudget();
+    const remaining = b?.remaining;
+    document.getElementById('landing-credits').innerText =
+        remaining === Infinity ? '∞' : Math.ceil(Math.max(0,remaining ?? 0)/300);
     renderLearningDashboard();
 
     const bag = document.getElementById('landing-bag');
@@ -178,6 +203,7 @@ export function updateLanding() {
         if(owned) {
             div.onclick = () => {
                 state.currentInstKey = k;
+                saveUserPreference('instrument',k);
                 playRun(k);
                 updateLanding();
             }
@@ -242,12 +268,14 @@ export function renderLearningDashboard() {
 
 export function setClef(c) {
     state.currentClef = c;
+    saveUserPreference('clef',c);
     document.getElementById('clef-treble').classList.toggle('selected', c==='treble');
     document.getElementById('clef-bass').classList.toggle('selected', c==='bass');
     renderLearningDashboard();
 }
 
 export function goToStore() {
+    if(!canPlayToday()) return;
     const isT = (state.currentClef === 'treble');
     const currency = isT ? state.currentUser.tCoins : state.currentUser.bCoins;
     document.getElementById('store-currency-icon').innerText = isT ? '🎼' : '𝄢';
@@ -300,6 +328,7 @@ function buyItem(k, price, isT) {
 }
 
 export function goToSongs() {
+    if(!canPlayToday()) return;
     const cont = document.getElementById('song-list-container');
     cont.innerHTML = '';
     
