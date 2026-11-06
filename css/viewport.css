@@ -353,3 +353,24 @@ html,body {margin:0;width:100%;height:100%;height:100dvh;overflow:hidden;overscr
 @media(prefers-reduced-motion:reduce){
   .screen,button,.home-tab,.note,.pip-figure {transition:none!important;animation:none!important;}
 }
+
+/* Manual page controls never chase the student's note position. */
+.phrase-page-controls {
+  position:absolute;right:10px;top:calc(var(--bar-h) + 52px);z-index:95;
+  display:flex;align-items:center;gap:6px;padding:4px 6px;
+  border-radius:12px;background:#fffffff1;box-shadow:0 2px 7px #30553c24;
+}
+.phrase-page-controls[hidden]{display:none!important;}
+.phrase-page-controls button {min-height:29px;padding:4px 8px;font-size:.72rem;}
+.phrase-page-controls button:disabled {opacity:.35;cursor:default;}
+.phrase-page-controls span {color:#45735a;font-size:.71rem;font-weight:700;}
+#game-pause-button {font-size:.78rem;padding:8px 12px;background:#e7efe7;color:#355f47;box-shadow:none;}
+#game-pause-button:focus-visible {outline:3px solid #265c9e;outline-offset:2px;}
+@media(max-width:620px){
+  .phrase-page-controls {right:5px;top:calc(var(--bar-h) + 68px);}
+  .phrase-page-controls span {font-size:.65rem;}
+  #game-pause-button {font-size:.72rem;padding:6px 7px;min-height:34px;}
+}
+@media(orientation:landscape) and (max-height:460px){
+  .phrase-page-controls {top:calc(var(--bar-h) + 35px);}
+}
