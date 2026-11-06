@@ -169,14 +169,15 @@
             </div>
             <div class="coins-display">
                 <span id="music-passes" class="pass-chip" aria-label="Music time remaining">🎟️ 3 passes</span>
-                <span onclick="showParentPanel()" style="cursor:pointer;" role="button" tabindex="0" aria-label="Parent settings">🔒 Parent</span> | <span id="landing-credits" hidden>3</span>
+                <button type="button" onclick="showParentPanel()" class="header-parent-btn" aria-label="Parent settings">🔒 Parent</button> <span id="landing-credits" hidden>3</span>
                 <span class="spark-balance" aria-label="Your Sparks">✦ <span id="landing-sparks">0</span> Sparks</span>
                 <span id="landing-t-coins" hidden>0</span>
                 <span id="landing-b-coins" hidden>0</span>
             </div>
         </div>
         
-        <div class="scroll-content">
+        <div class="scroll-content home-console" data-tab="play">
+            <section class="home-focus" aria-label="Your daily music adventure">
             <div class="garden-hero">
                 <div id="home-pip-scene" class="home-pip-scene" aria-label="Pip in your personal music garden"></div>
                 <div class="garden-hero-copy">
@@ -198,8 +199,16 @@
                 </div>
                 <span class="quest-spark" aria-label="Bonus reward">+15 ✦</span>
             </section>
-            <h3 style="margin-bottom:10px;">Select Clef</h3>
-            <div class="toggle-group" style="transform:scale(1.1)">
+            </section>
+            <nav class="home-tabbar" aria-label="Home sections">
+                <button type="button" class="home-tab selected" data-home-tab="play" aria-pressed="true" onclick="setHomeTab('play')">🎵 Play</button>
+                <button type="button" class="home-tab" data-home-tab="learn" aria-pressed="false" onclick="setHomeTab('learn')">🌱 Learning</button>
+                <button type="button" class="home-tab" data-home-tab="setup" aria-pressed="false" onclick="setHomeTab('setup')">🎹 My Piano</button>
+            </nav>
+            <section class="home-controls" aria-label="Clef, input and instruments">
+            <h3 class="home-section-heading">My Piano</h3>
+            <h4 class="home-small-heading">Music clef</h4>
+            <div class="toggle-group" >
                 <div class="toggle-opt selected" id="clef-treble" onclick="setClef('treble')">Treble 🎼</div>
                 <div class="toggle-opt" id="clef-bass" onclick="setClef('bass')">Bass 𝄢</div>
             </div>
@@ -212,6 +221,10 @@
                 </div>
                 <p id="input-mode-help" aria-live="polite">Tap the on-screen piano keys. No microphone is used.</p>
             </div>
+            <h4 style="margin-bottom:5px; margin-top:20px;">My Instrument Sounds</h4>
+            <div class="instrument-bag" id="landing-bag"></div>
+
+            </section>
 
             <section class="learning-panel" aria-labelledby="learning-title">
                 <div class="learning-heading">
@@ -234,16 +247,16 @@
                     <span id="reading-level-indicator">Level 1 · Note Detective</span>
                     <p id="reading-next-skill">Try a stationary melody with notes you know.</p>
                     <p id="reading-check-progress">No fresh-phrase checks yet.</p>
+
+                </div>
+            </section>
+
+            <section class="home-menu" aria-label="Choose your next music activity">
+                <h3 class="home-section-heading">Choose an adventure</h3>
                     <div class="reading-journey-actions">
                         <button class="btn-primary btn-sm" onclick="startGame('phrase')">Read a Melody</button>
                         <button class="btn-secondary btn-sm" onclick="startGame('phrase-check')">Fresh Phrase Check</button>
                     </div>
-                </div>
-            </section>
-
-            <h4 style="margin-bottom:5px; margin-top:20px;">My Instrument Sounds</h4>
-            <div class="instrument-bag" id="landing-bag"></div>
-
             <div class="card-menu">
                 <div class="menu-card" onclick="goToStore()">
                     <div class="menu-icon">🎨</div>
@@ -270,6 +283,7 @@
                     <div>Parent</div>
                 </div>
             </div>
+            </section>
         </div>
     </div>
 
