@@ -98,7 +98,11 @@ export class PlayBudgetClock {
         const b = ensureBudget(this.user, this.day());
         if(this.running && this.lastTick !== null) {
             const elapsed = Math.max(0, Math.min((time - this.lastTick)/1000, 15));
-            b.usedSeconds += elapsed;
+            // Once the allowance is exhausted, grace time is not extra spent
+            // time and should not accumulate a negative budget.
+            const allowed = b.dailySeconds === null ? elapsed
+                : Math.min(elapsed, Math.max(0, b.dailySeconds + b.bonusSeconds - b.usedSeconds));
+            b.usedSeconds += allowed;
         }
         this.lastTick = time;
         const remaining = remainingSeconds(this.user, this.day());
