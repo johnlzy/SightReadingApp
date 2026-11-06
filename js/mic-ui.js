@@ -3,6 +3,24 @@ import { midiToNote } from './music.js';
 import { startMicrophone, stopMicrophone } from './microphone.js';
 
 let calibrationDetected = false;
+const TIMING_KEY = 'fsr_mic_timing_adjustment_v1';
+
+export function setMicTimingAdjustment(value) {
+    const numeric = Number(value);
+    const adjustment = Number.isFinite(numeric)
+        ? Math.round(Math.max(-250, Math.min(250, numeric)) / 25) * 25 : 0;
+    state.micTimingAdjustmentMs = adjustment;
+    localStorage.setItem(TIMING_KEY, String(adjustment));
+    const label = document.getElementById('mic-timing-value');
+    if(label) label.textContent = (adjustment > 0 ? '+' : '') + adjustment + ' ms';
+    const slider = document.getElementById('mic-timing-adjust');
+    if(slider) slider.value = String(adjustment);
+}
+
+export function restoreMicTimingAdjustment() {
+    setMicTimingAdjustment(localStorage.getItem(TIMING_KEY) ?? 0);
+}
+
 
 export function syncInputModeUI() {
     const mic = state.inputMode === 'microphone';
@@ -42,6 +60,7 @@ export async function openMicrophoneSetup() {
     note.textContent = '—';
     meter.style.width = '0%';
     status.textContent = 'Allow the microphone, then play one piano note.';
+    restoreMicTimingAdjustment();
 
     try {
         const ready = await startMicrophone({
