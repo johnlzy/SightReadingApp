@@ -168,6 +168,9 @@ export function startGame(mode, songIdx=null, isRetry=false) {
 
     cancelSessionTimers();
 
+    const counterLabel = document.getElementById('game-counter-label');
+    if(counterLabel)counterLabel.textContent =
+        ['phrase','phrase-check'].includes(mode) ? 'Notes' : mode === 'coin' ? 'Points' : 'Progress';
     document.getElementById('game-coins').innerText = 0;
     document.getElementById('game-timer').innerText = 0;
     updateAccuracyUI(); // Reset both skill displays
@@ -796,6 +799,10 @@ export function handleInput(note, el, playedAtMs = Date.now(), source = 'touch')
     }
 
     state.game.hits++;
+    if(['phrase','phrase-check'].includes(state.game.mode)) {
+        const counter=document.getElementById('game-coins');
+        if(counter)counter.textContent=String(state.game.hits);
+    }
     updateAccuracyUI();
     markKey('active');
     feedbackAudio('good');
