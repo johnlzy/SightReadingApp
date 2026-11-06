@@ -85,7 +85,12 @@ export async function startMicrophone({ onNote = () => {}, onMonitor = () => {},
         const resources = {
             context, stream, source, analyser, silent,
             buffer: new Float32Array(analyser.fftSize),
-            gate: new NoteEventGate(),
+            // The analyser returns its recent sample window. Timestamp the
+            // onset near the first stable pitch rather than the confirmation
+            // frame, compensating approximately for half of that window.
+            gate: new NoteEventGate({
+                captureLagMs: analyser.fftSize / context.sampleRate * 500
+            }),
             raf: null,
             lastFrameMs: 0
         };
