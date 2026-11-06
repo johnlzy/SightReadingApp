@@ -187,6 +187,8 @@ export function startGame(mode, songIdx=null, isRetry=false) {
     const gameView = document.querySelector('.game-wrapper');
     gameView?.classList.toggle('static-phrase-mode',staticPhrase);
     gameView?.classList.remove('phrase-show-labels');
+    const hintButton=document.getElementById('phrase-hint-button');
+    if(hintButton)hintButton.setAttribute('aria-pressed','false');
     const hint = document.getElementById('phrase-hint-controls');
     if(hint)hint.hidden = mode !== 'phrase';
     const noteView = document.getElementById('phrase-score');
