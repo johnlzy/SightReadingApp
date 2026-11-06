@@ -44,7 +44,8 @@ export function loadUsers() {
 
         cont.querySelectorAll('.user-btn').forEach(btn => {
             btn.onclick = () => {
-                loginUser(parseInt(btn.dataset.index)); 
+                loginUser(parseInt(btn.dataset.index));
+                setClef(state.currentClef);
                 activatePlayBudget();
                 syncInputModeUI();
                 updateLanding();
@@ -67,6 +68,7 @@ export function handleCreateUserUI() {
     hideNewUserForm();
     loadUsers();
     loginUser(newIndex);
+    setClef(state.currentClef);
     activatePlayBudget();
     syncInputModeUI();
     updateLanding();
