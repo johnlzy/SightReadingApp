@@ -184,7 +184,9 @@ export function auditionInput(note) {
         status(independent?'You played the whole stationary score. Well done!':
             'Beautiful effort! Try a new challenge or finish your first concert.');
     } else if(result.status==='retry' && !independent) {
-        status('Take your time. The current note is saved; you can try again or skip.');
+        status('Not quite — try again or skip this note. Your place is saved.');
+    } else if(result.status==='correct' && !result.done && !independent) {
+        status('Nice reading! Keep going at your own pace.');
     }
     if(result.status==='correct' && !result.done) setActions(false);
 }
@@ -198,6 +200,13 @@ export function auditionSkipNote() {
         setActions(true);
         status('Melody complete. Your next level is a new musical adventure!');
     }
+}
+
+export function auditionAnother() {
+    if(!running||!session||session.index<session.active.notes.length)return;
+    nextAuditionRound(session);
+    if(!independent)saveDraft();
+    renderRound();
 }
 
 export function auditionHarder() {
