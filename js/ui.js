@@ -1,7 +1,7 @@
 import { state } from './state.js';
 import { INSTRUMENTS, SONG_DB } from './config.js';
 import { playRun } from './audio.js';
-import { saveCurrentUser, deleteUser, createUser, loginUser, verifyPin, addAdminCredits, logout as logoutData } from './storage.js';
+import { saveCurrentUser, deleteUser, createUser, loginUser, verifyPin, hasParentPin, setParentPin, addAdminCredits, logout as logoutData } from './storage.js';
 import { startGame } from './game.js';
 
 export function showScreen(id) {
@@ -24,12 +24,15 @@ export function loadUsers() {
             row.className = 'user-row';
             row.innerHTML = `
                 <button class="user-btn" data-index="${index}">
-                    <span style="font-size:1.5rem">${u.avatar}</span> 
-                    <strong>${u.name}</strong> 
-                    <span style="color:#888; font-size:0.8rem">(${u.difficulty})</span>
+                    <span class="user-avatar" style="font-size:1.5rem"></span>
+                    <strong class="user-name"></strong>
+                    <span class="user-difficulty" style="color:#888; font-size:0.8rem"></span>
                 </button>
                 <button class="btn-danger" data-delete="${index}">🗑️</button>
             `;
+            row.querySelector('.user-avatar').textContent = u.avatar || '🎹';
+            row.querySelector('.user-name').textContent = u.name || 'Player';
+            row.querySelector('.user-difficulty').textContent = `(${u.difficulty || 'easy'})`;
             cont.appendChild(row);
         });
 
@@ -63,12 +66,20 @@ export function handleLogoutUI() {
 }
 
 export function checkAdmin(callback) {
-    const pin = prompt("🔐 Parent Admin: Enter PIN");
-    if(verifyPin(pin)) {
+    if(!hasParentPin()) {
+        const chosen = prompt('🔐 Parent setup: Choose a 4–8 digit PIN (keep it private)');
+        if(chosen === null) return;
+        if(!setParentPin(chosen)) {
+            alert('Choose a PIN containing 4 to 8 digits.');
+            return;
+        }
         callback();
-    } else {
-        alert("Incorrect PIN");
+        return;
     }
+    const pin = prompt("🔐 Parent Admin: Enter PIN");
+    if(pin === null) return;
+    if(verifyPin(pin)) callback();
+    else alert("Incorrect PIN");
 }
 
 export function showParentPanel() {
@@ -122,7 +133,7 @@ export function setRegDiff(lvl, el) {
     let t = "C to G (White keys)";
     if(lvl === 'medium') t = "One Octave (White keys)";
     if(lvl === 'hard') t = "One Octave (Black & White)";
-    if(lvl === 'pro') t = "Rhythm & Timing (Metronome 80 BPM)";
+    if(lvl === 'pro') t = "Rhythm & Timing (50 BPM Coin Run)";
     document.getElementById('diff-desc').innerText = t;
 }
 
@@ -251,7 +262,7 @@ export function goToSongs() {
             <div>
                 <strong>${i+1}. ${s.title}</strong><br>
                 <small>${rewardText}</small> </div>
-            <div style="font-size:1.5rem">${locked?'🔒':'✅'}</div>
+            <div style="font-size:1.5rem">${locked?'🔒':completed?'✅':'▶️'}</div>
         `;
         
         if(!locked) div.onclick = () => startGame('song', i);
@@ -301,7 +312,7 @@ export function renderHighScores() {
 
     if(state.game.mode === 'coin') {
         const diff = state.currentUser.difficulty;
-        label.innerText = `Coin Run - ${diff.toUpperCase()} Mode (Top 5 Global)`;
+        label.innerText = `Coin Run - ${diff.toUpperCase()} Mode (Top 5 on This Device)`;
         
         // Fetch Global Scores for this difficulty
         scores = getGlobalScores('coin', diff);
@@ -313,7 +324,7 @@ export function renderHighScores() {
         isTime = false;
         
     } else {
-        label.innerText = `Song: ${SONG_DB[state.game.songId].title} (Top 5 Global)`;
+        label.innerText = `Song: ${SONG_DB[state.game.songId].title} (Top 5 on This Device)`;
         
         // Fetch Global Scores for this song
         scores = getGlobalScores('song', state.game.songId);
@@ -334,10 +345,13 @@ export function renderHighScores() {
             const div = document.createElement('div');
             const unit = isTime ? 's' : ' coins';
             div.className = 'score-row';
-            div.innerHTML = `
-                <span style="font-weight:bold; color:${i===0?'gold':'#555'}">#${i+1} ${s.name}</span>
-                <span>${s.score}${unit}</span>
-            `;
+            const name = document.createElement('span');
+            name.style.fontWeight = 'bold';
+            name.style.color = i === 0 ? 'gold' : '#555';
+            name.textContent = `#${i+1} ${s.name}`;
+            const value = document.createElement('span');
+            value.textContent = `${s.score}${unit}`;
+            div.append(name, value);
             list.appendChild(div);
         });
     }

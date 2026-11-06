@@ -1,6 +1,7 @@
 import { state } from './state.js';
 import { SONG_DB, TREBLE_Y, BASS_Y } from './config.js';
 import { playTone, playRun, playClick } from './audio.js';
+import { transposeOctaves, keyboardNotesFor, durationNotation, gradeTimedOnset, validateMelody } from './music.js';
 import { showScreen, renderHighScores, updateLanding } from './ui.js';
 import { saveCurrentUser, deductCredit } from './storage.js';
 
@@ -9,6 +10,17 @@ import { saveCurrentUser, deductCredit } from './storage.js';
 const DEFAULT_PRO_BPM = 50; 
 let currentBPM = DEFAULT_PRO_BPM;
 const NOTE_ORDER = ['C','D','E','F','G','A','B'];
+
+function cancelSessionTimers() {
+    clearInterval(state.game.timerInt);
+    clearInterval(state.game.metronomeInt);
+    clearTimeout(state.game.countdownTimeout);
+    cancelAnimationFrame(state.game.animFrame);
+    state.game.timerInt = null;
+    state.game.metronomeInt = null;
+    state.game.countdownTimeout = null;
+    state.game.animFrame = null;
+}
 
 const PATH_TREBLE = "M26.4 56.7c-.5-3.3-3.6-5.8-7-5.8-4.2 0-7.3 3.5-7.3 7.6 0 2.2 1 4.2 2.6 5.5l-3.3 14.9c-3.6-1.5-6.6-4.3-6.6-9.1 0-6.4 6-12 14.7-12 7.2 0 12.8 3.5 12.8 9.7 0 3.8-2.5 7.7-6.5 11-4.7 4-9.3 7.6-11.4 14.8-.1 .5-.3 1-.3 1.5l-2 9c.8 .2 1.6 .3 2.5 .3 6.1 0 11-4.9 11-10.9 0-2.8-1-5.4-2.7-7.4l-1.3-2.2c-3-3.1-4.7-4.9-4.7-7.9 0-3.3 2.6-6 7.2-6 4.4 0 7 2.8 7 6 0 1.2-.2 2.1-.6 2.9l12-53.6c-1.2-6.1-6.4-11.1-14.4-11.1-9.2 0-16 6.2-16 15.7 0 8.4 6.2 13.3 12.6 17z";
 const PATH_BASS = "M46 76.5C36.9 76.5 29.5 69.1 29.5 60S36.9 43.5 46 43.5c8.7 0 15.8 6.8 16.4 15.4 0 .4 .1 .7 .1 1.1 0 9.1-7.4 16.5-16.5 16.5zm0-29c-6.9 0-12.5 5.6-12.5 12.5S39.1 72.5 46 72.5c6.5 0 11.8-4.9 12.4-11.2-.8-.2-1.6-.3-2.4-.3-10.2 0-18.5-8.3-18.5-18.5 0-.4 0-.8 .1-1.2-5.4 1-9.6 5.2-10.6 10.6 .4-.1 .8-.1 1.2-.1 6.9 0 12.5 5.6 12.5 12.5S45.4 76.5 38.5 76.5c-.4 0-.8 0-1.2-.1 .8 7.4 7.1 13.1 14.7 13.1 8.3 0 15-6.7 15-15s-6.7-15-15-15zm44 2.5c-2.5 0-4.5 2-4.5 4.5s2 4.5 4.5 4.5 4.5-2 4.5-4.5-2-4.5-4.5-4.5zm0 18c-2.5 0-4.5 2-4.5 4.5s2 4.5 4.5 4.5 4.5-2 4.5-4.5-2-4.5-4.5-4.5z";
@@ -53,6 +65,8 @@ export function startGame(mode, songIdx=null, isRetry=false) {
     state.game.mistakes = 0;
     state.game.hits = 0; // Initialize hits for accuracy
     state.game.nextBeatTime = 0;
+    state.game.sessionToken = (state.game.sessionToken || 0) + 1;
+    state.game.phase = 'ready';
     
     // Feature: Tempo scaling based on difficulty for Song Mode
     if (mode === 'song' && songIdx !== null) {
@@ -70,8 +84,7 @@ export function startGame(mode, songIdx=null, isRetry=false) {
         currentBPM = DEFAULT_PRO_BPM;
     }
 
-    if(state.game.metronomeInt) clearInterval(state.game.metronomeInt);
-    if(state.game.animFrame) cancelAnimationFrame(state.game.animFrame); 
+    cancelSessionTimers();
 
     document.getElementById('game-coins').innerText = 0;
     document.getElementById('game-timer').innerText = 0;
@@ -137,11 +150,7 @@ export function generateNotes() {
     
     if(state.game.mode === 'song') {
         const songData = SONG_DB[state.game.songId].melody; 
-        state.game.notes = songData.map(item => {
-            let n = item.n;
-            if(state.currentClef === 'bass') return n.replace('5','4').replace('4','3');
-            return n;
-        });
+        state.game.notes = validateMelody(songData, state.currentClef);
         state.game.durations = songData.map(item => item.d);
     } else {
         const pool = [];
@@ -220,6 +229,7 @@ export function renderSheet() {
     const noteGroup = document.getElementById('notes-group');
     const svgContainer = document.getElementById('music-svg');
     noteGroup.innerHTML = '';
+    svgContainer.querySelectorAll('.clef-symbol').forEach(element => element.remove());
     
     const oldLine = document.getElementById('hit-line');
     if(oldLine) oldLine.remove();
@@ -236,6 +246,7 @@ export function renderSheet() {
     svgContainer.insertBefore(line, noteGroup);
 
     const clefG = document.createElementNS("http://www.w3.org/2000/svg", "g");
+    clefG.setAttribute('class', 'clef-symbol');
     const clefPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
     
     if(state.currentClef === 'treble') {
@@ -263,19 +274,20 @@ export function renderSheet() {
         g.setAttribute('id', `note-${i}`);
         
         const dur = state.game.durations[i] || 1;
+        const notation = durationNotation(dur);
         currentX += (dur * PIXELS_PER_BEAT);
 
-        let needsLine = false;
-        if(y >= 220 && (y-220)%20 === 0) needsLine = true;
-        if(y <= 100 && (100-y)%20 === 0) needsLine = true;
-        
-        if(needsLine) {
-            const l = document.createElementNS("http://www.w3.org/2000/svg", "line");
-            l.setAttribute('x1', -16); l.setAttribute('x2', 16);
-            l.setAttribute('y1', 0); l.setAttribute('y2', 0);
-            l.setAttribute('stroke', '#000');
-            g.appendChild(l);
-        }
+        // Draw every ledger line required for notes above/below the staff.
+        const ledgerPositions = [];
+        for(let ly = 220; ly <= y; ly += 20) ledgerPositions.push(ly - y);
+        for(let ly = 100; ly >= y; ly -= 20) ledgerPositions.push(ly - y);
+        ledgerPositions.forEach(offset => {
+            const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+            line.setAttribute('x1', -16); line.setAttribute('x2', 16);
+            line.setAttribute('y1', offset); line.setAttribute('y2', offset);
+            line.setAttribute('stroke', '#000');
+            g.appendChild(line);
+        });
 
         const oval = document.createElementNS("http://www.w3.org/2000/svg", "ellipse");
         oval.setAttribute('rx', 12); oval.setAttribute('ry', 9);
@@ -283,7 +295,7 @@ export function renderSheet() {
         oval.setAttribute('stroke', '#000');
         oval.setAttribute('stroke-width', '2');
         
-        if(dur >= 2) {
+        if(notation.hollow) {
              oval.setAttribute('fill', '#fff'); 
         } else {
              oval.setAttribute('class', 'note-head filled'); 
@@ -291,7 +303,7 @@ export function renderSheet() {
         }
         g.appendChild(oval);
 
-        if (dur < 4) { 
+        if (notation.stem) { 
             const stem = document.createElementNS("http://www.w3.org/2000/svg", "line");
             stem.setAttribute('stroke', '#000');
             stem.setAttribute('stroke-width', 2);
@@ -306,7 +318,7 @@ export function renderSheet() {
             }
             g.appendChild(stem);
             
-            if (dur === 0.5) {
+            if (notation.flag) {
                 const flag = document.createElementNS("http://www.w3.org/2000/svg", "path");
                 flag.setAttribute('fill', 'none');
                 flag.setAttribute('stroke', '#000');
@@ -318,6 +330,15 @@ export function renderSheet() {
                 }
                 g.appendChild(flag);
             }
+        }
+
+        if(notation.dotted) {
+            const dot = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+            dot.setAttribute('cx', 22);
+            dot.setAttribute('cy', y % 20 === 0 ? -5 : 0);
+            dot.setAttribute('r', 3);
+            dot.setAttribute('fill', '#000');
+            g.appendChild(dot);
         }
 
         if(note.includes('#')) {
@@ -334,42 +355,61 @@ export function renderSheet() {
 export function renderKeyboard() {
     const kb = document.getElementById('keyboard');
     kb.innerHTML = '';
-    const octave = state.currentClef === 'treble' ? 4 : 3;
-    const whites = ['C','D','E','F','G','A','B','C'];
-    
-    whites.forEach((w, i) => {
-        const k = document.createElement('div');
-        k.className = 'white-key';
-        const n = w + (i===7 ? octave+1 : octave);
-        k.dataset.note = n;
-        k.innerText = n;
-        k.onpointerdown = (e) => {
-            e.preventDefault();
-            handleInput(n, k);
-        };
-        kb.appendChild(k);
-    });
+    const sequence = state.game.notes;
+    const availableNotes = keyboardNotesFor(sequence, state.currentClef);
+    const whiteCount = availableNotes.filter(n => !n.includes('#')).length;
+    const keyWidth = Math.max(38, Math.floor(kb.clientWidth / Math.min(8, whiteCount)));
+    const blackWidth = Math.round(keyWidth * 0.58);
 
-    const blacks = [
-        {n:'C#', l:9}, {n:'D#', l:21.5}, {n:'F#', l:46.5}, {n:'G#', l:59}, {n:'A#', l:71.5} 
-    ];
+    const keybed = document.createElement('div');
+    keybed.className = 'keyboard-keys';
+    keybed.style.width = (whiteCount * keyWidth) + 'px';
+    kb.appendChild(keybed);
 
-    blacks.forEach(b => {
-        const k = document.createElement('div');
-        k.className = 'black-key';
-        k.style.left = b.l + '%';
-        const n = b.n + octave;
-        k.dataset.note = n;
-        k.onpointerdown = (e) => {
-            e.preventDefault(); 
-            e.stopPropagation(); 
-            handleInput(n, k);
+    let whiteIndex = 0;
+    availableNotes.forEach(note => {
+        const isBlack = note.includes('#');
+        const key = document.createElement('div');
+        key.className = isBlack ? 'black-key' : 'white-key';
+        key.dataset.note = note;
+        if(isBlack) {
+            key.style.left = (whiteIndex * keyWidth - blackWidth / 2) + 'px';
+            key.style.width = blackWidth + 'px';
+        } else {
+            key.style.flex = '0 0 ' + keyWidth + 'px';
+            key.innerText = note;
+            whiteIndex++;
+        }
+        key.onpointerdown = event => {
+            event.preventDefault();
+            event.stopPropagation();
+            handleInput(note, key);
         };
-        kb.appendChild(k);
+        keybed.appendChild(key);
     });
+    focusCurrentKey();
+}
+
+function focusCurrentKey() {
+    const kb = document.getElementById('keyboard');
+    const target = state.game.notes[state.game.idx];
+    const key = [...kb.querySelectorAll('[data-note]')].find(el => el.dataset.note === target);
+    if(!key) return;
+    const left = Math.max(0, key.offsetLeft - kb.clientWidth / 2 + key.clientWidth / 2);
+    kb.scrollTo({ left, behavior: 'smooth' });
+}
+
+function showCurrentNote() {
+    const note = document.getElementById(`note-${state.game.idx}`);
+    if(note) {
+        note.classList.remove('inactive');
+        note.classList.add('current');
+    }
+    focusCurrentKey();
 }
 
 export function beginRound() {
+    if(state.game.phase !== 'ready') return;
     document.getElementById('game-start-overlay').style.display = 'none';
     const isProCoin = (state.currentUser.difficulty === 'pro' && state.game.mode === 'coin');
     const isSong = (state.game.mode === 'song');
@@ -384,6 +424,8 @@ export function beginRound() {
 }
 
 function startStandardGame() {
+    if(state.game.phase !== 'ready') return;
+    state.game.phase = 'playing';
     state.game.startTime = Date.now();
     state.game.noteTime = Date.now();
     if(state.game.timerInt) clearInterval(state.game.timerInt);
@@ -395,8 +437,10 @@ function startStandardGame() {
 }
 
 function startCountdown(callback) {
+    state.game.phase = 'countdown';
+    const token = state.game.sessionToken;
     let count = 4;
-    const interval = 60000 / currentBPM; 
+    const interval = 60000 / currentBPM;
     let overlay = document.getElementById('countdown-overlay');
     if(!overlay) {
         overlay = document.createElement('div');
@@ -405,22 +449,26 @@ function startCountdown(callback) {
         document.getElementById('screen-game').appendChild(overlay);
     }
     overlay.style.display = 'block';
-    
+
     const tick = () => {
+        if(state.game.phase !== 'countdown' || state.game.sessionToken !== token) return;
         if(count > 0) {
             overlay.innerText = count;
-            playClick(); 
+            playClick();
             count--;
-            setTimeout(tick, interval);
+            state.game.countdownTimeout = setTimeout(tick, interval);
         } else {
-             overlay.style.display = 'none';
-             if(callback) callback();
+            overlay.style.display = 'none';
+            state.game.countdownTimeout = null;
+            if(callback) callback();
         }
     };
     tick();
 }
 
 function startProGame() {
+    if(state.game.phase !== 'countdown') return;
+    state.game.phase = 'playing';
     const noteGroup = document.getElementById('notes-group');
     if(noteGroup) noteGroup.classList.remove('animate-scroll');
 
@@ -429,7 +477,7 @@ function startProGame() {
     state.game.nextBeatTime = state.game.startTime; 
     
     const animate = () => {
-        if( !((state.game.mode === 'coin' && state.currentUser.difficulty === 'pro') || state.game.mode === 'song') ) return;
+        if(state.game.phase !== 'playing') return;
         
         const now = Date.now();
 
@@ -461,6 +509,7 @@ function startProGame() {
                  state.game.mistakes++;
                  updateAccuracyUI(); // Update accuracy on miss
                  state.game.idx++;
+                  showCurrentNote();
                  
                  const pct = (state.game.idx / state.game.notes.length) * 100;
                  const prog = document.getElementById('progress-fill');
@@ -497,51 +546,10 @@ function startProGame() {
 }
 
 export function handleInput(note, el) {
-    if(document.getElementById('game-start-overlay').style.display !== 'none') return;
+    if(state.game.phase !== 'playing' || state.game.idx >= state.game.notes.length) return;
     
     const isPro = ((state.currentUser.difficulty === 'pro' && state.game.mode === 'coin') || state.game.mode === 'song');
     
-    if (isPro) {
-        const target = state.game.notes[state.game.idx];
-        if (note !== target) {
-            const nextIdx = state.game.idx + 1;
-            if (nextIdx < state.game.notes.length) {
-                const nextTarget = state.game.notes[nextIdx];
-                if (note === nextTarget) {
-                    const now = Date.now();
-                    const msPerBeat = 60000 / currentBPM;
-                    const dur = state.game.durations[state.game.idx];
-                    const currentDurationMs = dur * msPerBeat;
-                    const deadline = state.game.nextBeatTime + currentDurationMs;
-                    
-                    if (deadline - now < 300) {
-                         state.game.mistakes++;
-                         updateAccuracyUI(); // Update accuracy on mistake
-                         const currSvg = document.getElementById(`note-${state.game.idx}`);
-                         if(currSvg) {
-                             currSvg.classList.remove('current');
-                             currSvg.classList.add('inactive');
-                             currSvg.style.opacity = 0.4;
-                             const head = currSvg.querySelector('.note-head');
-                             if(head) head.setAttribute('fill', '#ff4444'); 
-                         }
-                         
-                         state.game.idx++;
-                         state.game.nextBeatTime += currentDurationMs;
-                         
-                         const pct = (state.game.idx / state.game.notes.length) * 100;
-                         const prog = document.getElementById('progress-fill');
-                         if(prog) prog.style.width = pct + '%';
-                         
-                         updateNotePosition();
-                         handleInput(note, el);
-                         return;
-                    }
-                }
-            }
-        }
-    }
-
     const target = state.game.notes[state.game.idx];
     
     if(note === target) {
@@ -549,22 +557,17 @@ export function handleInput(note, el) {
         let earned = 0;
 
         if(isPro) {
-            const now = Date.now();
-            const diff = now - state.game.nextBeatTime; 
-            const absDiff = Math.abs(diff);
-            const msPerBeat = 60000 / currentBPM; 
-            const dur = state.game.durations[state.game.idx];
-            const noteDurationMs = dur * msPerBeat;
-
-            if (absDiff <= (noteDurationMs * 0.25)) {
-                earned = 5;
-            } else if (diff > (noteDurationMs * 0.25) && diff <= noteDurationMs) {
-                earned = 3;
-            } else {
-                earned = 0;
+            const onset = gradeTimedOnset(Date.now(), state.game.nextBeatTime, currentBPM);
+            if(onset !== 'on-time') {
+                state.game.mistakes++;
+                updateAccuracyUI();
+                playTone(note, 'bad');
+                el.classList.add('wrong');
+                setTimeout(() => el.classList.remove('wrong'), 300);
+                return;
             }
-            isTimingGood = true; 
-            state.game.nextBeatTime += noteDurationMs;
+            earned = 5;
+            state.game.nextBeatTime += state.game.durations[state.game.idx] * (60000 / currentBPM);
         }
 
         if(isTimingGood) {
@@ -617,6 +620,7 @@ export function handleInput(note, el) {
             }
             
             state.game.idx++;
+            showCurrentNote();
             const pct = (state.game.idx / state.game.notes.length) * 100;
             const prog = document.getElementById('progress-fill');
             if(prog) prog.style.width = pct + '%';
@@ -643,9 +647,9 @@ export function handleInput(note, el) {
 }
 
 export function endGame() {
-    clearInterval(state.game.timerInt);
-    if(state.game.metronomeInt) clearInterval(state.game.metronomeInt);
-    if(state.game.animFrame) cancelAnimationFrame(state.game.animFrame);
+    if(state.game.phase !== 'playing') return;
+    state.game.phase = 'finished';
+    cancelSessionTimers();
     
     const overlay = document.getElementById('countdown-overlay');
     if(overlay) overlay.style.display = 'none';
@@ -656,7 +660,10 @@ export function endGame() {
     let msg = "";
 
     const accEl = document.getElementById('res-accuracy');
-    if(accEl) accEl.style.display = 'none';
+    if(accEl) {
+        accEl.innerText = `Accuracy: ${accuracy}%`;
+        accEl.style.display = 'block';
+    }
 
     if(!state.currentUser.scores) state.currentUser.scores = { coin: { easy:[], medium:[], hard:[], pro:[] }, songs: {} };
 
@@ -727,9 +734,9 @@ export function endGame() {
 }
 
 export function exitGame() {
-    clearInterval(state.game.timerInt);
-    if(state.game.metronomeInt) clearInterval(state.game.metronomeInt);
-    if(state.game.animFrame) cancelAnimationFrame(state.game.animFrame);
+    state.game.phase = 'idle';
+    state.game.sessionToken = (state.game.sessionToken || 0) + 1;
+    cancelSessionTimers();
     const overlay = document.getElementById('countdown-overlay');
     if(overlay) overlay.style.display = 'none';
     showScreen('screen-landing');

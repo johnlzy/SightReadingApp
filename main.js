@@ -29,7 +29,6 @@ window.initAudio = () => {
     initAudio();
     document.getElementById('overlay-start').style.display = 'none';
     
-    window.addEventListener('resize', handleResize);
     handleResize();
 
     loadUsers(); 
@@ -47,9 +46,8 @@ window.showNewUserForm = showNewUserForm;
 window.hideNewUserForm = hideNewUserForm;
 window.generateName = generateName;
 
-window.selectAvatar = (emoji) => {
+window.selectAvatar = (emoji, target) => {
     document.querySelectorAll('.emoji-opt').forEach(e => e.classList.remove('selected'));
-    const target = event.target.closest('.emoji-opt');
     if(target) target.classList.add('selected');
     selectAvatar(emoji);
 };

@@ -177,7 +177,16 @@ button:active { transform: translateY(4px); box-shadow: none; }
     display: flex; 
     padding-top: 2px;
     z-index: 20;
-    overflow: hidden; 
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: thin;
+}
+.keyboard-keys {
+    position: relative;
+    display: flex;
+    flex: 0 0 auto;
+    height: 100%;
+    min-width: 100%;
 }
 
 .white-key {
