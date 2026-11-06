@@ -135,12 +135,20 @@ test('a timed song freezes its beat deadline and note index across pause/resume'
       const {state}=await import('/js/state.js');return state.game.phase;
     }),{timeout:10000}).toBe('playing');
     const after=await page.evaluate(async()=>{
-      const {state}=await import('/js/state.js');
-      return {idx:state.game.idx,hits:state.game.hits,next:state.game.nextBeatTime,
-        start:state.game.startTime};
+        const {state}=await import('/js/state.js');
+        return {idx:state.game.idx,hits:state.game.hits,
+            next:state.game.nextBeatTime,start:state.game.startTime,
+            resumedIndex:state.game.resumedAtNote,
+            resumedAt:state.game.resumedAtMs,
+            resumedDeadline:state.game.resumedInitialDeadlineMs,
+            resumedDuration:state.game.durations[state.game.resumedAtNote]};
     });
-    expect(after.idx).toBe(before.idx);
+    // A running piece may legitimately advance during Playwright polling.
+    // The exact checkpoint must preserve the note and afford its full beat.
+    expect(after.resumedIndex).toBe(before.idx);
     expect(after.hits).toBe(before.hits);
+    expect(after.resumedDeadline-after.resumedAt).toBeGreaterThanOrEqual(
+        after.resumedDuration*60000/80-1);
     expect(after.next-before.next).toBeGreaterThan(2500);
     expect(after.start-before.start).toBeGreaterThan(2500);
     await expect(page.locator('#game-pause-overlay')).toBeHidden();
