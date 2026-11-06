@@ -968,6 +968,17 @@ export function exitGame() {
 /** Called by the shared Music Pass clock, never by an individual game mode. */
 export function onPlayTimeExpired() {
     if(!state.currentUser) return;
+    if(state.game.phase === 'resuming' || state.game.phase === 'paused') {
+        // Running out of parent-approved time during the resume count-in
+        // must never start a hidden or unapproved playing session.
+        clearTimeout(state.game.resumeTimeout);
+        state.game.resumeTimeout=null;
+        state.game.phase='paused';
+        stopMicrophone();
+        pausePlayBudget();
+        showTimeUpOverlay();
+        return;
+    }
     if(state.game.phase === 'playing') {
         if(state.game.budgetEnding) return;
         state.game.budgetEnding = true;
