@@ -7,7 +7,7 @@ import {
     parentSetTimeAllowance, parentGrantMusicTime,
     loadUsers, handleCreateUserUI, handleLogoutUI
 } from './js/ui.js';
-import { startGame, exitGame, beginRound, updateNotePosition, onPlayTimeExpired, togglePhraseHints, changePhrasePage, pauseMusicSession, resumeMusicSession, toggleKeyboardSize, panKeyboard } from './js/game.js';
+import { startGame, exitGame, beginRound, updateNotePosition, onPlayTimeExpired, togglePhraseHints, changePhrasePage, pauseMusicSession, resumeMusicSession, panKeyboard } from './js/game.js';
 import { gameHitLineX } from './js/playback-geometry.js';
 import { state, setHitX } from './js/state.js';
 import { workshopAction, hearWorkshopSound, changeWorkshopPage } from './js/workshop-ui.js';
@@ -91,7 +91,6 @@ window.workshopAction = workshopAction;
 window.changeWorkshopPage = changeWorkshopPage;
 window.hearWorkshopSound = hearWorkshopSound;
 window.startGame = startGame;
-window.toggleKeyboardSize = toggleKeyboardSize;
 window.panKeyboard = panKeyboard;
 window.togglePhraseHints = togglePhraseHints;
 window.changePhrasePage = changePhrasePage;

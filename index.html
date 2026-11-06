@@ -401,10 +401,9 @@
             
             <div class="keyboard-dock" id="keyboard-dock">
                 <div class="keyboard-toolbar" role="group" aria-label="Piano keyboard view">
-                    <button type="button" class="btn-sm btn-secondary" onclick="panKeyboard(-1)" aria-label="Show lower piano octave">← Low</button>
-                    <span class="keyboard-toolbar-title" id="keyboard-size-label">Compact keys</span>
-                    <button type="button" id="keyboard-size-toggle" class="btn-sm btn-secondary" aria-pressed="false" onclick="toggleKeyboardSize()">Make keys bigger</button>
-                    <button type="button" class="btn-sm btn-secondary" onclick="panKeyboard(1)" aria-label="Show higher piano octave">High →</button>
+                    <button type="button" id="keyboard-low" class="btn-sm btn-secondary" onclick="panKeyboard(-1)" aria-label="Show lower piano octave">← Lower</button>
+                    <span class="keyboard-toolbar-title" id="keyboard-range-label">Piano keys</span>
+                    <button type="button" id="keyboard-high" class="btn-sm btn-secondary" onclick="panKeyboard(1)" aria-label="Show higher piano octave">Higher →</button>
                 </div>
                 <div class="keyboard-area" id="keyboard" aria-label="Swipe piano left or right to change octaves"></div>
             </div>

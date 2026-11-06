@@ -1,4 +1,4 @@
-# Melody Garden — V4.3 Viewport & Music Continuity
+# Melody Garden — V4.3.2 Natural Piano Keyboard
 
 > **Planning for v4:** The proposed product overhaul is documented in
 > [v4 master redesign specification](docs/product/v4-master-redesign.md) and
@@ -13,13 +13,26 @@
 A browser-based sight-reading game for children. Practice on the on-screen piano, or
 use the device microphone to play notes on a **real acoustic piano**.
 
-## What's improved in v4.3.1: playable, stable piano keys
+## What's improved in v4.3.2: one natural keyboard size
 
-- **Compact keyboard** is the default. White keys stay within a reasonable
-  physical width (26–32 CSS px) even when an exercise spans several octaves.
-  Use **Make keys bigger** for comfortable keys (34–43 CSS px), or
-  **Low / High** for deliberate one-octave panning. Touch dragging remains
-  available. Each child keeps their own size preference.
+- **Comfortable without settings:** the on-screen piano now chooses a finger-sized
+  white-key width automatically (typically about **52–64 CSS pixels**).
+  The old tiny **Compact / Comfortable** switch is gone.
+- **Long-range music is still playable:** notes are never squeezed to fit
+  several octaves. Swipe manually or use **Lower / Higher** octave arrows.
+  Those buttons disable themselves when all relevant keys already fit.
+- **Beginner notes stay natural:** a five-note melody does not stretch five
+  keys across the entire screen. The piano looks and feels like a piano.
+- **Consistent experience:** the First Concert audition uses the same key
+  geometry as the main game. Any old saved keyboard-size preference is
+  harmless and ignored.
+- **Stationary while playing:** moving to the next note never automatically
+  moves the piano keys under the child's fingers.
+
+## v4.3.1 background improvements
+
+- The initial compact/bigger key modes have been superseded by the
+  automatic ergonomic sizing introduced in v4.3.2.
 - **No auto-follow keyboard:** the piano moves to the first note at the
   beginning of an exercise, but *never scrolls to the next required key*
   while the child is playing. The child's finger does not chase moving keys.

@@ -504,8 +504,7 @@ export function renderKeyboard() {
     const sequence = state.game.notes;
     const availableNotes = keyboardNotesFor(sequence, state.currentClef);
     const whiteCount = availableNotes.filter(n => !n.includes('#')).length;
-    const size=state.currentUser?.preferences?.keyboardSize || 'compact';
-    const keyWidth=keyboardWhiteWidth(Math.max(1,kb.clientWidth),whiteCount,size);
+    const keyWidth=keyboardWhiteWidth(Math.max(1,kb.clientWidth),whiteCount);
     const blackWidth = Math.round(keyWidth * 0.58);
 
     const keybed = document.createElement('div');
@@ -537,7 +536,11 @@ export function renderKeyboard() {
     });
     // Initial positioning happens once. Keyboard never follows the next note.
     initialKeyboardPosition();
-    updateKeyboardSizeUI();
+    const label=document.getElementById('keyboard-range-label');
+    if(label)label.textContent='Piano '+availableNotes[0]+'–'+
+        availableNotes[availableNotes.length-1];
+    kb.onscroll=updateKeyboardNavigation;
+    updateKeyboardNavigation();
 }
 function initialKeyboardPosition() {
     const kb=document.getElementById('keyboard');
@@ -548,26 +551,14 @@ function initialKeyboardPosition() {
     kb.scrollLeft=initialKeyboardLeft(key.offsetLeft,key.clientWidth,
         kb.clientWidth,kb.scrollWidth);
 }
-function updateKeyboardSizeUI(){
-    const mode=state.currentUser?.preferences?.keyboardSize||'compact';
-    const label=document.getElementById('keyboard-size-label');
-    if(label)label.textContent=mode==='compact'?'Compact keys':'Comfortable keys';
-    const toggle=document.getElementById('keyboard-size-toggle');
-    if(toggle){
-        toggle.setAttribute('aria-pressed',String(mode==='comfortable'));
-        toggle.textContent=mode==='compact'?'Make keys bigger':'Make keys smaller';
-    }
-}
-export function toggleKeyboardSize(){
-    if(!state.currentUser)return;
+function updateKeyboardNavigation(){
     const kb=document.getElementById('keyboard');
-    const previous=kb.scrollWidth>0?kb.scrollLeft/kb.scrollWidth:0;
-    state.currentUser.preferences??={};
-    state.currentUser.preferences.keyboardSize=
-        state.currentUser.preferences.keyboardSize==='comfortable'?'compact':'comfortable';
-    saveCurrentUser();
-    renderKeyboard();
-    kb.scrollLeft=previous*kb.scrollWidth;
+    if(!kb)return;
+    const maxScroll=Math.max(0,kb.scrollWidth-kb.clientWidth);
+    const low=document.getElementById('keyboard-low');
+    const high=document.getElementById('keyboard-high');
+    if(low)low.disabled=maxScroll<2||kb.scrollLeft<=1;
+    if(high)high.disabled=maxScroll<2||kb.scrollLeft>=maxScroll-1;
 }
 export function panKeyboard(direction){
     const kb=document.getElementById('keyboard');
