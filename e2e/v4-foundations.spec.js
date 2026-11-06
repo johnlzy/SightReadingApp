@@ -72,6 +72,7 @@ test('separate learners keep their own clef, level and daily pass allocation',as
        setDailyAllowance(state.currentUser,300);
        saveCurrentUser();
     });
+    await page.evaluate(()=>window.setHomeTab('setup'));
     await page.locator('#clef-bass').click();
     await page.locator('#screen-landing button').filter({hasText:'Logout'}).click();
     await expect(page.locator('#screen-register.active')).toBeVisible();

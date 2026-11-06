@@ -3,9 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Melody Garden — Sight Reading v4.2</title>
+    <title>Melody Garden — Sight Reading v4.3</title>
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@300;400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="css/viewport.css">
     <style>
         /* Progress Bar Styles - Moved to Top for Visibility */
         #progress-container {
@@ -169,14 +170,15 @@
             </div>
             <div class="coins-display">
                 <span id="music-passes" class="pass-chip" aria-label="Music time remaining">🎟️ 3 passes</span>
-                <span onclick="showParentPanel()" style="cursor:pointer;" role="button" tabindex="0" aria-label="Parent settings">🔒 Parent</span> | <span id="landing-credits" hidden>3</span>
+                <button type="button" onclick="showParentPanel()" class="header-parent-btn" aria-label="Parent settings">🔒 Parent</button> <span id="landing-credits" hidden>3</span>
                 <span class="spark-balance" aria-label="Your Sparks">✦ <span id="landing-sparks">0</span> Sparks</span>
                 <span id="landing-t-coins" hidden>0</span>
                 <span id="landing-b-coins" hidden>0</span>
             </div>
         </div>
         
-        <div class="scroll-content">
+        <div class="scroll-content home-console" data-tab="play">
+            <section class="home-focus" aria-label="Your daily music adventure">
             <div class="garden-hero">
                 <div id="home-pip-scene" class="home-pip-scene" aria-label="Pip in your personal music garden"></div>
                 <div class="garden-hero-copy">
@@ -198,8 +200,16 @@
                 </div>
                 <span class="quest-spark" aria-label="Bonus reward">+15 ✦</span>
             </section>
-            <h3 style="margin-bottom:10px;">Select Clef</h3>
-            <div class="toggle-group" style="transform:scale(1.1)">
+            </section>
+            <nav class="home-tabbar" aria-label="Home sections">
+                <button type="button" class="home-tab selected" data-home-tab="play" aria-pressed="true" onclick="setHomeTab('play')">🎵 Play</button>
+                <button type="button" class="home-tab" data-home-tab="learn" aria-pressed="false" onclick="setHomeTab('learn')">🌱 Learning</button>
+                <button type="button" class="home-tab" data-home-tab="setup" aria-pressed="false" onclick="setHomeTab('setup')">🎹 My Piano</button>
+            </nav>
+            <section class="home-controls" aria-label="Clef, input and instruments">
+            <h3 class="home-section-heading">My Piano</h3>
+            <h4 class="home-small-heading">Music clef</h4>
+            <div class="toggle-group" >
                 <div class="toggle-opt selected" id="clef-treble" onclick="setClef('treble')">Treble 🎼</div>
                 <div class="toggle-opt" id="clef-bass" onclick="setClef('bass')">Bass 𝄢</div>
             </div>
@@ -212,6 +222,10 @@
                 </div>
                 <p id="input-mode-help" aria-live="polite">Tap the on-screen piano keys. No microphone is used.</p>
             </div>
+            <h4 style="margin-bottom:5px; margin-top:20px;">My Instrument Sounds</h4>
+            <div class="instrument-bag" id="landing-bag"></div>
+
+            </section>
 
             <section class="learning-panel" aria-labelledby="learning-title">
                 <div class="learning-heading">
@@ -234,16 +248,16 @@
                     <span id="reading-level-indicator">Level 1 · Note Detective</span>
                     <p id="reading-next-skill">Try a stationary melody with notes you know.</p>
                     <p id="reading-check-progress">No fresh-phrase checks yet.</p>
+
+                </div>
+            </section>
+
+            <section class="home-menu" aria-label="Choose your next music activity">
+                <h3 class="home-section-heading">Choose an adventure</h3>
                     <div class="reading-journey-actions">
                         <button class="btn-primary btn-sm" onclick="startGame('phrase')">Read a Melody</button>
                         <button class="btn-secondary btn-sm" onclick="startGame('phrase-check')">Fresh Phrase Check</button>
                     </div>
-                </div>
-            </section>
-
-            <h4 style="margin-bottom:5px; margin-top:20px;">My Instrument Sounds</h4>
-            <div class="instrument-bag" id="landing-bag"></div>
-
             <div class="card-menu">
                 <div class="menu-card" onclick="goToStore()">
                     <div class="menu-icon">🎨</div>
@@ -265,11 +279,12 @@
                     <div class="menu-icon">🎶</div>
                     <div>Song Mode</div>
                 </div>
-                <div class="menu-card" onclick="showParentPanel()">
-                    <div class="menu-icon">🔒</div>
-                    <div>Parent</div>
-                </div>
+                <button class="menu-card" onclick="startGrandStaffReader()" aria-label="Read a two-staff piano piece independently">
+                    <div class="menu-icon">🎼</div>
+                    <div>Two-Staff Piece</div>
+                </button>
             </div>
+            </section>
         </div>
     </div>
 
@@ -309,6 +324,11 @@
                     </div>
                     <div id="workshop-categories" class="workshop-categories" role="group" aria-label="Choose an item category"></div>
                     <div id="store-grid" class="workshop-grid"></div>
+                    <nav id="workshop-page-controls" class="workshop-page-controls" aria-label="More Workshop items" hidden>
+                        <button id="workshop-page-prev" onclick="changeWorkshopPage(-1)" class="btn-secondary btn-sm" aria-label="Previous Workshop items">←</button>
+                        <span id="workshop-page-label">1/1</span>
+                        <button id="workshop-page-next" onclick="changeWorkshopPage(1)" class="btn-secondary btn-sm" aria-label="Next Workshop items">→</button>
+                    </nav>
                 </section>
             </div>
         </div>
@@ -319,12 +339,18 @@
             <button class="btn-secondary" onclick="showScreen('screen-landing')" style="padding:8px 20px;">🔙</button>
             <h3>Song Book</h3>
         </div>
-        <div class="scroll-content" id="song-list-container"></div>
+        <div class="scroll-content song-grid-console" id="song-list-container"></div>
+        <nav class="song-page-controls" aria-label="Songbook pages">
+            <button id="song-page-prev" class="btn-secondary btn-sm" onclick="changeSongPage(-1)" aria-label="Previous songs">← Previous</button>
+            <span id="song-page-label" aria-live="polite">Page 1 of 2</span>
+            <button id="song-page-next" class="btn-secondary btn-sm" onclick="changeSongPage(1)" aria-label="More songs">Next →</button>
+        </nav>
     </div>
 
 <div id="screen-game" class="screen" style="padding:0; overflow:hidden;">
         <div class="top-bar" style="position:absolute; top:0; left:0; width:100%;">
             <button class="btn-secondary btn-sm" onclick="exitGame()" title="Leave this round; unfinished work is not scored" style="padding:6px 10px;">← Leave</button>
+            <button id="game-pause-button" class="btn-secondary btn-sm" onclick="pauseMusicSession()" aria-label="Pause current music round">⏸ Pause</button>
             <div class="stats-bar">
                 <div class="stat-group">Time: <span id="game-timer">0</span>s</div>
                 <div class="stat-group"><span id="game-counter-label">Points</span>: <span id="game-coins">0</span></div>
@@ -350,6 +376,11 @@
             </div>
             <div id="timing-feedback" class="timing-feedback" hidden role="status" aria-live="polite"></div>
             <div id="phrase-score" class="phrase-score" hidden aria-label="Unmoving staff music for a complete phrase"></div>
+            <nav id="phrase-page-controls" class="phrase-page-controls" aria-label="Turn the sheet music page" hidden>
+                <button id="phrase-page-prev" onclick="changePhrasePage(-1)" class="btn-secondary btn-sm" aria-label="Previous music page">←</button>
+                <span id="phrase-page-label">1 / 2</span>
+                <button id="phrase-page-next" onclick="changePhrasePage(1)" class="btn-secondary btn-sm" aria-label="Next music page">→</button>
+            </nav>
             <div id="phrase-hint-controls" class="phrase-hint-controls" hidden>
                 <span>Read the whole melody without moving prompts.</span>
                 <button id="phrase-hint-button" class="btn-secondary btn-sm" aria-pressed="false" onclick="togglePhraseHints()">Show key names (practice only)</button>
@@ -374,6 +405,18 @@
         <div id="game-start-overlay" style="position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.85); z-index:500; display:flex; justify-content:center; align-items:center;">
             <button class="btn-primary" style="font-size:2rem; padding:20px 50px; box-shadow:0 10px 20px rgba(0,0,0,0.2);" onclick="beginRound()">START</button>
         </div>
+        <div id="game-pause-overlay" class="game-pause-overlay" hidden role="dialog"
+             aria-modal="true" aria-labelledby="pause-session-title">
+            <div class="game-pause-card">
+                <div class="pause-sigil" aria-hidden="true">♫</div>
+                <h2 id="pause-session-title">Your music is safely paused</h2>
+                <p id="pause-session-description">Your notes and progress are right where you left them.</p>
+                <div class="pause-session-actions">
+                    <button id="resume-game-button" class="btn-primary" onclick="resumeMusicSession()">▶ Resume my music</button>
+                    <button class="btn-secondary" onclick="exitGame()">Leave this round</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <div id="screen-audition" class="screen">
@@ -384,7 +427,7 @@
                 <span id="audition-level">Discovery Level 1</span>
             </div>
             <div class="audition-top-actions">
-                <button class="btn-sm btn-secondary" onclick="auditionSkipNote()" title="Move past a difficult note">Skip note</button>
+                <button id="audition-skip-btn" class="btn-sm btn-secondary" onclick="auditionSkipNote()" title="Move past a difficult note">Skip note</button>
                 <button class="btn-sm btn-secondary" id="audition-restart-btn" onclick="auditionStartFresh()" title="Start a fresh first concert">Restart</button>
             </div>
         </div>
@@ -394,6 +437,12 @@
             <div id="audition-score" class="stationary-score" aria-label="Music notation that stays still while playing"></div>
             <p id="audition-status" class="score-status" aria-live="polite"></p>
             <div id="audition-keys" class="keyboard-area" aria-label="Unlabelled piano keyboard for first-sight reading"></div>
+            <nav id="grand-score-actions" class="grand-score-actions" aria-label="Two-staff score pages" hidden>
+                <button id="grand-page-prev" onclick="grandTurnPage(-1)" class="btn-secondary btn-sm" aria-label="Previous page">← Page</button>
+                <span id="grand-page-label">Page 1 / 2</span>
+                <button id="grand-page-next" onclick="grandTurnPage(1)" class="btn-secondary btn-sm" aria-label="Next page">Next →</button>
+                <button class="btn-primary btn-sm" onclick="finishGrandScore()">Finished playing</button>
+            </nav>
             <div id="audition-actions" class="score-actions" hidden>
                 <button class="btn-secondary" onclick="auditionHarder()">🌟 Try a harder melody</button>
                 <button class="btn-secondary" onclick="auditionAnother()">🎵 Another melody</button>
@@ -403,7 +452,8 @@
     </div>
 
     <div id="screen-result" class="screen" style="background:rgba(255,255,255,0.98); z-index:200;">
-        <div class="scroll-content" style="justify-content:center; height:100%;">
+        <div class="scroll-content result-console">
+            <section class="result-primary" aria-label="Your musical achievement">
             <h1 style="color:var(--primary); font-size:3rem; margin-bottom:10px;">Beautiful music! 🎉</h1>
             <div id="result-pip-scene" class="result-pip-scene" aria-label="Pip celebrating your musical progress"></div>
             <h2 style="color:#555">Time: <span id="res-time"></span>s</h2>
@@ -417,17 +467,20 @@
             <p id="res-quest" class="result-quest" hidden></p>
             <div id="res-msg" style="color:var(--primary); font-weight:bold; margin-bottom:20px; font-size:1.2rem; text-align:center;"></div>
             
+            </section>
+            <aside class="result-side" aria-label="Next steps and scores">
             <div class="score-box">
                 <h3 style="margin-top:0; color:#444; text-align:center;">🏆 Leaderboard 🏆</h3>
                 <small style="display:block; text-align:center; color:#888; margin-bottom:10px;" id="score-category-label"></small>
                 <div id="high-score-list"></div>
             </div>
 
-            <div class="toggle-group" style="gap:20px; flex-wrap: wrap; justify-content: center;">
+            <div class="toggle-group result-actions" style="gap:12px; flex-wrap:wrap; justify-content:center;">
                 <button class="btn-secondary" style="font-size:1.2rem; padding:15px 30px;" onclick="updateLanding(); showScreen('screen-landing')">Home</button>
                 <button id="btn-retry" class="btn-primary" style="font-size:1.2rem; padding:15px 30px; display:none; background-color: var(--accent);">Retry 🔄</button>
-                <button class="btn-primary" style="font-size:1.2rem; padding:15px 30px;" onclick="updateLanding(); goToStore()">Shop</button>
+                <button class="btn-primary" style="font-size:1.2rem; padding:15px 30px;" onclick="updateLanding(); goToStore()">Workshop</button>
             </div>
+            </aside>
         </div>
     </div>
     

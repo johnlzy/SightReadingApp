@@ -8,11 +8,16 @@ import { saveCurrentUser } from './storage.js';
 import { canPlayToday, showTimeUpOverlay } from './app-budget.js';
 import { showScreen, updateLanding } from './ui.js';
 import { snapshotAudition, restoreAudition } from './audition-draft.js';
+import { createGrandStaffDocument, grandStaffSvg, grandScorePageCount } from './grand-staff.js';
 
 let session = null;
 let independent = false;
 let running = false;
 let startToken = 0;
+let grandMode = false;
+let grandDoc = null;
+let grandPage = 0;
+let grandSystems = 2;
 function saveDraft() {
     if(independent || !state.currentUser || !session) return;
     state.currentUser.auditionDraft = snapshotAudition(session);
@@ -79,7 +84,74 @@ function renderPiano(notes) {
     }
 }
 
+
+function renderGrandScore(){
+    grandSystems=window.innerHeight<=500?1:2;
+    grandPage=Math.max(0,Math.min(grandScorePageCount(grandDoc,grandSystems)-1,grandPage));
+    document.getElementById('audition-score').innerHTML=grandStaffSvg(grandDoc,{
+        page:grandPage,systemsPerPage:grandSystems
+    });
+    document.getElementById('audition-heading').textContent='Two-Staff Reading Studio';
+    document.getElementById('audition-level').textContent='Independent piano music · both hands';
+    document.getElementById('audition-progress').textContent=
+        'Read the whole page. Turn it yourself when ready.';
+    const leave=document.querySelector('#screen-audition .top-bar>button');
+    if(leave){
+        leave.textContent='← Garden';
+        leave.setAttribute('aria-label','Leave the two-staff score');
+    }
+    const keyboard=document.getElementById('audition-keys');
+    if(keyboard)keyboard.hidden=true;
+    for(const id of ['audition-save-note','audition-restart-btn','audition-skip-btn','audition-actions']){
+        const el=document.getElementById(id);
+        if(el)el.hidden=true;
+    }
+    const actions=document.getElementById('grand-score-actions');
+    if(actions)actions.hidden=false;
+    const pageLabel=document.getElementById('grand-page-label');
+    if(pageLabel)pageLabel.textContent='Page '+(grandPage+1)+' / '+
+        grandScorePageCount(grandDoc,grandSystems);
+    const prev=document.getElementById('grand-page-prev');
+    const next=document.getElementById('grand-page-next');
+    if(prev)prev.disabled=grandPage===0;
+    if(next)next.disabled=grandPage>=grandScorePageCount(grandDoc,grandSystems)-1;
+    status('Play at your own pace. This score is for independent reading or teacher feedback; chords are not graded automatically.');
+}
+export function grandTurnPage(delta){
+    if(!running||!grandMode||!Number.isInteger(delta))return;
+    grandPage+=delta;
+    renderGrandScore();
+}
+export function finishGrandScore(){
+    if(!grandMode)return;
+    // No fabricated grade, mastery update or cosmetic reward for an
+    // unverified, simultaneous two-hand performance.
+    closeAudition();
+}
+export function startGrandStaffReader(){
+    if(!state.currentUser||!canPlayToday())return false;
+    stopMicrophone();
+    independent=true;
+    grandMode=true;
+    session=null;
+    grandDoc=createGrandStaffDocument({level:state.currentUser.readingLevel||6});
+    grandPage=0;
+    running=true;
+    ++startToken;
+    state.game.phase='playing';
+    state.game.mode='grand-independent';
+    showScreen('screen-audition');
+    renderGrandScore();
+    return true;
+}
 function renderRound() {
+    grandMode=false;
+    const keyboard=document.getElementById('audition-keys');
+    if(keyboard)keyboard.hidden=false;
+    const grandActions=document.getElementById('grand-score-actions');
+    if(grandActions)grandActions.hidden=true;
+    const skip=document.getElementById('audition-skip-btn');
+    if(skip)skip.hidden=false;
     const ex=session.active;
     const svg=createScoreDocument({
         notes:ex.notes,durations:ex.durations,clef:ex.clef,
@@ -125,6 +197,7 @@ export async function startIndependentReader() {
 async function startAudition(asIndependent,{fresh=false}={}) {
     stopMicrophone();
     independent=asIndependent;
+    grandMode=false;
     const draft=(!independent && !fresh) ? state.currentUser?.auditionDraft : null;
     session=draft ? restoreAudition(state.currentUser,draft) : null;
     if(!session) session=beginAudition(state.currentUser,state.currentClef);
@@ -175,7 +248,7 @@ export function auditionStartFresh() {
 }
 
 export function auditionInput(note) {
-    if(!running||!session||session.index>=session.active.notes.length)return;
+    if(grandMode||!running||!session||session.index>=session.active.notes.length)return;
     const result=submitAuditionNote(session,note);
     if(!independent) saveDraft();
     if(result.done) {
@@ -235,6 +308,8 @@ export function closeAudition() {
     stopMicrophone();
     state.game.phase='idle';
     session=null;
+    grandMode=false;
+    grandDoc=null;
     showScreen('screen-landing');
     updateLanding();
 }

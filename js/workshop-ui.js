@@ -16,6 +16,8 @@ const CATEGORIES=[
 ];
 let category='hat';
 let selectedId='hat-leaf';
+let workshopPage=0;
+const ITEMS_PER_PAGE=6;
 
 function text(id,value) {
     const node=document.getElementById(id);
@@ -29,6 +31,7 @@ export function openWorkshop() {
     if(!state.currentUser||!canPlayToday())return;
     ensureEconomy(state.currentUser);
     category='hat';
+    workshopPage=0;
     selectedId=state.currentUser.economy.equipped.hat;
     document.querySelectorAll('.screen').forEach(screen=>{
         const active=screen.id==='screen-store';
@@ -42,8 +45,18 @@ export function openWorkshop() {
 export function chooseWorkshopCategory(next) {
     if(!CATEGORIES.some(c=>c.id===next))return;
     category=next;
+    workshopPage=0;
     const first=entries()[0];
     selectedId=first?.id??'hat-leaf';
+    renderWorkshop();
+}
+
+export function changeWorkshopPage(delta) {
+    if(!Number.isInteger(delta))return;
+    const all=entries();
+    const max=Math.max(0,Math.ceil(all.length/ITEMS_PER_PAGE)-1);
+    workshopPage=Math.max(0,Math.min(max,workshopPage+delta));
+    selectedId=all[workshopPage*ITEMS_PER_PAGE]?.id||all[0]?.id;
     renderWorkshop();
 }
 
@@ -79,7 +92,8 @@ export function renderWorkshop(message='') {
     const grid=document.getElementById('store-grid');
     if(grid) {
         grid.replaceChildren();
-        for(const item of entries()) {
+        for(const item of entries().slice(
+            workshopPage*ITEMS_PER_PAGE,(workshopPage+1)*ITEMS_PER_PAGE)) {
             const owned=isWorkshopOwned(user,item.id);
             const equipped=isWorkshopEquipped(user,item.id);
             const button=document.createElement('button');
@@ -100,6 +114,15 @@ export function renderWorkshop(message='') {
             grid.appendChild(button);
         }
     }
+    const pages=Math.max(1,Math.ceil(entries().length/ITEMS_PER_PAGE));
+    const controls=document.getElementById('workshop-page-controls');
+    if(controls)controls.hidden=pages<=1;
+    const label=document.getElementById('workshop-page-label');
+    if(label)label.textContent=(workshopPage+1)+' / '+pages;
+    const prev=document.getElementById('workshop-page-prev');
+    const next=document.getElementById('workshop-page-next');
+    if(prev)prev.disabled=workshopPage===0;
+    if(next)next.disabled=workshopPage>=pages-1;
     const selected=getWorkshopItem(selectedId)??entries()[0];
     if(!selected)return;
     text('workshop-item-name',selected.name);

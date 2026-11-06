@@ -13,7 +13,10 @@ import { ensureEconomy, grantSparks } from './economy.js';
 import { recordDailyQuest } from './quests.js';
 import { renderPipScene } from './companion.js';
 import { generateReadingPhrase, finishReadingPhrase } from './learning-journey.js';
-import { createScoreDocument, staticScoreSvg } from './score.js';
+import { createScoreDocument, staticScoreSvg, scorePageCount } from './score.js';
+import { staffY, ledgerLineYs, clefSvg } from './notation.js';
+import { freezeSession, beginResume, finishResume, cancelPause } from './session-pause.js';
+import { pausePlayBudget, resumePlayBudget } from './app-budget.js';
 import {
     ensureLearning, generateAdaptiveExercise, generateSkillCheck,
     recordOutcome, finishLearningSession
@@ -59,15 +62,15 @@ function cancelSessionTimers() {
     clearInterval(state.game.timerInt);
     clearInterval(state.game.metronomeInt);
     clearTimeout(state.game.countdownTimeout);
+    clearTimeout(state.game.resumeTimeout);
     cancelAnimationFrame(state.game.animFrame);
     state.game.timerInt = null;
     state.game.metronomeInt = null;
     state.game.countdownTimeout = null;
+    state.game.resumeTimeout = null;
     state.game.animFrame = null;
+    cancelPause(state.game);
 }
-
-const PATH_TREBLE = "M26.4 56.7c-.5-3.3-3.6-5.8-7-5.8-4.2 0-7.3 3.5-7.3 7.6 0 2.2 1 4.2 2.6 5.5l-3.3 14.9c-3.6-1.5-6.6-4.3-6.6-9.1 0-6.4 6-12 14.7-12 7.2 0 12.8 3.5 12.8 9.7 0 3.8-2.5 7.7-6.5 11-4.7 4-9.3 7.6-11.4 14.8-.1 .5-.3 1-.3 1.5l-2 9c.8 .2 1.6 .3 2.5 .3 6.1 0 11-4.9 11-10.9 0-2.8-1-5.4-2.7-7.4l-1.3-2.2c-3-3.1-4.7-4.9-4.7-7.9 0-3.3 2.6-6 7.2-6 4.4 0 7 2.8 7 6 0 1.2-.2 2.1-.6 2.9l12-53.6c-1.2-6.1-6.4-11.1-14.4-11.1-9.2 0-16 6.2-16 15.7 0 8.4 6.2 13.3 12.6 17z";
-const PATH_BASS = "M46 76.5C36.9 76.5 29.5 69.1 29.5 60S36.9 43.5 46 43.5c8.7 0 15.8 6.8 16.4 15.4 0 .4 .1 .7 .1 1.1 0 9.1-7.4 16.5-16.5 16.5zm0-29c-6.9 0-12.5 5.6-12.5 12.5S39.1 72.5 46 72.5c6.5 0 11.8-4.9 12.4-11.2-.8-.2-1.6-.3-2.4-.3-10.2 0-18.5-8.3-18.5-18.5 0-.4 0-.8 .1-1.2-5.4 1-9.6 5.2-10.6 10.6 .4-.1 .8-.1 1.2-.1 6.9 0 12.5 5.6 12.5 12.5S45.4 76.5 38.5 76.5c-.4 0-.8 0-1.2-.1 .8 7.4 7.1 13.1 14.7 13.1 8.3 0 15-6.7 15-15s-6.7-15-15-15zm44 2.5c-2.5 0-4.5 2-4.5 4.5s2 4.5 4.5 4.5 4.5-2 4.5-4.5-2-4.5-4.5-4.5zm0 18c-2.5 0-4.5 2-4.5 4.5s2 4.5 4.5 4.5 4.5-2 4.5-4.5-2-4.5-4.5-4.5z";
 
 // Pitch and rhythm are different skills. Never treat an on-pitch but
 // early/late note as a pitch-recognition mistake.
@@ -145,10 +148,14 @@ export function startGame(mode, songIdx=null, isRetry=false) {
     state.game.exerciseKind = mode;
     state.game.phraseSpec = null;
     state.game.hintsUsed = false;
+    state.game.phraseScoreDoc = null;
+    state.game.phrasePage = 0;
     state.game.nextBeatTime = 0;
     state.game.sessionToken = (state.game.sessionToken || 0) + 1;
     state.game.phase = 'ready';
+    cancelPause(state.game);
     state.game.budgetEnding = false;
+    document.getElementById('game-pause-overlay')?.setAttribute('hidden','');
     
     // Feature: Tempo scaling based on difficulty for Song Mode
     if (mode === 'song' && songIdx !== null) {
@@ -221,8 +228,34 @@ export function startGame(mode, songIdx=null, isRetry=false) {
             title:state.game.phraseSpec?.title||'A Fresh Melody',
             bpm:state.game.phraseSpec?.bpm||72
         });
-        noteView.innerHTML=staticScoreSvg(score);
+        state.game.phraseScoreDoc=score;
+        updatePhrasePage();
+    }else{
+        const controls=document.getElementById('phrase-page-controls');
+        if(controls)controls.hidden=true;
     }
+}
+function updatePhrasePage(){
+    const doc=state.game.phraseScoreDoc;
+    const region=document.getElementById('phrase-score');
+    if(!doc||!region)return;
+    const pages=scorePageCount(doc);
+    state.game.phrasePage=Math.max(0,Math.min(pages-1,state.game.phrasePage||0));
+    region.innerHTML=staticScoreSvg(doc,{page:state.game.phrasePage});
+    const controls=document.getElementById('phrase-page-controls');
+    if(controls)controls.hidden=pages<=1;
+    const label=document.getElementById('phrase-page-label');
+    if(label)label.textContent=(state.game.phrasePage+1)+' / '+pages;
+    const prev=document.getElementById('phrase-page-prev');
+    const next=document.getElementById('phrase-page-next');
+    if(prev)prev.disabled=state.game.phrasePage===0;
+    if(next)next.disabled=state.game.phrasePage>=pages-1;
+}
+/** Manual page turns: the score never follows the player's note automatically. */
+export function changePhrasePage(delta){
+    if(!['phrase','phrase-check'].includes(state.game.mode)||!Number.isInteger(delta))return;
+    state.game.phrasePage+=delta;
+    updatePhrasePage();
 }
 
 export function retryGame() {
@@ -337,22 +370,8 @@ export function generateNotes() {
     }
 }
 
-function getNoteY(note, clef) {
-    const natural = note.replace(/[#b]/g, '');
-    const letter = natural.charAt(0);
-    const octave = parseInt(natural.slice(1));
-    const refIndex = 0; 
-    const idx = NOTE_ORDER.indexOf(letter);
-
-    if (clef === 'treble') {
-        const refOctave = 4, refY = 220;
-        const steps = (octave - refOctave) * 7 + (idx - refIndex);
-        return refY - (steps * 10);
-    } else {
-        const refOctave = 3, refY = 170; 
-        const steps = (octave - refOctave) * 7 + (idx - refIndex);
-        return refY - (steps * 10);
-    }
+function getNoteY(note,clef){
+    return staffY(note,clef,120,20);
 }
 
 export function renderSheet() {
@@ -375,22 +394,9 @@ export function renderSheet() {
     line.setAttribute('opacity', 0.6);
     svgContainer.insertBefore(line, noteGroup);
 
-    const clefG = document.createElementNS("http://www.w3.org/2000/svg", "g");
-    clefG.setAttribute('class', 'clef-symbol');
-    const clefPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
-    
-    if(state.currentClef === 'treble') {
-        clefG.setAttribute('transform', 'translate(10, 110) scale(3.5)');
-        clefPath.setAttribute('d', PATH_TREBLE);
-        clefPath.setAttribute('transform', 'scale(0.25)');
-    } else {
-        clefG.setAttribute('transform', 'translate(10, 125) scale(3.5)'); 
-        clefPath.setAttribute('d', PATH_BASS);
-        clefPath.setAttribute('transform', 'scale(0.2) translate(-20,0)');
-    }
-    clefPath.setAttribute('fill', '#000');
-    clefG.appendChild(clefPath);
-    svgContainer.appendChild(clefG);
+    // One canonical music glyph and anchor for both clefs and score views.
+    svgContainer.insertAdjacentHTML('beforeend',
+        clefSvg(state.currentClef,12,120,20));
 
     let currentX = 80;
     const PIXELS_PER_BEAT = 120;
@@ -407,10 +413,8 @@ export function renderSheet() {
         const notation = durationNotation(dur);
         currentX += (dur * PIXELS_PER_BEAT);
 
-        // Draw every ledger line required for notes above/below the staff.
-        const ledgerPositions = [];
-        for(let ly = 220; ly <= y; ly += 20) ledgerPositions.push(ly - y);
-        for(let ly = 100; ly >= y; ly -= 20) ledgerPositions.push(ly - y);
+        const ledgerPositions=ledgerLineYs(note,state.currentClef,120,20)
+            .map(yStaff=>yStaff-y);
         ledgerPositions.forEach(offset => {
             const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
             line.setAttribute('x1', -16); line.setAttribute('x2', 16);
@@ -590,6 +594,16 @@ export async function beginRound() {
     }
 }
 
+function beginElapsedTimer(){
+    clearInterval(state.game.timerInt);
+    state.game.timerInt=setInterval(()=>{
+        if(state.game.phase!=='playing')return;
+        const t=Math.floor((Date.now()-state.game.startTime)/1000);
+        const el=document.getElementById('game-timer');
+        if(el)el.innerText=t;
+    },1000);
+}
+
 function startStandardGame() {
     if(state.game.phase !== 'ready') return;
     state.game.phase = 'playing';
@@ -597,12 +611,7 @@ function startStandardGame() {
     state.game.startTime = Date.now();
     state.game.noteTime = Date.now();
     state.game.noteStartedAt = state.game.noteTime;
-    if(state.game.timerInt) clearInterval(state.game.timerInt);
-    state.game.timerInt = setInterval(() => {
-        const t = Math.floor((Date.now() - state.game.startTime)/1000);
-        const el = document.getElementById('game-timer');
-        if(el) el.innerText = t;
-    }, 1000);
+    beginElapsedTimer();
 }
 
 function startCountdown(callback) {
@@ -645,87 +654,12 @@ function startProGame() {
     state.game.startTime = Date.now();
     state.game.noteTime = Date.now();
     state.game.noteStartedAt = state.game.noteTime;
-    state.game.nextBeatTime = state.game.startTime; 
+    state.game.nextBeatTime = state.game.startTime;
+    state.game.visualStartTime = state.game.startTime; 
     
-    const animate = () => {
-        if(state.game.phase !== 'playing') return;
-        
-        const now = Date.now();
+    beginTimedAnimation();
 
-        if(state.game.idx < state.game.notes.length) {
-            const dur = state.game.durations[state.game.idx];
-            const msPerBeat = 60000 / currentBPM; 
-            const currentDurationMs = dur * msPerBeat;
-            const deadline = state.game.nextBeatTime + currentDurationMs;
-
-            if (now > deadline) {
-                 const currSvg = document.getElementById(`note-${state.game.idx}`);
-                 if(currSvg) {
-                     currSvg.classList.remove('current');
-                     currSvg.classList.add('inactive');
-                     currSvg.style.opacity = 0.4;
-                     const head = currSvg.querySelector('.note-head');
-                     if(head) head.setAttribute('fill', '#ff4444'); 
-                 }
-                 
-                 const float = document.createElement('div');
-                 float.className = 'feedback-anim';
-                 float.innerText = "Miss";
-                 float.style.color = "#ff4444";
-                 float.style.left = state.HIT_X + 'px';
-                 float.style.top = '100px';
-                 document.body.appendChild(float);
-                 setTimeout(()=>float.remove(), 1000);
-
-                 // A note can have the correct pitch but the wrong timing.
-                 if(state.game.pitchRecordedIndex !== state.game.idx) {
-                     state.game.pitchMisses++;
-                 }
-                 const issue = state.game.noteTimingIssue;
-                 if(issue === 'early') state.game.rhythmEarly++;
-                 else if(issue === 'late') state.game.rhythmLate++;
-                 else state.game.rhythmMisses++;
-                 showRhythmFeedback(issue || 'Miss');
-                 captureNoteOutcome(issue || 'miss', now);
-                 state.game.mistakes++;
-                 state.game.idx++;
-                 state.game.pitchRecordedIndex = -1;
-                 state.game.noteTimingIssue = null;
-                 updateAccuracyUI();
-                 showCurrentNote();
-                 
-                 const pct = (state.game.idx / state.game.notes.length) * 100;
-                 const prog = document.getElementById('progress-fill');
-                 if(prog) prog.style.width = pct + '%';
-
-                 state.game.nextBeatTime += currentDurationMs; 
-                 updateNotePosition(); 
-            }
-        }
-
-        if(state.game.idx >= state.game.notes.length) {
-            if (now > state.game.nextBeatTime) {
-                endGame();
-                return;
-            }
-        }
-
-        const elapsed = now - state.game.startTime;
-        const beatTime = 60000 / currentBPM; 
-        const pxShift = (elapsed / beatTime) * 120;
-        const currentX = state.HIT_X - pxShift - 80;
-        
-        const grp = document.getElementById('notes-group');
-        if(grp) grp.style.transform = `translateX(${currentX}px)`;
-        state.game.animFrame = requestAnimationFrame(animate);
-    };
-    state.game.animFrame = requestAnimationFrame(animate);
-
-    state.game.timerInt = setInterval(() => {
-        const t = Math.floor((Date.now() - state.game.startTime)/1000);
-        const el = document.getElementById('game-timer');
-        if(el) el.innerText = t;
-    }, 1000);
+    beginElapsedTimer();
 }
 
 export function handleInput(note, el, playedAtMs = Date.now(), source = 'touch') {
@@ -1020,6 +954,7 @@ export function endGame() {
 }
 
 export function exitGame() {
+    document.getElementById('game-pause-overlay')?.setAttribute('hidden','');
     stopMicrophone();
     state.game.phase = 'idle';
     state.game.sessionToken = (state.game.sessionToken || 0) + 1;
@@ -1027,12 +962,24 @@ export function exitGame() {
     const overlay = document.getElementById('countdown-overlay');
     if(overlay) overlay.style.display = 'none';
     showScreen('screen-landing');
+    if(!document.hidden)resumePlayBudget();
     updateLanding();
 }
 
 /** Called by the shared Music Pass clock, never by an individual game mode. */
 export function onPlayTimeExpired() {
     if(!state.currentUser) return;
+    if(state.game.phase === 'resuming' || state.game.phase === 'paused') {
+        // Running out of parent-approved time during the resume count-in
+        // must never start a hidden or unapproved playing session.
+        clearTimeout(state.game.resumeTimeout);
+        state.game.resumeTimeout=null;
+        state.game.phase='paused';
+        stopMicrophone();
+        pausePlayBudget();
+        showTimeUpOverlay();
+        return;
+    }
     if(state.game.phase === 'playing') {
         if(state.game.budgetEnding) return;
         state.game.budgetEnding = true;
@@ -1071,4 +1018,195 @@ export function togglePhraseHints() {
     });
     document.getElementById('phrase-hint-button')?.setAttribute('aria-pressed',String(show));
     return show;
+}
+
+// Continue the original timed game timeline without regenerating its notes.
+function beginTimedAnimation(){
+    const animate = () => {
+        if(state.game.phase !== 'playing') return;
+        
+        const now = Date.now();
+
+        if(state.game.idx < state.game.notes.length) {
+            const dur = state.game.durations[state.game.idx];
+            const msPerBeat = 60000 / currentBPM; 
+            const currentDurationMs = dur * msPerBeat;
+            const deadline = state.game.nextBeatTime + currentDurationMs;
+
+            if (now > deadline) {
+                 const currSvg = document.getElementById(`note-${state.game.idx}`);
+                 if(currSvg) {
+                     currSvg.classList.remove('current');
+                     currSvg.classList.add('inactive');
+                     currSvg.style.opacity = 0.4;
+                     const head = currSvg.querySelector('.note-head');
+                     if(head) head.setAttribute('fill', '#ff4444'); 
+                 }
+                 
+                 const float = document.createElement('div');
+                 float.className = 'feedback-anim';
+                 float.innerText = "Miss";
+                 float.style.color = "#ff4444";
+                 float.style.left = state.HIT_X + 'px';
+                 float.style.top = '100px';
+                 document.body.appendChild(float);
+                 setTimeout(()=>float.remove(), 1000);
+
+                 // A note can have the correct pitch but the wrong timing.
+                 if(state.game.pitchRecordedIndex !== state.game.idx) {
+                     state.game.pitchMisses++;
+                 }
+                 const issue = state.game.noteTimingIssue;
+                 if(issue === 'early') state.game.rhythmEarly++;
+                 else if(issue === 'late') state.game.rhythmLate++;
+                 else state.game.rhythmMisses++;
+                 showRhythmFeedback(issue || 'Miss');
+                 captureNoteOutcome(issue || 'miss', now);
+                 state.game.mistakes++;
+                 state.game.idx++;
+                 state.game.pitchRecordedIndex = -1;
+                 state.game.noteTimingIssue = null;
+                 updateAccuracyUI();
+                 showCurrentNote();
+                 
+                 const pct = (state.game.idx / state.game.notes.length) * 100;
+                 const prog = document.getElementById('progress-fill');
+                 if(prog) prog.style.width = pct + '%';
+
+                 state.game.nextBeatTime += currentDurationMs; 
+                 updateNotePosition(); 
+            }
+        }
+
+        if(state.game.idx >= state.game.notes.length) {
+            if (now > state.game.nextBeatTime) {
+                endGame();
+                return;
+            }
+        }
+
+        const elapsed = now - (state.game.visualStartTime || state.game.startTime);
+        const beatTime = 60000 / currentBPM; 
+        const pxShift = (elapsed / beatTime) * 120;
+        const currentX = state.HIT_X - pxShift - 80;
+        
+        const grp = document.getElementById('notes-group');
+        if(grp) grp.style.transform = `translateX(${currentX}px)`;
+        state.game.animFrame = requestAnimationFrame(animate);
+    };
+    state.game.animFrame = requestAnimationFrame(animate);
+}
+
+/**
+ * Freeze the song precisely on the current note. Pausing never scores a
+ * missed beat; the resume clock shifts all expected onsets by the entire
+ * paused interval (including the deliberate count-in).
+ */
+export function pauseMusicSession(){
+    const game=state.game;
+    if(!freezeSession(game,Date.now()))return false;
+    clearInterval(game.timerInt);
+    clearTimeout(game.countdownTimeout);
+    cancelAnimationFrame(game.animFrame);
+    game.timerInt=null;
+    game.countdownTimeout=null;
+    game.animFrame=null;
+    stopMicrophone();
+    pausePlayBudget();
+    const count=document.getElementById('countdown-overlay');
+    if(count)count.style.display='none';
+    const pause=document.getElementById('game-pause-overlay');
+    if(pause){
+        pause.hidden=false;
+        const label=document.getElementById('pause-session-title');
+        if(label)label.textContent='Your music is safely paused';
+        const desc=document.getElementById('pause-session-description');
+        if(desc)desc.textContent='Your notes and progress are right where you left them.';
+        const resume=document.getElementById('resume-game-button');
+        if(resume){resume.disabled=false;resume.textContent='Resume my music';}
+    }
+    return true;
+}
+
+export async function resumeMusicSession(){
+    const game=state.game;
+    if(game.phase!=='paused'||!state.currentUser||!canPlayToday())return false;
+    const token=game.sessionToken;
+    if(!beginResume(game))return false;
+    const resume=document.getElementById('resume-game-button');
+    if(resume){resume.disabled=true;resume.textContent='Getting ready…';}
+    if(state.inputMode==='microphone'){
+        try{
+            await startMicrophone({
+                onNote:event=>{
+                    if(game.sessionToken===token&&game.phase==='playing'&&
+                        state.inputMode==='microphone')
+                        handleInput(midiToNote(event.midiNote),null,event.onsetTimeMs,'microphone');
+                },
+                onMonitor:({pitch})=>{
+                    const label=document.getElementById('mic-game-note');
+                    if(label)label.textContent=pitch?.confidence>=0.82?
+                        midiToNote(pitch.midi):'Listening…';
+                },
+                onError:()=>{
+                    if(game.sessionToken!==token)return;
+                    useTouchInput();
+                }
+            });
+        }catch{
+            if(game.sessionToken!==token)return false;
+            useTouchInput();
+        }
+    }
+    if(game.sessionToken!==token||game.phase!=='resuming')return false;
+    // The explicit resume gesture may resume parental time accounting;
+    // paused/background time itself does not count.
+    resumePlayBudget();
+    let count=3;
+    const indicator=document.getElementById('pause-session-title');
+    const tick=()=>{
+        if(game.sessionToken!==token||game.phase!=='resuming')return;
+        if(count>0){
+            if(indicator)indicator.textContent='Ready in '+count+'…';
+            playClick();
+            count--;
+            game.resumeTimeout=setTimeout(tick,650);
+            return;
+        }
+        const restored=finishResume(game,Date.now());
+        game.resumeTimeout=null;
+        if(!restored)return;
+        document.getElementById('game-pause-overlay')?.setAttribute('hidden','');
+        if(restored.from==='countdown'){
+            game.phase='countdown';
+            startProGame();
+        }else if(restored.from==='playing'){
+            if(state.inputMode==='microphone')resetMicrophoneNotes();
+            if(isTimedExercise()){
+                // A paused note resumes with a fresh beat. A deadline that was
+                // nearly expired at Pause must not generate an instant Miss.
+                // Keep elapsed play time separate from the score's x position.
+                const now=Date.now();
+                const msPerBeat=60000/currentBPM;
+                let previousBeats=0;
+                for(let i=0;i<game.idx;i++)previousBeats+=game.durations[i]||1;
+                game.visualStartTime=now-previousBeats*msPerBeat;
+                game.nextBeatTime=now;
+                // Snapshot the exact restart moment. Later RAF frames may
+                // legitimately advance this note; tests must not confuse
+                // natural playback with an instant missed beat on resume.
+                game.resumedAtNote=game.idx;
+                game.resumedAtMs=now;
+                game.resumedInitialDeadlineMs=now+
+                    (game.durations[game.idx]||1)*msPerBeat;
+                game.noteTime=now;
+                game.noteStartedAt=now;
+                beginTimedAnimation();
+            }
+            beginElapsedTimer();
+        }
+        if(resume){resume.disabled=false;resume.textContent='Resume my music';}
+    };
+    tick();
+    return true;
 }

@@ -46,6 +46,7 @@ test('calibrates to an acoustic note, uses microphone in Coin Run, then releases
     const errors = [];
     page.on('pageerror', error => errors.push(error.message));
     await enterWithSyntheticPiano(page);
+    await page.evaluate(()=>window.setHomeTab('setup'));
     await page.locator('#input-microphone').click();
     await expect(page.locator('#mic-modal')).toBeVisible();
 
@@ -87,6 +88,7 @@ test('calibrates to an acoustic note, uses microphone in Coin Run, then releases
 
 test('permission denial is explained and touch piano stays available', async ({ page }) => {
     await enterWithSyntheticPiano(page, { denied: true });
+    await page.evaluate(()=>window.setHomeTab('setup'));
     await page.locator('#input-microphone').click();
     await expect(page.locator('#mic-status')).toContainText('denied');
     await expect(page.locator('#mic-confirm')).toBeDisabled();
@@ -98,6 +100,7 @@ test('permission denial is explained and touch piano stays available', async ({ 
 
 test('real piano mode exposes a visible switch back to touch keys', async ({ page }) => {
     await enterWithSyntheticPiano(page);
+    await page.evaluate(()=>window.setHomeTab('setup'));
     await page.locator('#input-microphone').click();
     await expect.poll(() => page.evaluate(() => window.__pianoSessions.length)).toBe(1);
     await page.evaluate(() => window.__playSyntheticNote(440));
