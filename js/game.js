@@ -13,7 +13,7 @@ import { ensureEconomy, grantSparks } from './economy.js';
 import { recordDailyQuest } from './quests.js';
 import { renderPipScene } from './companion.js';
 import { generateReadingPhrase, finishReadingPhrase } from './learning-journey.js';
-import { createScoreDocument, staticScoreSvg } from './score.js';
+import { createScoreDocument, staticScoreSvg, scorePageCount } from './score.js';
 import { staffY, ledgerLineYs, clefSvg } from './notation.js';
 import { freezeSession, beginResume, finishResume, cancelPause } from './session-pause.js';
 import { pausePlayBudget, resumePlayBudget } from './app-budget.js';
@@ -148,6 +148,8 @@ export function startGame(mode, songIdx=null, isRetry=false) {
     state.game.exerciseKind = mode;
     state.game.phraseSpec = null;
     state.game.hintsUsed = false;
+    state.game.phraseScoreDoc = null;
+    state.game.phrasePage = 0;
     state.game.nextBeatTime = 0;
     state.game.sessionToken = (state.game.sessionToken || 0) + 1;
     state.game.phase = 'ready';
@@ -226,8 +228,34 @@ export function startGame(mode, songIdx=null, isRetry=false) {
             title:state.game.phraseSpec?.title||'A Fresh Melody',
             bpm:state.game.phraseSpec?.bpm||72
         });
-        noteView.innerHTML=staticScoreSvg(score);
+        state.game.phraseScoreDoc=score;
+        updatePhrasePage();
+    }else{
+        const controls=document.getElementById('phrase-page-controls');
+        if(controls)controls.hidden=true;
     }
+}
+function updatePhrasePage(){
+    const doc=state.game.phraseScoreDoc;
+    const region=document.getElementById('phrase-score');
+    if(!doc||!region)return;
+    const pages=scorePageCount(doc);
+    state.game.phrasePage=Math.max(0,Math.min(pages-1,state.game.phrasePage||0));
+    region.innerHTML=staticScoreSvg(doc,{page:state.game.phrasePage});
+    const controls=document.getElementById('phrase-page-controls');
+    if(controls)controls.hidden=pages<=1;
+    const label=document.getElementById('phrase-page-label');
+    if(label)label.textContent=(state.game.phrasePage+1)+' / '+pages;
+    const prev=document.getElementById('phrase-page-prev');
+    const next=document.getElementById('phrase-page-next');
+    if(prev)prev.disabled=state.game.phrasePage===0;
+    if(next)next.disabled=state.game.phrasePage>=pages-1;
+}
+/** Manual page turns: the score never follows the player's note automatically. */
+export function changePhrasePage(delta){
+    if(!['phrase','phrase-check'].includes(state.game.mode)||!Number.isInteger(delta))return;
+    state.game.phrasePage+=delta;
+    updatePhrasePage();
 }
 
 export function retryGame() {
