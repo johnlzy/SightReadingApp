@@ -40,6 +40,11 @@ game: {
         rhythmMisses: 0,
         absoluteOnsetErrorMs: 0,
         noteTimingIssue: null,
+        noteWrongCount: 0,
+        noteStartedAt: 0,
+        noteRhythmGrade: null,
+        outcomes: [],
+        exerciseKind: null,
         
         lastNotes: [],
         lastDurations: []
