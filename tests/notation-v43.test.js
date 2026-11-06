@@ -10,7 +10,7 @@ test('treble geometry: bottom E4, G4 line, middle C ledger below',()=>{
   assert.equal(staffY('C4','treble',120,20),220);
   assert.deepEqual(ledgerLineYs('C4','treble',120,20),[220]);
   assert.deepEqual(ledgerLineYs('D4','treble',120,20),[]);
-  assert.deepEqual(ledgerLineYs('A5','treble',120,20),[100,80]);
+  assert.deepEqual(ledgerLineYs('A5','treble',120,20),[100]);
 });
 test('bass geometry: bottom G2, C3 space, F3 line, middle C ledger above',()=>{
   assert.equal(staffY('G2','bass',120,20),200);
