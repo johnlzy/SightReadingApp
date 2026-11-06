@@ -18,7 +18,7 @@ export default defineConfig({
         { name: 'phone-portrait', use: { viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true } },
         { name: 'phone-landscape', use: { viewport: { width: 844, height: 390 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true } },
         { name: 'tablet-portrait', use: { viewport: { width: 768, height: 1024 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true } },
-        { name: 'desktop', use: { viewport: { width: 1280, height: 720 }, deviceScaleFactor: 1, isMobile: false, hasTouch: false } }
+        { name: 'desktop', use: { viewport: { width: 1280, height: 720 }, deviceScaleFactor: 1, isMobile: false, hasTouch: true } }
     ],
     webServer: {
         command: 'python3 -m http.server 4173 --bind 127.0.0.1',
