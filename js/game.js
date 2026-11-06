@@ -187,6 +187,8 @@ export function startGame(mode, songIdx=null, isRetry=false) {
     
     const noteGroup = document.getElementById('notes-group');
     const staticPhrase = mode === 'phrase' || mode === 'phrase-check';
+    document.getElementById('game-start-overlay')
+        ?.classList.toggle('static-start',staticPhrase);
     const gameView = document.querySelector('.game-wrapper');
     gameView?.classList.toggle('static-phrase-mode',staticPhrase);
     gameView?.classList.remove('phrase-show-labels');
