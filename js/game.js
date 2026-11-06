@@ -39,7 +39,7 @@ function captureNoteOutcome(rhythmGrade = null, timeMs = Date.now()) {
     game.outcomes.push(item);
     if(game.mode !== 'check') {
         recordOutcome(ensureLearning(state.currentUser), item);
-        saveCurrentUser();
+        if(Number.isInteger(state.currentUser.idx)) saveCurrentUser();
     }
     game.noteWrongCount = 0;
     game.noteStartedAt = timeMs;
@@ -859,7 +859,7 @@ export function endGame() {
         msg = state.game.mode === 'check'
             ? 'Independent skill check saved. Compare your next result on the Learning Dashboard.'
             : 'Nice practice! Your next round will focus on notes that need review.';
-        saveCurrentUser();
+        if(Number.isInteger(state.currentUser.idx)) saveCurrentUser();
     } else if(state.game.mode === 'coin') {
         const arr = state.currentUser.scores.coin[state.currentUser.difficulty];
         let bonus = 0;
