@@ -42,11 +42,13 @@ test('timed coin run separates pitch recognition from onset timing feedback', as
         state.game.nextBeatTime = Date.now();
         handleInput('C4', null);
     });
-    await expect(page.locator('#timing-feedback')).toContainText('Perfect!');
-    expect(await page.evaluate(async () => {
+    // Retrying does not erase the initial early strike.
+    await expect(page.locator('#timing-feedback')).toContainText('Too early');
+    const score = await page.evaluate(async () => {
         const { state } = await import('/js/state.js');
-        return state.game.rhythmOnTime;
-    })).toBe(1);
+        return { onTime: state.game.rhythmOnTime, early: state.game.rhythmEarly, idx: state.game.idx };
+    });
+    expect(score).toEqual({ onTime: 0, early: 1, idx: 1 });
 });
 
 test('result screen shows separate pitch and rhythm grades', async ({ page }) => {
