@@ -1,6 +1,6 @@
 # SightReadingApp v4 — Execution Backlog, Contracts and Release Gates
 Status: **Documentation-only execution plan** accompanying [the master spec](./v4-master-redesign.md).
-Reference branch: main v3.2.0. This file does not authorize gameplay changes or alter production.
+Reference branch: main v3.2.0. This file does not authorize gameplay changes or alter production. See the detailed [Parent Playtime Controls](./v4-parent-playtime-controls.md) for the Music Pass contract.
 
 ## A. Contribution workstreams
 
@@ -10,7 +10,7 @@ Reference branch: main v3.2.0. This file does not authorize gameplay changes or 
 | Game engine | Session orchestration, timing, evaluation | js/session/ and retained js/game.js adapters | SessionEvent, NoteAttempt, SessionOutcome |
 | Creative / UI | Mascot, maps, store, audio/visual feedback | assets/ + js/ui/ + design tokens | UI consumes read-only PlayerViewModel |
 | Economy | Sparks and cosmetics inventory | js/economy/ + catalog | RewardGrant/PurchaseReceipt; never writes mastery |
-| Profiles / Parent | Local migration, export, learning summaries | js/storage.js and js/profiles/ | persisted schema v4, opt-in data |
+| Profiles / Parent | Local migration, playtime policies, parent overrides, learning summaries | js/storage.js and js/profiles/ | PlayBudgetController, persisted schema v4, opt-in data |
 | QA / Research | Automated tests, instrument lab, pilot protocols | tests/, e2e/, docs/research/ | release gates and score interpretation |
 
 No domain module should directly query DOM nodes, create audio contexts, or call localStorage except through adapters. Keep current vanilla-JS implementation; a framework rewrite is explicitly out of scope unless demonstrated necessary.
@@ -18,7 +18,7 @@ No domain module should directly query DOM nodes, create audio contexts, or call
 ## B. Prioritized dependency graph
 
 **P0 — must ship before persistent economy/world changes**
-- V4-01 Design tokens and accessible layout → V4-02 Home & results redesign → V4-03 Guided session state machine.
+- V4-01 Design tokens and accessible layout → V4-02 Home & results redesign → **V4-15 Music Pass parental time budgets** → V4-03 Guided session state machine.
 - V4-04 Unified, idempotent domain events → V4-05 Migration + economy ledger.
 - V4-06 First-try + source-confidence audit → V4-07 Curriculum/transfer check prototype.
 
@@ -39,7 +39,7 @@ No domain module should directly query DOM nodes, create audio contexts, or call
 |---|---|---|
 | V4-01 | CSS variables, typography, screen/layout rules, focus states and reusable buttons | 360×640, 390×844, 844×390, 768×1024; staff readable; no overlapping score controls |
 | V4-02 | Home, result and onboarding refresh | child sees one primary CTA; results show first-try/pitch/rhythm without misleading mic certainty |
-| V4-03 | Pausable 3/5/8 minute guided journey built from warmup/focus/phrase/reflection | lesson can pause/quit/restart without double rewards, duplicate notes or stale microphone |
+| V4-03 | Pausable 3/5/8 minute guided journey built from warmup/focus/phrase/reflection | lesson respects Music Pass budget; can pause/quit/restart without double rewards or stale microphone |
 | V4-04 | Versioned SessionEvent and RewardGrant, unique IDs and reducer/persistence layer | replaying completion event grants Sparks exactly once |
 | V4-05 | v3.2 → v4 idempotent migration: tCoins+bCoins→Sparks; preserve owned instruments, songs, scores and learning | run migration twice; no duplicate conversion; rollback snapshot and corrupt-storage fallback |
 | V4-06 | Separate visual note-reading vs labelled piano tasks, low-confidence mic classification | test hides key labels on independent reading checks; unscorable audio not a failure |
@@ -50,7 +50,8 @@ No domain module should directly query DOM nodes, create audio contexts, or call
 | V4-11 | Child mastery map and parent-readable progress | display by clef and difficulty; parent report never calls local check a clinical-grade measure |
 | V4-12 | Four-zone starter map with unlock gates and teachable objectives | milestones from verified skills, not grinding/time/currency |
 | V4-13 | Familiar rehearsal vs unseen performance, stars and stage themes | existing 15 songs play; valid difficulty / unlock migration; no paywall |
-| V4-14 | Research pilot, WCAG audit, asset licensing, QA on real pianos | pre/post unseen phrase result, delayed retention and safety metrics documented |
+| V4-14 | Research pilot, WCAG audit, asset licensing, QA on real pianos | pre/post unseen phrase result, delayed retention, parental stop UX and safety metrics documented |
+| **V4-15 (P0)** | **Parent Music Pass controller:** daily 5-minute units, settings/override UI, active-time accounting across all child modes, parent gate, pause/lock/grace | 15-minute suggested default editable; all modes count; background/parent/calibration excluded; stop at phrase or ≤45s; unfinished check unscored; refresh/midnight/overrides idempotent |
 
 ## D. Key event contracts and reducer plan
 
@@ -63,7 +64,8 @@ type SessionEvent =
  | { version: 1; id: string; type: "exercise_completed"; sessionId: string; summary: SessionOutcome }
  | { version: 1; id: string; type: "quest_completed"; playerId: string; questId: string; sessionId: string }
  | { version: 1; id: string; type: "reward_granted"; playerId: string; grantId: string; amount: number; reason: string }
- | { version: 1; id: string; type: "cosmetic_purchased"; playerId: string; receiptId: string; itemId: string; price: number };
+ | { version: 1; id: string; type: "cosmetic_purchased"; playerId: string; receiptId: string; itemId: string; price: number }
+ | { version: 1; id: string; type: "play_budget_adjusted"; playerId: string; grantId: string; additionalSeconds: number; authorizedByParent: true };
 
 interface PlayerV4 {
   schemaVersion: 4;
@@ -72,6 +74,7 @@ interface PlayerV4 {
   currentClef: "treble" | "bass";
   learning: object;             // preserve v3.2 schema in an adapter
   sparks: number;
+  playBudget: { version: 1; dailySeconds: number | null; localDayKey: string; consumedSeconds: number; bonusSecondsToday: number };
   cosmetics: { owned: string[]; equipped: Record<string,string> };
   completedGrantIds: string[];
   storeReceiptIds: string[];
@@ -94,8 +97,9 @@ Run at login or initial load **before** showing the store, and never mutate save
 6. Create default Pip and starter room items *without* taking away prior purchases.
 7. Save new schema; reloading and rerunning conversion must not grant Sparks again.
 8. Implement a local backup/export path for affected users before launch.
+9. Migrate old eight-credit round tickets to an explicitly parent-reviewed **Music Pass time policy** (suggested 15 minutes/day, parent-editable, optional Unlimited). Do not convert eight old tickets into forty minutes. Track usage across every child mode, without mixing Sparks and playtime.
 
-No conversion of "daily credits" into scarce lesson access. Any preserved ticket display should only power optional daily reward bonuses, never block learning.
+Do not use old per-round credits as a payment mechanism. **Music Passes are a parent-configured time permission**, not a reward or currency; the policy intentionally gates all child play modes, including formerly free Practice and Skill Check. Do not reward or sell additional minutes to children. Parent may set Unlimited or explicitly grant extra minutes.
 
 ## F. Content authoring workflow
 
@@ -132,16 +136,17 @@ Sample decision thresholds (not claims): ≥80% of pilot children independently 
 
 ## H. PR execution order and merge gates
 
-1. **PR A — v4.0 UI foundation:** tokens + home/result + accessibility snapshots; no schema changes.
-2. **PR B — guided session engine:** pure session state machine + presenter; preserve old modes.
-3. **PR C — learning validity:** scaffold policy, skill registry, phrase templates and unbiased transfer checks.
-4. **PR D — Pip artwork:** one polished character, 4 expressions, quiet mode, no gameplay-state mutation.
-5. **PR E — store + migration:** unified Sparks, idempotent grants, owned/equipped catalog and previews.
-6. **PR F — missions + garden:** one recommended quest, world milestone reducer, companion reactions.
-7. **PR G — child/parent learning journey:** mastery pathways and trustworthy progress summaries.
-8. **PR H — song staging + validation:** performance polish, a11y/device QA and experimental pilot readout.
+1. **PR A — v4.0 UI foundation:** tokens + home/result + accessibility snapshots; no profile schema changes.
+2. **PR B — Music Pass parent limits (P0):** versioned daily time policy, per-player controller, parent UI, in-progress phrase grace and mode-wide E2E enforcement.
+3. **PR C — guided session engine:** pure session state machine + presenter; integrated with ParentBudget time events.
+4. **PR D — learning validity:** scaffold policy, skill registry, phrase templates and unbiased transfer checks.
+5. **PR E — Pip artwork:** one polished character, four expressions, reduced-motion mode, no gameplay-state mutation.
+6. **PR F — store + migration:** cosmetic Sparks, idempotent grants, owned/equipped catalog and previews, independent of Music Passes.
+7. **PR G — missions + garden:** recommended quest, world milestone reducer, companion reactions.
+8. **PR H — child/parent learning journey:** mastery pathways, readable progress summaries and adult limit history.
+9. **PR I — song staging + validation:** performance polish, accessibility/device QA and educational pilot readout.
 
-**Merge discipline:** each PR uses a dedicated branch, passing node unit tests, mobile/tablet Chromium tests and any new design-system screenshot assertions. Keep production app usable after *every* merge. Use feature flags for partial v4 flows. Do not delete legacy game/learning fields before migrations and exports are verified.
+**Merge discipline:** each PR uses a dedicated branch, passing node unit tests, mobile/tablet Chromium tests and any new design-system screenshot assertions. Music Pass integration tests must cover every child mode, resets, pause/background, parent override and interrupted Skill Checks. Keep production app usable after *every* merge. Use feature flags for partial v4 flows. Do not delete legacy game/learning fields before migrations and exports are verified.
 
 ## I. Explicit exclusions for first v4 release
 
@@ -158,6 +163,7 @@ The design/spec review approves:
 - a capped starter cosmetic catalog and starting price/reward curve,
 - exact accessible art tokens and primary navigation labels,
 - first benchmark phrase-bank coverage and mic uncertainty policy,
-- migration mapping and data ownership.
+- migration mapping and data ownership,
+- caregiver allowance presets, suggested 15-minute default, option for Unlimited, and the proposed 45-second phrase grace.
 
 Only then should implementation PR A start. Design reviews should test a **single vertical slice** rather than committing immediately to every content world and store asset.
