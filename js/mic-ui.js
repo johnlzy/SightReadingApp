@@ -46,8 +46,11 @@ export function useTouchInput(persist = true) {
 
 export function closeMicrophoneSetup() {
     stopMicrophone();
-    document.getElementById('mic-modal').hidden = true;
+    const modal=document.getElementById('mic-modal');
+    const wasOpen=modal&&!modal.hidden;
+    if(modal)modal.hidden=true;
     resumePlayBudget();
+    if(wasOpen)window.setHomeTab?.('play');
 }
 
 /** Request permission only after the child/parent explicitly clicks the mic button. */
@@ -107,4 +110,5 @@ export function confirmMicrophoneSetup() {
     document.getElementById('mic-modal').hidden = true;
     resumePlayBudget();
     syncInputModeUI();
+    window.setHomeTab?.('play');
 }
