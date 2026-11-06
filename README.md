@@ -3,7 +3,9 @@
 > **Planning for v4:** The proposed product overhaul is documented in
 > [v4 master redesign specification](docs/product/v4-master-redesign.md) and
 > [v4 implementation backlog](docs/product/v4-execution-backlog.md), and
-> [caregiver Music Pass playtime controls](docs/product/v4-parent-playtime-controls.md).
+> [caregiver Music Pass playtime controls](docs/product/v4-parent-playtime-controls.md),
+> [Reading Independence Ladder](docs/product/v4-reading-independence-ladder.md),
+> and [Opening Audition](docs/product/v4-opening-audition.md).
 > These are design proposals only; they do **not** change the released v3.2 game.
 
 A browser-based sight-reading game for children. Practice on the on-screen piano, or
