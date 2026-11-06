@@ -18,6 +18,19 @@ async function signIn(page) {
     await expect(page.locator('#screen-landing.active')).toBeVisible();
 }
 
+test('the app initializes without breaking existing game controls',async({page})=>{
+    const errors=[];page.on('pageerror',error=>errors.push(error.message));
+    await signIn(page);
+    const handlers=await page.evaluate(()=>({
+        startGame:typeof window.startGame,
+        beginRound:typeof window.beginRound,
+        parentGrantMusicTime:typeof window.parentGrantMusicTime,
+        startOpeningAdventure:typeof window.startOpeningAdventure
+    }));
+    expect(Object.values(handlers)).toEqual(Array(4).fill('function'));
+    expect(errors).toEqual([]);
+});
+
 test('first concert renders fixed notation and grants provisional level after a harder challenge',async({page})=>{
     const errors=[];page.on('pageerror',e=>errors.push(e.message));
     await signIn(page);
