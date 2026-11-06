@@ -46,7 +46,22 @@ test('natural key sizing also works in beginner mode without stretching five not
     });
     expect(metrics.keyWidth).toBeGreaterThanOrEqual(45);
     expect(metrics.keyWidth).toBeLessThanOrEqual(67);
-    // The beginner keyboard is not artificially stretched into enormous keys.
-    expect(metrics.keybedWidth).toBeLessThanOrEqual(metrics.screenWidth+1);
+    // Keys retain comfortable width even when extra surrounding notes
+    // require manual panning. Nothing is squashed to fit the full range.
+    expect(metrics.keybedWidth).toBeGreaterThanOrEqual(
+        metrics.keyWidth*5-1);
     await expect(page.locator('#keyboard-range-label')).toContainText('Piano');
+    const alternatives=await page.evaluate(async()=>{
+        const {state}=await import('/js/state.js');
+        const {renderKeyboard}=await import('/js/game.js');
+        const piano=document.getElementById('keyboard');
+        state.currentUser.preferences.keyboardSize='compact';
+        renderKeyboard();
+        const first=piano.querySelector('.white-key').getBoundingClientRect().width;
+        state.currentUser.preferences.keyboardSize='comfortable';
+        renderKeyboard();
+        const second=piano.querySelector('.white-key').getBoundingClientRect().width;
+        return {first,second};
+    });
+    expect(alternatives.first).toBe(alternatives.second);
 });
