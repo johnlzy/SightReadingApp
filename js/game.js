@@ -616,79 +616,7 @@ function startProGame() {
     state.game.noteStartedAt = state.game.noteTime;
     state.game.nextBeatTime = state.game.startTime; 
     
-    const animate = () => {
-        if(state.game.phase !== 'playing') return;
-        
-        const now = Date.now();
-
-        if(state.game.idx < state.game.notes.length) {
-            const dur = state.game.durations[state.game.idx];
-            const msPerBeat = 60000 / currentBPM; 
-            const currentDurationMs = dur * msPerBeat;
-            const deadline = state.game.nextBeatTime + currentDurationMs;
-
-            if (now > deadline) {
-                 const currSvg = document.getElementById(`note-${state.game.idx}`);
-                 if(currSvg) {
-                     currSvg.classList.remove('current');
-                     currSvg.classList.add('inactive');
-                     currSvg.style.opacity = 0.4;
-                     const head = currSvg.querySelector('.note-head');
-                     if(head) head.setAttribute('fill', '#ff4444'); 
-                 }
-                 
-                 const float = document.createElement('div');
-                 float.className = 'feedback-anim';
-                 float.innerText = "Miss";
-                 float.style.color = "#ff4444";
-                 float.style.left = state.HIT_X + 'px';
-                 float.style.top = '100px';
-                 document.body.appendChild(float);
-                 setTimeout(()=>float.remove(), 1000);
-
-                 // A note can have the correct pitch but the wrong timing.
-                 if(state.game.pitchRecordedIndex !== state.game.idx) {
-                     state.game.pitchMisses++;
-                 }
-                 const issue = state.game.noteTimingIssue;
-                 if(issue === 'early') state.game.rhythmEarly++;
-                 else if(issue === 'late') state.game.rhythmLate++;
-                 else state.game.rhythmMisses++;
-                 showRhythmFeedback(issue || 'Miss');
-                 captureNoteOutcome(issue || 'miss', now);
-                 state.game.mistakes++;
-                 state.game.idx++;
-                 state.game.pitchRecordedIndex = -1;
-                 state.game.noteTimingIssue = null;
-                 updateAccuracyUI();
-                 showCurrentNote();
-                 
-                 const pct = (state.game.idx / state.game.notes.length) * 100;
-                 const prog = document.getElementById('progress-fill');
-                 if(prog) prog.style.width = pct + '%';
-
-                 state.game.nextBeatTime += currentDurationMs; 
-                 updateNotePosition(); 
-            }
-        }
-
-        if(state.game.idx >= state.game.notes.length) {
-            if (now > state.game.nextBeatTime) {
-                endGame();
-                return;
-            }
-        }
-
-        const elapsed = now - state.game.startTime;
-        const beatTime = 60000 / currentBPM; 
-        const pxShift = (elapsed / beatTime) * 120;
-        const currentX = state.HIT_X - pxShift - 80;
-        
-        const grp = document.getElementById('notes-group');
-        if(grp) grp.style.transform = `translateX(${currentX}px)`;
-        state.game.animFrame = requestAnimationFrame(animate);
-    };
-    state.game.animFrame = requestAnimationFrame(animate);
+    beginTimedAnimation();
 
     state.game.timerInt = setInterval(() => {
         const t = Math.floor((Date.now() - state.game.startTime)/1000);
@@ -1040,4 +968,81 @@ export function togglePhraseHints() {
     });
     document.getElementById('phrase-hint-button')?.setAttribute('aria-pressed',String(show));
     return show;
+}
+
+// Continue the original timed game timeline without regenerating its notes.
+function beginTimedAnimation(){
+    const animate = () => {
+        if(state.game.phase !== 'playing') return;
+        
+        const now = Date.now();
+
+        if(state.game.idx < state.game.notes.length) {
+            const dur = state.game.durations[state.game.idx];
+            const msPerBeat = 60000 / currentBPM; 
+            const currentDurationMs = dur * msPerBeat;
+            const deadline = state.game.nextBeatTime + currentDurationMs;
+
+            if (now > deadline) {
+                 const currSvg = document.getElementById(`note-${state.game.idx}`);
+                 if(currSvg) {
+                     currSvg.classList.remove('current');
+                     currSvg.classList.add('inactive');
+                     currSvg.style.opacity = 0.4;
+                     const head = currSvg.querySelector('.note-head');
+                     if(head) head.setAttribute('fill', '#ff4444'); 
+                 }
+                 
+                 const float = document.createElement('div');
+                 float.className = 'feedback-anim';
+                 float.innerText = "Miss";
+                 float.style.color = "#ff4444";
+                 float.style.left = state.HIT_X + 'px';
+                 float.style.top = '100px';
+                 document.body.appendChild(float);
+                 setTimeout(()=>float.remove(), 1000);
+
+                 // A note can have the correct pitch but the wrong timing.
+                 if(state.game.pitchRecordedIndex !== state.game.idx) {
+                     state.game.pitchMisses++;
+                 }
+                 const issue = state.game.noteTimingIssue;
+                 if(issue === 'early') state.game.rhythmEarly++;
+                 else if(issue === 'late') state.game.rhythmLate++;
+                 else state.game.rhythmMisses++;
+                 showRhythmFeedback(issue || 'Miss');
+                 captureNoteOutcome(issue || 'miss', now);
+                 state.game.mistakes++;
+                 state.game.idx++;
+                 state.game.pitchRecordedIndex = -1;
+                 state.game.noteTimingIssue = null;
+                 updateAccuracyUI();
+                 showCurrentNote();
+                 
+                 const pct = (state.game.idx / state.game.notes.length) * 100;
+                 const prog = document.getElementById('progress-fill');
+                 if(prog) prog.style.width = pct + '%';
+
+                 state.game.nextBeatTime += currentDurationMs; 
+                 updateNotePosition(); 
+            }
+        }
+
+        if(state.game.idx >= state.game.notes.length) {
+            if (now > state.game.nextBeatTime) {
+                endGame();
+                return;
+            }
+        }
+
+        const elapsed = now - state.game.startTime;
+        const beatTime = 60000 / currentBPM; 
+        const pxShift = (elapsed / beatTime) * 120;
+        const currentX = state.HIT_X - pxShift - 80;
+        
+        const grp = document.getElementById('notes-group');
+        if(grp) grp.style.transform = `translateX(${currentX}px)`;
+        state.game.animFrame = requestAnimationFrame(animate);
+    };
+    state.game.animFrame = requestAnimationFrame(animate);
 }
