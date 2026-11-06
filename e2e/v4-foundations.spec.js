@@ -1,4 +1,5 @@
 import {test,expect} from '@playwright/test';
+test.setTimeout(30_000);
 
 async function signIn(page) {
     await page.addInitScript(() => {
