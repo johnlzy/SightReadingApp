@@ -87,18 +87,32 @@ export function estimatePitch(samples, sampleRate, {
 }
 
 /**
- * Suppress microphone noise and sustain as separate note events.
- * Require stable pitches on consecutive analysis frames. Re-arm on silence,
- * a different pitch, or a fresh amplitude attack for repeated notes.
+ * Turn successive pitch estimates into single key-on events.
+ *
+ * Changes of pitch are accepted without requiring silence (legato).
+ * Repeated identical pitches require either a short quiet gap or a distinct
+ * energy attack, preventing sustained piano resonance from earning repeats.
+ *
+ * onsetTimeMs is the first stable-candidate frame, adjusted for the estimated
+ * capture-window delay. This is an estimate, not a hardware timestamp.
  */
 export class NoteEventGate {
-    constructor({ minConfidence = 0.82, minRms = 0.012, stableFrames = 2, retriggerMs = 180 } = {}) {
-        Object.assign(this, { minConfidence, minRms, stableFrames, retriggerMs });
+    constructor({
+        minConfidence = 0.82, minRms = 0.012,
+        stableFrames = 2, retriggerMs = 180,
+        attackRatio = 1.35, attackDelta = 0.012,
+        captureLagMs = 85
+    } = {}) {
+        Object.assign(this, {
+            minConfidence, minRms, stableFrames, retriggerMs,
+            attackRatio, attackDelta, captureLagMs
+        });
         this.reset();
     }
 
     reset() {
         this.candidate = null;
+        this.candidateAtMs = 0;
         this.stable = 0;
         this.lastEmitted = null;
         this.lastEventMs = -Infinity;
@@ -110,8 +124,11 @@ export class NoteEventGate {
     push(pitch, atMs, rms = pitch?.rms ?? 0) {
         const previousRms = this.lastRms;
         this.lastRms = rms;
-        if (!pitch || rms < this.minRms || pitch.confidence < this.minConfidence
-            || Math.abs(pitch.cents ?? 0) > 40) {
+        const valid = Boolean(pitch && rms >= this.minRms
+            && pitch.confidence >= this.minConfidence
+            && Math.abs(pitch.cents ?? 0) <= 40);
+
+        if (!valid) {
             if (rms < this.minRms) {
                 this.quietFrames++;
                 if (this.quietFrames >= 2) this.armed = true;
@@ -121,23 +138,37 @@ export class NoteEventGate {
             return null;
         }
 
-        const attack = rms > this.minRms * 2 && rms > previousRms * 1.5;
-        this.quietFrames = 0;
-        if (this.candidate !== pitch.midi) {
+        const changedPitch = this.lastEmitted !== pitch.midi;
+        const newAttack = !changedPitch && !this.armed
+            && atMs - this.lastEventMs >= this.retriggerMs
+            && rms >= Math.max(this.minRms * 2, previousRms * this.attackRatio)
+            && rms - previousRms >= this.attackDelta;
+
+        if (newAttack) {
+            // Require another stable frame after the newly detected attack.
+            this.armed = true;
             this.candidate = pitch.midi;
+            this.candidateAtMs = atMs;
+            this.stable = 1;
+        } else if (this.candidate !== pitch.midi) {
+            this.candidate = pitch.midi;
+            this.candidateAtMs = atMs;
             this.stable = 1;
         } else {
             this.stable++;
         }
-        if (this.stable < this.stableFrames || atMs - this.lastEventMs < this.retriggerMs) return null;
-        if (!this.armed && pitch.midi === this.lastEmitted && !attack) return null;
+        this.quietFrames = 0;
+
+        if (this.stable < this.stableFrames
+            || atMs - this.lastEventMs < this.retriggerMs
+            || (!changedPitch && !this.armed)) return null;
 
         this.lastEmitted = pitch.midi;
         this.lastEventMs = atMs;
         this.armed = false;
         return {
             midiNote: pitch.midi,
-            onsetTimeMs: atMs - 45, // Approximate capture + stabilization lag.
+            onsetTimeMs: this.candidateAtMs - this.captureLagMs,
             confidence: pitch.confidence,
             source: 'microphone'
         };
