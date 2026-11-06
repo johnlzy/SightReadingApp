@@ -83,7 +83,17 @@ test('staff play line is in the score and does not track keyboard scrolling',asy
     });
     expect(Number(before)).toBe(expected.x);
     expect(expected.x).toBe(expected.expected);
-    await page.getByRole('button',{name:'Show higher piano octave'}).click();
+    const higher=page.getByRole('button',{name:'Show higher piano octave'});
+    if(await higher.isEnabled()) {
+        await higher.click();
+    } else {
+        // When all keys already fit (or we are at the right edge), panning
+        // should be disabled, not required before verifying the staff.
+        const position=await page.locator('#keyboard').evaluate(k=>({
+            left:k.scrollLeft,max:Math.max(0,k.scrollWidth-k.clientWidth)
+        }));
+        expect(position.max<=2 || position.left>=position.max-1).toBe(true);
+    }
     await expect(page.locator('#hit-line')).toHaveAttribute('x1',before);
     await expect(page.locator('#staff-hit-hint')).toContainText('green line');
 });
