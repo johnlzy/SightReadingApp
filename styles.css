@@ -492,3 +492,64 @@ button.menu-card:focus-visible { outline:3px solid #456eab; outline-offset:3px; 
 @media (orientation:landscape) and (max-height:500px) {
     .learning-panel { margin-top:10px; padding:10px; }
 }
+
+/* V4 foundation: a warmer garden visual system with readable child/parent UX. */
+:root {
+    --bg-color: #f7f9ef;
+    --primary: #447d63;
+    --secondary: #6c9bbb;
+    --accent: #e4a53e;
+    --text: #30483e;
+    --surface: #fffef9;
+}
+body { background: linear-gradient(160deg,#f7f9ef 0%,#e8f4e9 62%,#eef5fd 100%); color:var(--text); }
+.screen { background:transparent; }
+button:focus-visible, .menu-card:focus-visible, select:focus-visible {
+    outline:3px solid #174f96; outline-offset:3px;
+}
+[hidden] { display: none !important; }
+.parent-dialog {
+    background:white; border-radius:24px; padding:24px; max-height:90dvh;
+    overflow-y:auto; width:min(440px,94vw); text-align:center;
+    box-shadow:0 18px 60px #0003;
+}
+.parent-dialog h2 { margin:0 0 10px; color:var(--primary); }
+.parent-dialog label { display:block; margin:14px 0 8px; font-weight:700; }
+.parent-dialog select { padding:12px; border:2px solid #bdd8c8; border-radius:12px; background:white; width:100%; font:inherit; }
+.parent-hint {font-size:.82rem;color:#59736b;line-height:1.5;}
+.parent-actions {display:flex;justify-content:center;gap:9px;margin:16px 0;flex-wrap:wrap;}
+.parent-actions button {font-size:.85rem;padding:10px 13px;}
+#parent-time-status {color:var(--primary);min-height:1rem;font-size:.85rem;}
+.pass-chip {display:inline-block;border-radius:99px;background:#eef9e9;color:#35664e;padding:5px 9px;margin-right:5px;font-size:.75rem;white-space:nowrap;}
+.budget-overlay {position:fixed;inset:0;z-index:900;background:#254b3dcf;display:grid;place-items:center;padding:18px;}
+.budget-card {width:min(440px,100%);background:#fffefa;border-radius:28px;text-align:center;padding:30px 24px;box-shadow:0 14px 42px #163b3429;display:grid;gap:12px;justify-items:center;}
+.budget-card h2 {margin:0;color:#316b56;}
+.budget-card p {line-height:1.5;color:#596b5f;}
+.budget-card button {max-width:100%;}
+.budget-warning {position:fixed;z-index:660;left:50%;bottom:16px;transform:translateX(-50%);width:min(90vw,460px);padding:11px 15px;border-radius:18px;background:#fff8d9;color:#66492d;text-align:center;box-shadow:0 3px 16px #2222;font-size:.85rem;}
+.garden-hero {width:min(100%,760px);display:grid;grid-template-columns:140px minmax(0,1fr);align-items:center;gap:16px;margin:8px 0 12px;padding:18px 20px;border-radius:28px;background:linear-gradient(125deg,#d7f3db,#fcf5d9);box-shadow:0 8px 22px #487b5320;border:1px solid #fff;}
+.pip-character {width:130px;height:130px;background:radial-gradient(circle at 40% 30%,#fff1a8,#f6c64c 58%,#dfaa28);border:7px solid #fdf8c1;border-radius:55% 50% 55% 50%;display:grid;place-items:center;position:relative;box-shadow:0 7px 0 #b3c88e,0 13px 22px #395e3640;animation:pipFloat 3.5s ease-in-out infinite;}
+.pip-character:before,.pip-character:after {content:"";position:absolute;top:53px;width:10px;height:16px;border-radius:12px;background:#405a3b;}
+.pip-character:before {left:33px}.pip-character:after {right:33px}
+.pip-character span {font-size:2.4rem;color:#b26432;transform:translateY(31px);}
+.garden-hero-copy h2 {font-size:clamp(1.22rem,3vw,1.75rem);margin:4px 0;color:#2e6647;line-height:1.2;}
+.garden-hero-copy p {font-size:.85rem;color:#567364;line-height:1.4;}
+.eyebrow {letter-spacing:.13em;font-weight:700;font-size:.65rem;color:#4c7d64;}
+.register-intro {color:#63816d;text-align:center;font-size:.9rem;}
+.card-menu {gap:12px;max-width:760px;}
+.menu-card {border:1px solid #dbeee0;background:#fffefa;min-width:122px;box-shadow:0 5px 12px #486e4b16;}
+@keyframes pipFloat {50%{transform:translateY(-6px)}}
+@media(prefers-reduced-motion:reduce){
+ .pip-character {animation:none}
+ .screen,.animate-scroll,.feedback-anim {transition:none!important;animation:none!important;}
+}
+@media(max-width:500px){
+ .garden-hero {grid-template-columns:75px minmax(0,1fr);gap:12px;padding:12px;border-radius:20px;}
+ .pip-character {width:74px;height:74px;border-width:4px;}
+ .pip-character:before,.pip-character:after{top:29px;width:6px;height:9px;}
+ .pip-character:before{left:19px}.pip-character:after{right:19px}
+ .pip-character span {font-size:1.2rem;transform:translateY(18px)}
+ .garden-hero-copy h2 {font-size:1.08rem;}
+ .garden-hero-copy .btn-primary {font-size:.85rem;padding:10px 13px;}
+ .pass-chip {font-size:.65rem;padding:3px 5px;}
+}
