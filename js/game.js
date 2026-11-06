@@ -15,6 +15,10 @@ import { renderPipScene } from './companion.js';
 import { generateReadingPhrase, finishReadingPhrase } from './learning-journey.js';
 import { createScoreDocument, staticScoreSvg, scorePageCount } from './score.js';
 import { staffY, ledgerLineYs, clefSvg } from './notation.js';
+import { keyboardWhiteWidth,keyboardContentWidth,initialKeyboardLeft,
+    shiftedKeyboardLeft } from './keyboard-layout.js';
+import { SCROLL_PIXELS_PER_BEAT,FIRST_NOTE_X,timedScoreTranslation,
+    pointerOnsetMs,neighboringBeats } from './playback-geometry.js';
 import { freezeSession, beginResume, finishResume, cancelPause } from './session-pause.js';
 import { pausePlayBudget, resumePlayBudget } from './app-budget.js';
 import {
@@ -277,7 +281,8 @@ export function updateNotePosition() {
         for(let i=0; i<state.game.idx; i++) {
              cumulativeDuration += (state.game.durations[i] || 1);
         }
-        const trans = state.HIT_X - (cumulativeDuration * 120) - 80;
+        const trans=state.HIT_X -
+            (cumulativeDuration*SCROLL_PIXELS_PER_BEAT)-FIRST_NOTE_X;
         const grp = document.getElementById('notes-group');
         if(grp) grp.style.transform = `translateX(${trans}px)`;
     }
@@ -389,8 +394,8 @@ export function renderSheet() {
     line.setAttribute('x2', state.HIT_X);
     line.setAttribute('y1', 0);
     line.setAttribute('y2', 300);
-    line.setAttribute('stroke', '#FF69B4');
-    line.setAttribute('stroke-width', 4);
+    line.setAttribute('stroke','#4a8f64');
+    line.setAttribute('stroke-width', 3);
     line.setAttribute('opacity', 0.6);
     svgContainer.insertBefore(line, noteGroup);
 
@@ -398,8 +403,8 @@ export function renderSheet() {
     svgContainer.insertAdjacentHTML('beforeend',
         clefSvg(state.currentClef,12,120,20));
 
-    let currentX = 80;
-    const PIXELS_PER_BEAT = 120;
+    let currentX = FIRST_NOTE_X;
+    const PIXELS_PER_BEAT = SCROLL_PIXELS_PER_BEAT;
 
     state.game.notes.forEach((note, i) => {
         const y = getNoteY(note, state.currentClef);
@@ -492,12 +497,14 @@ export function renderKeyboard() {
     const sequence = state.game.notes;
     const availableNotes = keyboardNotesFor(sequence, state.currentClef);
     const whiteCount = availableNotes.filter(n => !n.includes('#')).length;
-    const keyWidth = Math.max(38, Math.floor(kb.clientWidth / Math.min(8, whiteCount)));
+    const size=state.currentUser?.preferences?.keyboardSize || 'compact';
+    const keyWidth=keyboardWhiteWidth(Math.max(1,kb.clientWidth),whiteCount,size);
     const blackWidth = Math.round(keyWidth * 0.58);
 
     const keybed = document.createElement('div');
     keybed.className = 'keyboard-keys';
-    keybed.style.width = (whiteCount * keyWidth) + 'px';
+    keybed.style.width=keyboardContentWidth(keyWidth,whiteCount)+'px';
+    keybed.style.minWidth='0';
     kb.appendChild(keybed);
 
     let whiteIndex = 0;
@@ -517,30 +524,59 @@ export function renderKeyboard() {
         key.onpointerdown = event => {
             event.preventDefault();
             event.stopPropagation();
-            handleInput(note, key);
+            handleInput(note, key, pointerOnsetMs(event));
         };
         keybed.appendChild(key);
     });
-    focusCurrentKey();
+    // Initial positioning happens once. Keyboard never follows the next note.
+    initialKeyboardPosition();
+    updateKeyboardSizeUI();
 }
-
-function focusCurrentKey() {
-    if(state.game.mode === 'phrase' || state.game.mode === 'phrase-check')return;
-    const kb = document.getElementById('keyboard');
-    const target = state.game.notes[state.game.idx];
-    const key = [...kb.querySelectorAll('[data-note]')].find(el => el.dataset.note === target);
-    if(!key) return;
-    const left = Math.max(0, key.offsetLeft - kb.clientWidth / 2 + key.clientWidth / 2);
-    kb.scrollTo({ left, behavior: 'smooth' });
+function initialKeyboardPosition() {
+    const kb=document.getElementById('keyboard');
+    const first=state.game.notes[0];
+    const key=Array.from(kb.querySelectorAll('[data-note]'))
+        .find(el=>el.dataset.note===first);
+    if(!key)return;
+    kb.scrollLeft=initialKeyboardLeft(key.offsetLeft,key.clientWidth,
+        kb.clientWidth,kb.scrollWidth);
+}
+function updateKeyboardSizeUI(){
+    const mode=state.currentUser?.preferences?.keyboardSize||'compact';
+    const label=document.getElementById('keyboard-size-label');
+    if(label)label.textContent=mode==='compact'?'Compact keys':'Comfortable keys';
+    const toggle=document.getElementById('keyboard-size-toggle');
+    if(toggle){
+        toggle.setAttribute('aria-pressed',String(mode==='comfortable'));
+        toggle.textContent=mode==='compact'?'Make keys bigger':'Make keys smaller';
+    }
+}
+export function toggleKeyboardSize(){
+    if(!state.currentUser)return;
+    const kb=document.getElementById('keyboard');
+    const previous=kb.scrollWidth>0?kb.scrollLeft/kb.scrollWidth:0;
+    state.currentUser.preferences??={};
+    state.currentUser.preferences.keyboardSize=
+        state.currentUser.preferences.keyboardSize==='comfortable'?'compact':'comfortable';
+    saveCurrentUser();
+    renderKeyboard();
+    kb.scrollLeft=previous*kb.scrollWidth;
+}
+export function panKeyboard(direction){
+    const kb=document.getElementById('keyboard');
+    const key=kb.querySelector('.white-key');
+    if(!key||![-1,1].includes(direction))return;
+    kb.scrollTo({left:shiftedKeyboardLeft(kb.scrollLeft,key.clientWidth,
+        direction,kb.clientWidth,kb.scrollWidth),behavior:'smooth'});
 }
 
 function showCurrentNote() {
-    const note = document.getElementById(`note-${state.game.idx}`);
-    if(note) {
+    const note=document.getElementById(`note-${state.game.idx}`);
+    if(note){
         note.classList.remove('inactive');
         note.classList.add('current');
     }
-    focusCurrentKey();
+    // Never scroll the keyboard to the answer while the child plays.
 }
 
 export async function beginRound() {
@@ -1085,10 +1121,10 @@ function beginTimedAnimation(){
             }
         }
 
-        const elapsed = now - (state.game.visualStartTime || state.game.startTime);
-        const beatTime = 60000 / currentBPM; 
-        const pxShift = (elapsed / beatTime) * 120;
-        const currentX = state.HIT_X - pxShift - 80;
+        const currentX=timedScoreTranslation({
+            nowMs:now,startMs:state.game.visualStartTime||state.game.startTime,
+            bpm:currentBPM,hitX:state.HIT_X
+        });
         
         const grp = document.getElementById('notes-group');
         if(grp) grp.style.transform = `translateX(${currentX}px)`;
