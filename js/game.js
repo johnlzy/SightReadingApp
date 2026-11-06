@@ -509,6 +509,7 @@ function startProGame() {
                  state.game.mistakes++;
                  updateAccuracyUI(); // Update accuracy on miss
                  state.game.idx++;
+                  showCurrentNote();
                  
                  const pct = (state.game.idx / state.game.notes.length) * 100;
                  const prog = document.getElementById('progress-fill');
@@ -549,47 +550,6 @@ export function handleInput(note, el) {
     
     const isPro = ((state.currentUser.difficulty === 'pro' && state.game.mode === 'coin') || state.game.mode === 'song');
     
-    if (isPro) {
-        const target = state.game.notes[state.game.idx];
-        if (note !== target) {
-            const nextIdx = state.game.idx + 1;
-            if (nextIdx < state.game.notes.length) {
-                const nextTarget = state.game.notes[nextIdx];
-                if (note === nextTarget) {
-                    const now = Date.now();
-                    const msPerBeat = 60000 / currentBPM;
-                    const dur = state.game.durations[state.game.idx];
-                    const currentDurationMs = dur * msPerBeat;
-                    const deadline = state.game.nextBeatTime + currentDurationMs;
-                    
-                    if (deadline - now < 300) {
-                         state.game.mistakes++;
-                         updateAccuracyUI(); // Update accuracy on mistake
-                         const currSvg = document.getElementById(`note-${state.game.idx}`);
-                         if(currSvg) {
-                             currSvg.classList.remove('current');
-                             currSvg.classList.add('inactive');
-                             currSvg.style.opacity = 0.4;
-                             const head = currSvg.querySelector('.note-head');
-                             if(head) head.setAttribute('fill', '#ff4444'); 
-                         }
-                         
-                         state.game.idx++;
-                         state.game.nextBeatTime += currentDurationMs;
-                         
-                         const pct = (state.game.idx / state.game.notes.length) * 100;
-                         const prog = document.getElementById('progress-fill');
-                         if(prog) prog.style.width = pct + '%';
-                         
-                         updateNotePosition();
-                         handleInput(note, el);
-                         return;
-                    }
-                }
-            }
-        }
-    }
-
     const target = state.game.notes[state.game.idx];
     
     if(note === target) {
@@ -597,22 +557,17 @@ export function handleInput(note, el) {
         let earned = 0;
 
         if(isPro) {
-            const now = Date.now();
-            const diff = now - state.game.nextBeatTime; 
-            const absDiff = Math.abs(diff);
-            const msPerBeat = 60000 / currentBPM; 
-            const dur = state.game.durations[state.game.idx];
-            const noteDurationMs = dur * msPerBeat;
-
-            if (absDiff <= (noteDurationMs * 0.25)) {
-                earned = 5;
-            } else if (diff > (noteDurationMs * 0.25) && diff <= noteDurationMs) {
-                earned = 3;
-            } else {
-                earned = 0;
+            const onset = gradeTimedOnset(Date.now(), state.game.nextBeatTime, currentBPM);
+            if(onset !== 'on-time') {
+                state.game.mistakes++;
+                updateAccuracyUI();
+                playTone(note, 'bad');
+                el.classList.add('wrong');
+                setTimeout(() => el.classList.remove('wrong'), 300);
+                return;
             }
-            isTimingGood = true; 
-            state.game.nextBeatTime += noteDurationMs;
+            earned = 5;
+            state.game.nextBeatTime += state.game.durations[state.game.idx] * (60000 / currentBPM);
         }
 
         if(isTimingGood) {
@@ -665,6 +620,7 @@ export function handleInput(note, el) {
             }
             
             state.game.idx++;
+            showCurrentNote();
             const pct = (state.game.idx / state.game.notes.length) * 100;
             const prog = document.getElementById('progress-fill');
             if(prog) prog.style.width = pct + '%';
@@ -704,7 +660,10 @@ export function endGame() {
     let msg = "";
 
     const accEl = document.getElementById('res-accuracy');
-    if(accEl) accEl.style.display = 'none';
+    if(accEl) {
+        accEl.innerText = `Accuracy: ${accuracy}%`;
+        accEl.style.display = 'block';
+    }
 
     if(!state.currentUser.scores) state.currentUser.scores = { coin: { easy:[], medium:[], hard:[], pro:[] }, songs: {} };
 
