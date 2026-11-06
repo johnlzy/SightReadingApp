@@ -1,0 +1,11 @@
+{
+  "name": "sight-reading-app",
+  "private": true,
+  "version": "2.5.0",
+  "type": "module",
+  "scripts": {
+    "test": "node --test",
+    "check": "node --check main.js && node --check js/audio.js && node --check js/config.js && node --check js/game.js && node --check js/music.js && node --check js/state.js && node --check js/storage.js && node --check js/ui.js"
+  },
+  "engines": { "node": ">=20" }
+}
