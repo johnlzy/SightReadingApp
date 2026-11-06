@@ -4,7 +4,7 @@ import { playRun } from './audio.js';
 import { saveCurrentUser, deleteUser, createUser, loginUser, listUsers, saveUserPreference, verifyPin, hasParentPin, setParentPin, addAdminCredits, logout as logoutData } from './storage.js';
 import { activatePlayBudget, deactivatePlayBudget, pausePlayBudget, resumePlayBudget,
     currentPlayBudget, configurePlayBudget, addParentPlaytime, canPlayToday } from './app-budget.js';
-import { startGame } from './game.js';
+import { startGame, pauseMusicSession } from './game.js';
 import { ensureLearning, progressSummary } from './learning.js';
 import { ensureEconomy } from './economy.js';
 import { ensureDailyQuest, questMessage } from './quests.js';
@@ -114,6 +114,8 @@ export function checkAdmin(callback) {
 export function showParentPanel() {
     checkAdmin(() => {
         parentZoneAuthorized = true;
+        if(document.getElementById('screen-game')?.classList.contains('active'))
+            pauseMusicSession();
         pausePlayBudget();
         document.getElementById('admin-modal').style.display = 'flex';
         document.getElementById('admin-current-user').innerText = state.currentUser ? state.currentUser.name : 'Unknown';
@@ -143,7 +145,8 @@ export function showParentPanel() {
 export function hideParentPanel() {
     parentZoneAuthorized = false;
     document.getElementById('admin-modal').style.display = 'none';
-    resumePlayBudget();
+    if(state.game.phase!=='paused'&&state.game.phase!=='resuming')
+        resumePlayBudget();
 }
 export function parentSetTimeAllowance(value) {
     if(!parentZoneAuthorized) return;
