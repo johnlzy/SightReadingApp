@@ -325,6 +325,7 @@
 <div id="screen-game" class="screen" style="padding:0; overflow:hidden;">
         <div class="top-bar" style="position:absolute; top:0; left:0; width:100%;">
             <button class="btn-secondary btn-sm" onclick="exitGame()" title="Leave this round; unfinished work is not scored" style="padding:6px 10px;">← Leave</button>
+            <button id="game-pause-button" class="btn-secondary btn-sm" onclick="pauseMusicSession()" aria-label="Pause current music round">⏸ Pause</button>
             <div class="stats-bar">
                 <div class="stat-group">Time: <span id="game-timer">0</span>s</div>
                 <div class="stat-group"><span id="game-counter-label">Points</span>: <span id="game-coins">0</span></div>
@@ -373,6 +374,18 @@
 
         <div id="game-start-overlay" style="position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.85); z-index:500; display:flex; justify-content:center; align-items:center;">
             <button class="btn-primary" style="font-size:2rem; padding:20px 50px; box-shadow:0 10px 20px rgba(0,0,0,0.2);" onclick="beginRound()">START</button>
+        </div>
+        <div id="game-pause-overlay" class="game-pause-overlay" hidden role="dialog"
+             aria-modal="true" aria-labelledby="pause-session-title">
+            <div class="game-pause-card">
+                <div class="pause-sigil" aria-hidden="true">♫</div>
+                <h2 id="pause-session-title">Your music is safely paused</h2>
+                <p id="pause-session-description">Your notes and progress are right where you left them.</p>
+                <div class="pause-session-actions">
+                    <button id="resume-game-button" class="btn-primary" onclick="resumeMusicSession()">▶ Resume my music</button>
+                    <button class="btn-secondary" onclick="exitGame()">Save my progress and leave</button>
+                </div>
+            </div>
         </div>
     </div>
 
