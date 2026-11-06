@@ -56,7 +56,8 @@ export function durationNotation(beats) {
 // Fixed onset window based on beat duration, with bounds suitable for touch input.
 export function gradeTimedOnset(playedMs, expectedMs, bpm) {
     if (!(bpm > 0)) throw new Error('BPM must be positive');
-    const toleranceMs = Math.min(240, Math.max(110, 60000 / bpm * 0.3));
+    // Keep slower beginner practice forgiving without allowing unlimited late hits.
+    const toleranceMs = Math.min(800, Math.max(180, 60000 / bpm * 0.35));
     const deltaMs = playedMs - expectedMs;
     return deltaMs < -toleranceMs ? 'early' : deltaMs > toleranceMs ? 'late' : 'on-time';
 }
