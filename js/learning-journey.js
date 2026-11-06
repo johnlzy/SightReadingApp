@@ -73,7 +73,10 @@ export function chooseReadingFocus(user,clef='treble',now=Date.now()) {
  * Held-out checks use DIFFERENT motif sets and do not consult mastery.
  * This deliberately does not claim polyphonic Grade-8 readiness. */
 export function generateReadingPhrase(user,{
-    clef='treble',level=user?.readingLevel||1,kind='practice',
+    clef='treble',level=user?.readingLevel||(
+        user?.startingComfort==='experienced'?4:
+        user?.startingComfort==='some'?2:1
+    ),kind='practice',
     nonce=null
 }={}) {
     if(!['practice','check'].includes(kind))throw new Error('Invalid phrase kind');
@@ -141,6 +144,8 @@ export function readingJourneySummary(user,clef='treble',now=Date.now()) {
     const practice=j.phrases.filter(x=>x.clef===clef).slice(-6);
     const due=dueReviewNotes(user.learning,clef,user.difficulty||'easy',now);
     const last=checks.at(-1)||null;
-    return {level:Math.min(10,Math.max(1,user.readingLevel||1)),checks,practice,
+    const level=Number.isInteger(user.readingLevel)&&user.readingLevel>=1&&
+        user.readingLevel<=10 ? user.readingLevel : null;
+    return {level,checks,practice,
         due:due.slice(0,3),focus:chooseReadingFocus(user,clef,now),last};
 }
