@@ -99,6 +99,9 @@ test('stationary melody practice can show hints, but fresh phrase checks never d
     await page.locator('.reading-journey-actions button').first().click();
     await expect(page.locator('#screen-game.active')).toBeVisible();
     await expect(page.locator('#phrase-score svg')).toBeVisible();
+    await expect(page.locator('#game-start-overlay')).toHaveClass(/static-start/);
+    expect(await page.locator('#game-start-overlay').evaluate(el =>
+        getComputedStyle(el).pointerEvents)).toBe('none');
     const html=await page.locator('#phrase-score').innerHTML();
     expect(html).not.toMatch(/translateX|animate-scroll|target|note-highlight/);
     await expect(page.locator('#keyboard .white-key').first()).toHaveText('');
