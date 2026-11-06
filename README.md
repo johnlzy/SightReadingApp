@@ -1,5 +1,10 @@
 # Fun Sight Reading — v3.2
 
+> **Planning for v4:** The proposed product overhaul is documented in
+> [v4 master redesign specification](docs/product/v4-master-redesign.md) and
+> [v4 implementation backlog](docs/product/v4-execution-backlog.md).
+> These are design proposals only; they do **not** change the released v3.2 game.
+
 A browser-based sight-reading game for children. Practice on the on-screen piano, or
 use the device microphone to play notes on a **real acoustic piano**.
 
