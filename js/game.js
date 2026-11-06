@@ -12,6 +12,8 @@ import { remainingSeconds } from './play-budget.js';
 import { ensureEconomy, grantSparks } from './economy.js';
 import { recordDailyQuest } from './quests.js';
 import { renderPipScene } from './companion.js';
+import { generateReadingPhrase, finishReadingPhrase } from './learning-journey.js';
+import { createScoreDocument, staticScoreSvg } from './score.js';
 import {
     ensureLearning, generateAdaptiveExercise, generateSkillCheck,
     recordOutcome, finishLearningSession
@@ -42,7 +44,7 @@ function captureNoteOutcome(rhythmGrade = null, timeMs = Date.now()) {
         latencyMs: isTimedExercise() ? null : Math.max(0,timeMs - (game.noteStartedAt || timeMs))
     };
     game.outcomes.push(item);
-    if(game.mode !== 'check') {
+    if(game.mode !== 'check' && game.mode !== 'phrase-check') {
         recordOutcome(ensureLearning(state.currentUser), item);
         if(Number.isInteger(state.currentUser.idx)) saveCurrentUser();
     }
@@ -141,6 +143,8 @@ export function startGame(mode, songIdx=null, isRetry=false) {
     state.game.noteStartedAt = 0;
     state.game.outcomes = [];
     state.game.exerciseKind = mode;
+    state.game.phraseSpec = null;
+    state.game.hintsUsed = false;
     state.game.nextBeatTime = 0;
     state.game.sessionToken = (state.game.sessionToken || 0) + 1;
     state.game.phase = 'ready';
@@ -179,13 +183,21 @@ export function startGame(mode, songIdx=null, isRetry=false) {
     window.dispatchEvent(new Event('resize')); 
     
     const noteGroup = document.getElementById('notes-group');
+    const staticPhrase = mode === 'phrase' || mode === 'phrase-check';
+    const gameView = document.querySelector('.game-wrapper');
+    gameView?.classList.toggle('static-phrase-mode',staticPhrase);
+    gameView?.classList.remove('phrase-show-labels');
+    const hint = document.getElementById('phrase-hint-controls');
+    if(hint)hint.hidden = mode !== 'phrase';
+    const noteView = document.getElementById('phrase-score');
+    if(noteView)noteView.hidden=!staticPhrase;
     noteGroup.classList.remove('animate-scroll'); 
     updateNotePosition(); 
     
     void noteGroup.offsetWidth; 
-    noteGroup.classList.add('animate-scroll'); 
+    if(!staticPhrase) noteGroup.classList.add('animate-scroll'); 
     
-    if(isRetry && !['practice','check'].includes(mode) && state.game.lastNotes.length > 0) {
+    if(isRetry && !['practice','check','phrase','phrase-check'].includes(mode) && state.game.lastNotes.length > 0) {
         state.game.notes = [...state.game.lastNotes];
         state.game.durations = [...state.game.lastDurations];
     } else {
@@ -196,6 +208,14 @@ export function startGame(mode, songIdx=null, isRetry=false) {
     
     renderSheet();
     renderKeyboard();
+    if(staticPhrase && noteView) {
+        const score=createScoreDocument({
+            notes:state.game.notes,durations:state.game.durations,clef:state.currentClef,
+            title:state.game.phraseSpec?.title||'A Fresh Melody',
+            bpm:state.game.phraseSpec?.bpm||72
+        });
+        noteView.innerHTML=staticScoreSvg(score);
+    }
 }
 
 export function retryGame() {
@@ -238,6 +258,14 @@ export function generateNotes() {
         });
         state.game.notes = exercise.notes;
         state.game.durations = exercise.durations;
+    } else if(state.game.mode === 'phrase' || state.game.mode === 'phrase-check') {
+        const kind=state.game.mode === 'phrase-check' ? 'check' : 'practice';
+        const spec=generateReadingPhrase(state.currentUser,{
+            clef:state.currentClef,kind,level:state.currentUser.readingLevel||1
+        });
+        state.game.phraseSpec=spec;
+        state.game.notes=[...spec.notes];
+        state.game.durations=[...spec.durations];
     } else if(state.game.mode === 'check') {
         const learning = ensureLearning(state.currentUser);
         const exercise = generateSkillCheck({
@@ -472,7 +500,7 @@ export function renderKeyboard() {
             key.style.width = blackWidth + 'px';
         } else {
             key.style.flex = '0 0 ' + keyWidth + 'px';
-            key.innerText = note;
+            if(!['phrase','phrase-check'].includes(state.game.mode))key.innerText=note;
             whiteIndex++;
         }
         key.onpointerdown = event => {
