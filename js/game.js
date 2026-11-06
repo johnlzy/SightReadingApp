@@ -198,6 +198,13 @@ export function startGame(mode, songIdx=null, isRetry=false) {
     
     const noteGroup = document.getElementById('notes-group');
     const staticPhrase = mode === 'phrase' || mode === 'phrase-check';
+    const hintText=document.getElementById('staff-hit-hint');
+    if(hintText){
+        hintText.hidden=staticPhrase;
+        hintText.textContent=isTimedExercise()
+            ? '🎵 Play when each note reaches the green line'
+            : '🎵 Read the note, play at your own pace';
+    }
     document.getElementById('game-start-overlay')
         ?.classList.toggle('static-start',staticPhrase);
     const gameView = document.querySelector('.game-wrapper');
@@ -738,7 +745,10 @@ export function handleInput(note, el, playedAtMs = Date.now(), source = 'touch')
             playedAtMs,
             state.game.nextBeatTime,
             currentBPM,
-            { adjustmentMs: isMic ? (state.micTimingAdjustmentMs || 0) : 0 }
+            {
+                adjustmentMs:isMic ? (state.micTimingAdjustmentMs||0) : 0,
+                shortestAdjacentBeats:neighboringBeats(state.game.durations,state.game.idx)
+            }
         );
         if(!evaluation.accepted) {
             // Remember the last timing issue for this note, but count it once
