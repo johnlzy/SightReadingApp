@@ -385,3 +385,12 @@ html,body {margin:0;width:100%;height:100%;height:100dvh;overflow:hidden;overscr
  .grand-score-actions button {min-height:28px;padding:4px 7px;font-size:.67rem;}
  .grand-score-actions span {font-size:.67rem;}
 }
+
+/* Keep player, passes, Parent and Sparks on a narrow header without spills. */
+@media(max-width:620px){
+  #screen-landing .coins-display {max-width:63vw;flex-shrink:1;}
+  #screen-landing .pass-chip {max-width:94px;overflow:hidden;text-overflow:ellipsis;}
+  #screen-landing .spark-balance {max-width:81px;overflow:hidden;text-overflow:ellipsis;}
+  #screen-landing .user-info-area {max-width:34vw;}
+  #screen-landing #user-display {max-width:70px;}
+}
