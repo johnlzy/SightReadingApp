@@ -654,7 +654,8 @@ function startProGame() {
     state.game.startTime = Date.now();
     state.game.noteTime = Date.now();
     state.game.noteStartedAt = state.game.noteTime;
-    state.game.nextBeatTime = state.game.startTime; 
+    state.game.nextBeatTime = state.game.startTime;
+    state.game.visualStartTime = state.game.startTime; 
     
     beginTimedAnimation();
 
@@ -1084,7 +1085,7 @@ function beginTimedAnimation(){
             }
         }
 
-        const elapsed = now - state.game.startTime;
+        const elapsed = now - (state.game.visualStartTime || state.game.startTime);
         const beatTime = 60000 / currentBPM; 
         const pxShift = (elapsed / beatTime) * 120;
         const currentX = state.HIT_X - pxShift - 80;
@@ -1181,7 +1182,20 @@ export async function resumeMusicSession(){
             startProGame();
         }else if(restored.from==='playing'){
             if(state.inputMode==='microphone')resetMicrophoneNotes();
-            if(isTimedExercise())beginTimedAnimation();
+            if(isTimedExercise()){
+                // A paused note resumes with a fresh beat. A deadline that was
+                // nearly expired at Pause must not generate an instant Miss.
+                // Keep elapsed play time separate from the score's x position.
+                const now=Date.now();
+                const msPerBeat=60000/currentBPM;
+                let previousBeats=0;
+                for(let i=0;i<game.idx;i++)previousBeats+=game.durations[i]||1;
+                game.visualStartTime=now-previousBeats*msPerBeat;
+                game.nextBeatTime=now;
+                game.noteTime=now;
+                game.noteStartedAt=now;
+                beginTimedAnimation();
+            }
             beginElapsedTimer();
         }
         if(resume){resume.disabled=false;resume.textContent='Resume my music';}
