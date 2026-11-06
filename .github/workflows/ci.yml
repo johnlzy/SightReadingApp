@@ -5,7 +5,7 @@ concurrency:
   cancel-in-progress: true
 on:
   push:
-    branches: [main, feat/v4.1-pip-workshop]
+    branches: [main]
   pull_request:
 
 jobs:
