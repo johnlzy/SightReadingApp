@@ -6,6 +6,7 @@ import { activatePlayBudget, deactivatePlayBudget, pausePlayBudget, resumePlayBu
     currentPlayBudget, configurePlayBudget, addParentPlaytime, canPlayToday } from './app-budget.js';
 import { startGame } from './game.js';
 import { ensureLearning, progressSummary } from './learning.js';
+import { syncInputModeUI } from './mic-ui.js';
 
 export function showScreen(id) {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
@@ -35,7 +36,7 @@ export function loadUsers() {
             `;
             row.querySelector('.user-avatar').textContent = u.avatar || '🎹';
             row.querySelector('.user-name').textContent = u.name || 'Player';
-            row.querySelector('.user-difficulty').textContent = u.placement?.status === 'complete'
+            row.querySelector('.user-difficulty').textContent = u.placement?.status === 'provisional'
                 ? `(Reading Level ${u.placement.level})` : '(Your own music journey)';
             cont.appendChild(row);
         });
@@ -44,6 +45,7 @@ export function loadUsers() {
             btn.onclick = () => {
                 loginUser(parseInt(btn.dataset.index)); 
                 activatePlayBudget();
+                syncInputModeUI();
                 updateLanding();
                 showScreen('screen-landing');
             };
@@ -56,11 +58,16 @@ export function loadUsers() {
 }
 
 export function handleCreateUserUI() {
+    const nickname = document.getElementById('child-name-input')?.value?.trim();
+    if(nickname) state.tempUser.name = nickname.slice(0,30);
+    state.tempUser.startingComfort =
+        document.getElementById('starting-comfort')?.value || 'new';
     const newIndex = createUser();
     hideNewUserForm();
     loadUsers();
     loginUser(newIndex);
     activatePlayBudget();
+    syncInputModeUI();
     updateLanding();
     showScreen('screen-landing');
 }
@@ -185,6 +192,15 @@ export function updateLanding() {
     document.getElementById('landing-credits').innerText =
         remaining === Infinity ? '∞' : Math.ceil(Math.max(0,remaining ?? 0)/300);
     renderLearningDashboard();
+    const placed = state.currentUser.placement?.status === 'provisional';
+    const hero = document.getElementById('today-mission');
+    const action = document.getElementById('journey-btn');
+    if(hero) hero.textContent = placed
+        ? 'Reading Level ' + state.currentUser.readingLevel +
+          ' · Pip has a new note adventure for you today.'
+        : 'Meet Pip at your first concert. Show the music you already know!';
+    if(action) action.textContent = placed
+        ? '🌱 Continue my adventure' : '🎵 Play my first concert';
 
     const bag = document.getElementById('landing-bag');
     bag.innerHTML = '';
