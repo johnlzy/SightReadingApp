@@ -11,6 +11,17 @@ const DEFAULT_PRO_BPM = 50;
 let currentBPM = DEFAULT_PRO_BPM;
 const NOTE_ORDER = ['C','D','E','F','G','A','B'];
 
+function cancelSessionTimers() {
+    clearInterval(state.game.timerInt);
+    clearInterval(state.game.metronomeInt);
+    clearTimeout(state.game.countdownTimeout);
+    cancelAnimationFrame(state.game.animFrame);
+    state.game.timerInt = null;
+    state.game.metronomeInt = null;
+    state.game.countdownTimeout = null;
+    state.game.animFrame = null;
+}
+
 const PATH_TREBLE = "M26.4 56.7c-.5-3.3-3.6-5.8-7-5.8-4.2 0-7.3 3.5-7.3 7.6 0 2.2 1 4.2 2.6 5.5l-3.3 14.9c-3.6-1.5-6.6-4.3-6.6-9.1 0-6.4 6-12 14.7-12 7.2 0 12.8 3.5 12.8 9.7 0 3.8-2.5 7.7-6.5 11-4.7 4-9.3 7.6-11.4 14.8-.1 .5-.3 1-.3 1.5l-2 9c.8 .2 1.6 .3 2.5 .3 6.1 0 11-4.9 11-10.9 0-2.8-1-5.4-2.7-7.4l-1.3-2.2c-3-3.1-4.7-4.9-4.7-7.9 0-3.3 2.6-6 7.2-6 4.4 0 7 2.8 7 6 0 1.2-.2 2.1-.6 2.9l12-53.6c-1.2-6.1-6.4-11.1-14.4-11.1-9.2 0-16 6.2-16 15.7 0 8.4 6.2 13.3 12.6 17z";
 const PATH_BASS = "M46 76.5C36.9 76.5 29.5 69.1 29.5 60S36.9 43.5 46 43.5c8.7 0 15.8 6.8 16.4 15.4 0 .4 .1 .7 .1 1.1 0 9.1-7.4 16.5-16.5 16.5zm0-29c-6.9 0-12.5 5.6-12.5 12.5S39.1 72.5 46 72.5c6.5 0 11.8-4.9 12.4-11.2-.8-.2-1.6-.3-2.4-.3-10.2 0-18.5-8.3-18.5-18.5 0-.4 0-.8 .1-1.2-5.4 1-9.6 5.2-10.6 10.6 .4-.1 .8-.1 1.2-.1 6.9 0 12.5 5.6 12.5 12.5S45.4 76.5 38.5 76.5c-.4 0-.8 0-1.2-.1 .8 7.4 7.1 13.1 14.7 13.1 8.3 0 15-6.7 15-15s-6.7-15-15-15zm44 2.5c-2.5 0-4.5 2-4.5 4.5s2 4.5 4.5 4.5 4.5-2 4.5-4.5-2-4.5-4.5-4.5zm0 18c-2.5 0-4.5 2-4.5 4.5s2 4.5 4.5 4.5 4.5-2 4.5-4.5-2-4.5-4.5-4.5z";
 
@@ -54,6 +65,8 @@ export function startGame(mode, songIdx=null, isRetry=false) {
     state.game.mistakes = 0;
     state.game.hits = 0; // Initialize hits for accuracy
     state.game.nextBeatTime = 0;
+    state.game.sessionToken = (state.game.sessionToken || 0) + 1;
+    state.game.phase = 'ready';
     
     // Feature: Tempo scaling based on difficulty for Song Mode
     if (mode === 'song' && songIdx !== null) {
@@ -71,8 +84,7 @@ export function startGame(mode, songIdx=null, isRetry=false) {
         currentBPM = DEFAULT_PRO_BPM;
     }
 
-    if(state.game.metronomeInt) clearInterval(state.game.metronomeInt);
-    if(state.game.animFrame) cancelAnimationFrame(state.game.animFrame); 
+    cancelSessionTimers();
 
     document.getElementById('game-coins').innerText = 0;
     document.getElementById('game-timer').innerText = 0;
@@ -397,6 +409,7 @@ function showCurrentNote() {
 }
 
 export function beginRound() {
+    if(state.game.phase !== 'ready') return;
     document.getElementById('game-start-overlay').style.display = 'none';
     const isProCoin = (state.currentUser.difficulty === 'pro' && state.game.mode === 'coin');
     const isSong = (state.game.mode === 'song');
@@ -411,6 +424,8 @@ export function beginRound() {
 }
 
 function startStandardGame() {
+    if(state.game.phase !== 'ready') return;
+    state.game.phase = 'playing';
     state.game.startTime = Date.now();
     state.game.noteTime = Date.now();
     if(state.game.timerInt) clearInterval(state.game.timerInt);
@@ -422,8 +437,10 @@ function startStandardGame() {
 }
 
 function startCountdown(callback) {
+    state.game.phase = 'countdown';
+    const token = state.game.sessionToken;
     let count = 4;
-    const interval = 60000 / currentBPM; 
+    const interval = 60000 / currentBPM;
     let overlay = document.getElementById('countdown-overlay');
     if(!overlay) {
         overlay = document.createElement('div');
@@ -432,22 +449,26 @@ function startCountdown(callback) {
         document.getElementById('screen-game').appendChild(overlay);
     }
     overlay.style.display = 'block';
-    
+
     const tick = () => {
+        if(state.game.phase !== 'countdown' || state.game.sessionToken !== token) return;
         if(count > 0) {
             overlay.innerText = count;
-            playClick(); 
+            playClick();
             count--;
-            setTimeout(tick, interval);
+            state.game.countdownTimeout = setTimeout(tick, interval);
         } else {
-             overlay.style.display = 'none';
-             if(callback) callback();
+            overlay.style.display = 'none';
+            state.game.countdownTimeout = null;
+            if(callback) callback();
         }
     };
     tick();
 }
 
 function startProGame() {
+    if(state.game.phase !== 'countdown') return;
+    state.game.phase = 'playing';
     const noteGroup = document.getElementById('notes-group');
     if(noteGroup) noteGroup.classList.remove('animate-scroll');
 
@@ -456,7 +477,7 @@ function startProGame() {
     state.game.nextBeatTime = state.game.startTime; 
     
     const animate = () => {
-        if( !((state.game.mode === 'coin' && state.currentUser.difficulty === 'pro') || state.game.mode === 'song') ) return;
+        if(state.game.phase !== 'playing') return;
         
         const now = Date.now();
 
@@ -524,7 +545,7 @@ function startProGame() {
 }
 
 export function handleInput(note, el) {
-    if(document.getElementById('game-start-overlay').style.display !== 'none') return;
+    if(state.game.phase !== 'playing' || state.game.idx >= state.game.notes.length) return;
     
     const isPro = ((state.currentUser.difficulty === 'pro' && state.game.mode === 'coin') || state.game.mode === 'song');
     
@@ -670,9 +691,9 @@ export function handleInput(note, el) {
 }
 
 export function endGame() {
-    clearInterval(state.game.timerInt);
-    if(state.game.metronomeInt) clearInterval(state.game.metronomeInt);
-    if(state.game.animFrame) cancelAnimationFrame(state.game.animFrame);
+    if(state.game.phase !== 'playing') return;
+    state.game.phase = 'finished';
+    cancelSessionTimers();
     
     const overlay = document.getElementById('countdown-overlay');
     if(overlay) overlay.style.display = 'none';
@@ -754,9 +775,9 @@ export function endGame() {
 }
 
 export function exitGame() {
-    clearInterval(state.game.timerInt);
-    if(state.game.metronomeInt) clearInterval(state.game.metronomeInt);
-    if(state.game.animFrame) cancelAnimationFrame(state.game.animFrame);
+    state.game.phase = 'idle';
+    state.game.sessionToken = (state.game.sessionToken || 0) + 1;
+    cancelSessionTimers();
     const overlay = document.getElementById('countdown-overlay');
     if(overlay) overlay.style.display = 'none';
     showScreen('screen-landing');
