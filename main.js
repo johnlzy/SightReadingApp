@@ -9,7 +9,7 @@ import {
 } from './js/ui.js';
 import { startGame, exitGame, beginRound, updateNotePosition, onPlayTimeExpired, togglePhraseHints, pauseMusicSession, resumeMusicSession } from './js/game.js';
 import { state, setHitX } from './js/state.js';
-import { workshopAction, hearWorkshopSound } from './js/workshop-ui.js';
+import { workshopAction, hearWorkshopSound, changeWorkshopPage } from './js/workshop-ui.js';
 import { pausePlayBudget, resumePlayBudget, touchPlayBudget, resumeFromIdle, onPlaytimeExpired,
     deactivatePlayBudget, hideTimeUpOverlay } from './js/app-budget.js';
 import {
@@ -89,6 +89,7 @@ window.logout = () => {
 window.setClef = setClef;
 window.goToStore = goToStore;
 window.workshopAction = workshopAction;
+window.changeWorkshopPage = changeWorkshopPage;
 window.hearWorkshopSound = hearWorkshopSound;
 window.startGame = startGame;
 window.togglePhraseHints = togglePhraseHints;
