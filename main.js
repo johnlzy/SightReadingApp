@@ -79,7 +79,7 @@ window.logout = () => {
     pausePlayBudget();
     closeAudition();
     closeMicrophoneSetup();
-    useTouchInput();
+    useTouchInput(false);
     handleLogoutUI();
     hideTimeUpOverlay();
 };
@@ -115,7 +115,7 @@ document.addEventListener('visibilitychange', () => {
         closeMicrophoneSetup();
         if(document.getElementById('screen-game').classList.contains('active')) exitGame();
         if(document.getElementById('screen-audition').classList.contains('active')) closeAudition();
-        useTouchInput();
+        useTouchInput(false);
     } else {
         resumePlayBudget();
     }
