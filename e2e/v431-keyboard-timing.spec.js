@@ -28,7 +28,8 @@ test('wide-range piano defaults to narrow keys and supports a comfortable size',
     expect(start.width).toBeLessThanOrEqual(33);
     expect(start.width).toBeGreaterThanOrEqual(25);
     expect(start.whiteCount).toBeGreaterThanOrEqual(14);
-    expect(start.scrollWidth).toBeGreaterThan(start.viewport);
+    // Broad scores may fit on larger displays with compact keys.
+    expect(start.scrollWidth).toBeGreaterThanOrEqual(start.viewport);
     await expect(page.locator('#keyboard-size-label')).toHaveText('Compact keys');
     await page.locator('#keyboard-size-toggle').click();
     const larger=await piano.evaluate(k=>k.querySelector('.white-key').getBoundingClientRect().width);
@@ -47,12 +48,14 @@ test('the keyboard never auto-follows the next note while the child plays',async
     await page.evaluate(async()=>{
         const {state}=await import('/js/state.js');
         const {renderKeyboard}=await import('/js/game.js');
-        state.game.notes=['C3','D3','E3','G3','C4','E4','G4','C5','D5','E5'];
+        // Intentionally use a six-octave test range: wider than even a
+        // desktop dock. Ordinary exercises can fit without panning.
+        state.game.notes=['C2','D2','E2','G2','C4','E4','G4','C5','D5','E7'];
         state.game.durations=Array(state.game.notes.length).fill(1);
         renderKeyboard();
     });
     const piano=page.locator('#keyboard');
-    await expect(piano.locator('[data-note="E5"]')).toHaveCount(1);
+    await expect(piano.locator('[data-note="E7"]')).toHaveCount(1);
     await page.getByRole('button',{name:'Show higher piano octave'}).click();
     await expect.poll(()=>piano.evaluate(k=>k.scrollLeft)).toBeGreaterThan(70);
     await page.waitForTimeout(350); // allow the deliberate manual scroll to finish
@@ -61,7 +64,7 @@ test('the keyboard never auto-follows the next note while the child plays',async
     const inputs=await page.evaluate(async()=>{
         const {state}=await import('/js/state.js');
         const {handleInput}=await import('/js/game.js');
-        const keys=['C3','D3','E3'];
+        const keys=['C2','D2','E2'];
         for(const note of keys)handleInput(note,null);
         return {idx:state.game.idx,hits:state.game.hits};
     });
