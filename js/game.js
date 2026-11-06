@@ -3,6 +3,7 @@ import { SONG_DB, TREBLE_Y, BASS_Y } from './config.js';
 import { playTone, playRun, playClick } from './audio.js';
 import { transposeOctaves, keyboardNotesFor, durationNotation, gradeTimedOnset, validateMelody, midiToNote } from './music.js';
 import { startMicrophone, stopMicrophone, resetMicrophoneNotes } from './microphone.js';
+import { assessOnset, performanceSummary } from './rhythm.js';
 import { syncInputModeUI, useTouchInput } from './mic-ui.js';
 import { showScreen, renderHighScores, updateLanding } from './ui.js';
 import { saveCurrentUser, deductCredit } from './storage.js';
@@ -27,29 +28,47 @@ function cancelSessionTimers() {
 const PATH_TREBLE = "M26.4 56.7c-.5-3.3-3.6-5.8-7-5.8-4.2 0-7.3 3.5-7.3 7.6 0 2.2 1 4.2 2.6 5.5l-3.3 14.9c-3.6-1.5-6.6-4.3-6.6-9.1 0-6.4 6-12 14.7-12 7.2 0 12.8 3.5 12.8 9.7 0 3.8-2.5 7.7-6.5 11-4.7 4-9.3 7.6-11.4 14.8-.1 .5-.3 1-.3 1.5l-2 9c.8 .2 1.6 .3 2.5 .3 6.1 0 11-4.9 11-10.9 0-2.8-1-5.4-2.7-7.4l-1.3-2.2c-3-3.1-4.7-4.9-4.7-7.9 0-3.3 2.6-6 7.2-6 4.4 0 7 2.8 7 6 0 1.2-.2 2.1-.6 2.9l12-53.6c-1.2-6.1-6.4-11.1-14.4-11.1-9.2 0-16 6.2-16 15.7 0 8.4 6.2 13.3 12.6 17z";
 const PATH_BASS = "M46 76.5C36.9 76.5 29.5 69.1 29.5 60S36.9 43.5 46 43.5c8.7 0 15.8 6.8 16.4 15.4 0 .4 .1 .7 .1 1.1 0 9.1-7.4 16.5-16.5 16.5zm0-29c-6.9 0-12.5 5.6-12.5 12.5S39.1 72.5 46 72.5c6.5 0 11.8-4.9 12.4-11.2-.8-.2-1.6-.3-2.4-.3-10.2 0-18.5-8.3-18.5-18.5 0-.4 0-.8 .1-1.2-5.4 1-9.6 5.2-10.6 10.6 .4-.1 .8-.1 1.2-.1 6.9 0 12.5 5.6 12.5 12.5S45.4 76.5 38.5 76.5c-.4 0-.8 0-1.2-.1 .8 7.4 7.1 13.1 14.7 13.1 8.3 0 15-6.7 15-15s-6.7-15-15-15zm44 2.5c-2.5 0-4.5 2-4.5 4.5s2 4.5 4.5 4.5 4.5-2 4.5-4.5-2-4.5-4.5-4.5zm0 18c-2.5 0-4.5 2-4.5 4.5s2 4.5 4.5 4.5 4.5-2 4.5-4.5-2-4.5-4.5-4.5z";
 
-// Helper to update live accuracy UI
+// Pitch and rhythm are different skills. Never treat an on-pitch but
+// early/late note as a pitch-recognition mistake.
 function updateAccuracyUI() {
-    const total = (state.game.hits || 0) + (state.game.mistakes || 0);
-    const acc = total === 0 ? 100 : Math.round((state.game.hits / total) * 100);
-    
-    // Update Bar Visuals
+    const result = performanceSummary(state.game);
     const bar = document.getElementById('acc-bar-fill');
     if (bar) {
-        bar.style.width = acc + '%';
-        
-        // Color coding: Green > 80%, Orange > 50%, Red otherwise
-        if(acc >= 80) {
-            bar.style.backgroundColor = '#4CAF50'; 
-        } else if(acc >= 50) {
-            bar.style.backgroundColor = '#FFC107'; 
-        } else {
-            bar.style.backgroundColor = '#FF5722'; 
-        }
+        bar.style.width = result.pitch + '%';
+        bar.style.backgroundColor = result.pitch >= 80 ? '#4CAF50'
+            : result.pitch >= 50 ? '#FFC107' : '#FF5722';
     }
-    
-    // Keep this return as it is used by endGame()
-    return acc;
+    const timed = state.game.mode === 'song'
+        || (state.currentUser?.difficulty === 'pro' && state.game.mode === 'coin');
+    const rhythm = document.getElementById('game-rhythm');
+    if (rhythm) {
+        rhythm.hidden = !timed;
+        rhythm.textContent = timed
+            ? 'Rhythm ' + result.rhythm + '%'
+            : '';
+    }
+    return result.pitch;
 }
+
+function showRhythmFeedback(label, offsetMs = null) {
+    const node = document.getElementById('timing-feedback');
+    if(!node) return;
+    node.hidden = !label;
+    const shortLabel = label === 'perfect' ? 'Perfect!'
+        : label === 'good' ? 'Good timing!'
+        : label === 'early' ? 'Too early'
+        : label === 'late' ? 'Too late' : label;
+    node.textContent = shortLabel + (offsetMs === null ? '' : ' (' +
+        (offsetMs > 0 ? '+' : '') + offsetMs + ' ms)');
+    node.dataset.grade = label;
+}
+
+function recordCorrectPitch() {
+    if(state.game.pitchRecordedIndex === state.game.idx) return;
+    state.game.pitchRecordedIndex = state.game.idx;
+    state.game.pitchCorrect++;
+}
+
 export function startGame(mode, songIdx=null, isRetry=false) {
     if (!state.currentUser || state.currentUser.credits <= 0) {
         alert("You are out of credits for today! Ask a parent for help.");
@@ -66,7 +85,19 @@ export function startGame(mode, songIdx=null, isRetry=false) {
     state.game.coins = 0;
     state.game.idx = 0;
     state.game.mistakes = 0;
-    state.game.hits = 0; // Initialize hits for accuracy
+    state.game.hits = 0;
+    state.game.pitchCorrect = 0;
+    state.game.pitchErrors = 0;
+    state.game.pitchMisses = 0;
+    state.game.pitchRecordedIndex = -1;
+    state.game.rhythmOnTime = 0;
+    state.game.rhythmPerfect = 0;
+    state.game.rhythmGood = 0;
+    state.game.rhythmEarly = 0;
+    state.game.rhythmLate = 0;
+    state.game.rhythmMisses = 0;
+    state.game.absoluteOnsetErrorMs = 0;
+    state.game.noteTimingIssue = null;
     state.game.nextBeatTime = 0;
     state.game.sessionToken = (state.game.sessionToken || 0) + 1;
     state.game.phase = 'ready';
@@ -91,7 +122,8 @@ export function startGame(mode, songIdx=null, isRetry=false) {
 
     document.getElementById('game-coins').innerText = 0;
     document.getElementById('game-timer').innerText = 0;
-    updateAccuracyUI(); // Reset accuracy display
+    updateAccuracyUI(); // Reset both skill displays
+    showRhythmFeedback(null);
     
     const prog = document.getElementById('progress-fill');
     if(prog) prog.style.width = '0%';
@@ -593,112 +625,106 @@ export function handleInput(note, el, playedAtMs = Date.now(), source = 'touch')
     if(state.game.phase !== 'playing' || state.game.idx >= state.game.notes.length) return;
     if(source === 'microphone' && state.inputMode !== 'microphone') return;
     const isMic = source === 'microphone';
+    const isTimed = state.game.mode === 'song'
+        || (state.currentUser.difficulty === 'pro' && state.game.mode === 'coin');
     if(!el && typeof document.querySelectorAll === 'function') {
         el = [...document.querySelectorAll('#keyboard [data-note]')]
             .find(key => key.dataset.note === note) || null;
     }
     const markKey = className => {
         el?.classList.add(className);
-        if(el) setTimeout(() => el.classList.remove(className), className === 'wrong' ? 300 : 100);
+        if(el) setTimeout(() => el.classList.remove(className),
+            className === 'wrong' ? 300 : 100);
     };
-    const playFeedback = type => {
-        // Synthesized confirmation tones would be heard by the open microphone.
+    const feedbackAudio = type => {
+        // Synthesized piano feedback would feed directly into the open mic.
         if(!isMic) playTone(note, type);
     };
-    
-    const isPro = ((state.currentUser.difficulty === 'pro' && state.game.mode === 'coin') || state.game.mode === 'song');
-    
     const target = state.game.notes[state.game.idx];
-    
-    if(note === target) {
-        let isTimingGood = true;
-        let earned = 0;
 
-        if(isPro) {
-            const onset = gradeTimedOnset(playedAtMs, state.game.nextBeatTime, currentBPM);
-            if(onset !== 'on-time') {
-                state.game.mistakes++;
-                updateAccuracyUI();
-                playFeedback('bad');
-                markKey('wrong');
-                return;
-            }
-            earned = 5;
-            state.game.nextBeatTime += state.game.durations[state.game.idx] * (60000 / currentBPM);
-        }
-
-        if(isTimingGood) {
-            state.game.hits = (state.game.hits || 0) + 1; // Increment hits
-            updateAccuracyUI(); // Update accuracy UI
-
-            markKey('active');
-            playFeedback('good');
-            
-            const currSvg = document.getElementById(`note-${state.game.idx}`);
-            let animX = 0, animY = 0;
-            if(currSvg) {
-                const rect = currSvg.getBoundingClientRect();
-                animX = rect.left + (rect.width/2) - 10;
-                animY = rect.top - 20;
-            } else {
-                animX = window.innerWidth / 2;
-                animY = window.innerHeight / 2;
-            }
-
-            if(state.game.mode === 'coin') {
-                if(!isPro) earned = 1; 
-                state.game.coins += earned;
-                document.getElementById('game-coins').innerText = state.game.coins;
-                
-                const float = document.createElement('div');
-                float.className = 'feedback-anim';
-                float.innerText = earned > 0 ? `+${earned}` : '0';
-                float.style.color = earned > 0 ? 'var(--accent)' : '#999';
-                float.style.left = animX + 'px';
-                float.style.top = animY + 'px';
-                document.body.appendChild(float);
-                setTimeout(()=>float.remove(), 1000);
-            } else {
-                const float = document.createElement('div');
-                float.className = 'feedback-anim';
-                float.innerText = "✨";
-                float.style.left = animX + 'px';
-                float.style.top = animY + 'px';
-                document.body.appendChild(float);
-                setTimeout(()=>float.remove(), 1000);
-            }
-
-            if(currSvg) {
-                currSvg.classList.remove('current');
-                currSvg.classList.add('inactive');
-                const head = currSvg.querySelector('.note-head');
-                if(head) head.setAttribute('fill', 'var(--primary)'); 
-            }
-            
-            state.game.idx++;
-            showCurrentNote();
-            const pct = (state.game.idx / state.game.notes.length) * 100;
-            const prog = document.getElementById('progress-fill');
-            if(prog) prog.style.width = pct + '%';
-
-            state.game.noteTime = Date.now();
-            updateNotePosition();
-
-            if(!isPro && state.game.idx >= state.game.notes.length) {
-                endGame();
-            } 
-        } else {
-             state.game.mistakes++;
-             updateAccuracyUI();
-             playFeedback('bad');
-        }
-        
-    } else {
-        playFeedback('bad');
+    if(note !== target) {
+        feedbackAudio('bad');
         markKey('wrong');
+        state.game.pitchErrors++;
         state.game.mistakes++;
-        updateAccuracyUI(); // Update accuracy on wrong input
+        updateAccuracyUI();
+        if(isTimed) showRhythmFeedback('Wrong note');
+        return;
     }
+
+    recordCorrectPitch();
+    let earned = isTimed ? 0 : 1;
+
+    if(isTimed) {
+        const evaluation = assessOnset(
+            playedAtMs,
+            state.game.nextBeatTime,
+            currentBPM,
+            { adjustmentMs: isMic ? (state.micTimingAdjustmentMs || 0) : 0 }
+        );
+        if(!evaluation.accepted) {
+            // Remember the last timing issue for this note, but count it once
+            // only if the note is ultimately missed. Repeated input is not
+            // a stream of new mistakes.
+            state.game.noteTimingIssue = evaluation.judgement;
+            showRhythmFeedback(evaluation.judgement, evaluation.offsetMs);
+            markKey('wrong');
+            updateAccuracyUI();
+            return;
+        }
+        earned = evaluation.coins;
+        state.game.rhythmOnTime++;
+        if(evaluation.judgement === 'perfect') state.game.rhythmPerfect++;
+        else state.game.rhythmGood++;
+        state.game.absoluteOnsetErrorMs += Math.abs(evaluation.offsetMs);
+        state.game.noteTimingIssue = null;
+        state.game.nextBeatTime += state.game.durations[state.game.idx] * (60000 / currentBPM);
+        showRhythmFeedback(evaluation.judgement, evaluation.offsetMs);
+    }
+
+    state.game.hits++;
+    updateAccuracyUI();
+    markKey('active');
+    feedbackAudio('good');
+
+    const currSvg = document.getElementById(`note-${state.game.idx}`);
+    let animX = window.innerWidth / 2;
+    let animY = window.innerHeight / 2;
+    if(currSvg) {
+        const rect = currSvg.getBoundingClientRect();
+        animX = rect.left + rect.width / 2 - 10;
+        animY = rect.top - 20;
+    }
+
+    const float = document.createElement('div');
+    float.className = 'feedback-anim';
+    float.innerText = state.game.mode === 'coin' ? '+' + earned : '✨';
+    float.style.left = animX + 'px';
+    float.style.top = animY + 'px';
+    document.body.appendChild(float);
+    setTimeout(() => float.remove(), 1000);
+
+    if(state.game.mode === 'coin') {
+        state.game.coins += earned;
+        document.getElementById('game-coins').innerText = state.game.coins;
+    }
+    if(currSvg) {
+        currSvg.classList.remove('current');
+        currSvg.classList.add('inactive');
+        const head = currSvg.querySelector('.note-head');
+        if(head) head.setAttribute('fill', 'var(--primary)');
+    }
+
+    state.game.idx++;
+    state.game.pitchRecordedIndex = -1;
+    showCurrentNote();
+    const pct = state.game.idx / state.game.notes.length * 100;
+    const progress = document.getElementById('progress-fill');
+    if(progress) progress.style.width = pct + '%';
+    state.game.noteTime = Date.now();
+    updateNotePosition();
+
+    if(!isTimed && state.game.idx >= state.game.notes.length) endGame();
 }
 
 export function endGame() {
