@@ -1,7 +1,7 @@
 name: Regression tests
 on:
   push:
-    branches: [main, feat/v3.2-adaptive-learning]
+    branches: [main, feat/v4.0-foundations]
   pull_request:
 
 jobs:
