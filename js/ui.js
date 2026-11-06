@@ -14,9 +14,14 @@ import { syncInputModeUI } from './mic-ui.js';
 let parentZoneAuthorized = false;
 
 export function showScreen(id) {
-    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-    const el = document.getElementById(id);
-    if(el) el.classList.add('active');
+    // Inactive screens must not expose hidden controls to keyboard users,
+    // assistive technology, or browser automation.
+    document.querySelectorAll('.screen').forEach(screen => {
+        const active = screen.id === id;
+        screen.classList.toggle('active', active);
+        screen.inert = !active;
+        screen.setAttribute('aria-hidden', String(!active));
+    });
 }
 
 export function loadUsers() {
