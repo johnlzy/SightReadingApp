@@ -553,3 +553,42 @@ button:focus-visible, .menu-card:focus-visible, select:focus-visible {
  .garden-hero-copy .btn-primary {font-size:.85rem;padding:10px 13px;}
  .pass-chip {font-size:.65rem;padding:3px 5px;}
 }
+
+/* V4 independent reading — score stays fixed while playing. */
+.garden-hero-buttons {display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+.garden-hero-buttons .btn-sm {font-size:.8rem;padding:9px 12px;}
+.score-title {display:grid;gap:2px;text-align:center;}
+.score-title strong {font-size:.94rem;color:#386e51;}
+.score-title span {font-size:.67rem;color:#6b756d;}
+.score-practice-area {justify-content:flex-start;gap:10px;padding:75px 12px 30px;}
+.stationary-score {
+    width:min(100%,1000px);
+    background:#fffdf8;
+    padding:14px 8px;
+    border-radius:22px;
+    box-shadow:0 6px 28px #365c3e19;
+    border:1px solid #e9e8d7;
+    overflow-x:auto;
+    scrollbar-width:thin;
+}
+.independent-score-svg {display:block;width:100%;height:auto;min-width:520px;}
+.score-status {color:#53695e;max-width:670px;text-align:center;font-size:.86rem;line-height:1.5;}
+#audition-keys {flex:0 0 auto;width:min(100%,880px);height:clamp(116px,24vh,190px);min-height:110px;max-height:200px;border-radius:15px;}
+#audition-keys.mic-mode {display:flex;align-items:center;justify-content:center;color:#fff;background:#3b6954;font-size:1rem;padding:15px;}
+#audition-keys .white-key {border:1px solid #a8aaa4;border-top:0;border-radius:0 0 5px 5px;box-shadow:none;padding:0;min-width:0;}
+#audition-keys .black-key {border:1px solid #1d251f;border-radius:0 0 4px 4px;padding:0;box-shadow:none;}
+.score-actions {display:flex;justify-content:center;align-items:center;gap:10px;flex-wrap:wrap;}
+.score-actions button {font-size:.9rem;padding:10px 16px;}
+.child-name-input {font:inherit;padding:10px;border:2px solid #c8dcd2;border-radius:12px;max-width:100%;width:min(100%,380px);background:white;color:var(--text);}
+@media(max-width:500px){
+    .score-practice-area{padding:72px 8px 24px;gap:6px;}
+    .stationary-score{padding:8px 2px;border-radius:12px;}
+    .score-title strong{font-size:.8rem;}
+    .score-practice-area .score-status{font-size:.78rem;}
+    .garden-hero-buttons{gap:5px;}
+}
+@media(orientation:landscape) and (max-height:500px){
+    .score-practice-area{padding:62px 10px 10px;}
+    .stationary-score{max-height:46vh;overflow-y:auto;}
+    #audition-keys{min-height:80px;height:95px;}
+}
