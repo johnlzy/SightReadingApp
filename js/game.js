@@ -15,6 +15,8 @@ import { renderPipScene } from './companion.js';
 import { generateReadingPhrase, finishReadingPhrase } from './learning-journey.js';
 import { createScoreDocument, staticScoreSvg } from './score.js';
 import { staffY, ledgerLineYs, clefSvg } from './notation.js';
+import { freezeSession, beginResume, finishResume, cancelPause } from './session-pause.js';
+import { pausePlayBudget, resumePlayBudget } from './app-budget.js';
 import {
     ensureLearning, generateAdaptiveExercise, generateSkillCheck,
     recordOutcome, finishLearningSession
@@ -60,11 +62,14 @@ function cancelSessionTimers() {
     clearInterval(state.game.timerInt);
     clearInterval(state.game.metronomeInt);
     clearTimeout(state.game.countdownTimeout);
+    clearTimeout(state.game.resumeTimeout);
     cancelAnimationFrame(state.game.animFrame);
     state.game.timerInt = null;
     state.game.metronomeInt = null;
     state.game.countdownTimeout = null;
+    state.game.resumeTimeout = null;
     state.game.animFrame = null;
+    cancelPause(state.game);
 }
 
 // Pitch and rhythm are different skills. Never treat an on-pitch but
@@ -146,7 +151,9 @@ export function startGame(mode, songIdx=null, isRetry=false) {
     state.game.nextBeatTime = 0;
     state.game.sessionToken = (state.game.sessionToken || 0) + 1;
     state.game.phase = 'ready';
+    cancelPause(state.game);
     state.game.budgetEnding = false;
+    document.getElementById('game-pause-overlay')?.setAttribute('hidden','');
     
     // Feature: Tempo scaling based on difficulty for Song Mode
     if (mode === 'song' && songIdx !== null) {
@@ -559,6 +566,16 @@ export async function beginRound() {
     }
 }
 
+function beginElapsedTimer(){
+    clearInterval(state.game.timerInt);
+    state.game.timerInt=setInterval(()=>{
+        if(state.game.phase!=='playing')return;
+        const t=Math.floor((Date.now()-state.game.startTime)/1000);
+        const el=document.getElementById('game-timer');
+        if(el)el.innerText=t;
+    },1000);
+}
+
 function startStandardGame() {
     if(state.game.phase !== 'ready') return;
     state.game.phase = 'playing';
@@ -566,12 +583,7 @@ function startStandardGame() {
     state.game.startTime = Date.now();
     state.game.noteTime = Date.now();
     state.game.noteStartedAt = state.game.noteTime;
-    if(state.game.timerInt) clearInterval(state.game.timerInt);
-    state.game.timerInt = setInterval(() => {
-        const t = Math.floor((Date.now() - state.game.startTime)/1000);
-        const el = document.getElementById('game-timer');
-        if(el) el.innerText = t;
-    }, 1000);
+    beginElapsedTimer();
 }
 
 function startCountdown(callback) {
@@ -618,11 +630,7 @@ function startProGame() {
     
     beginTimedAnimation();
 
-    state.game.timerInt = setInterval(() => {
-        const t = Math.floor((Date.now() - state.game.startTime)/1000);
-        const el = document.getElementById('game-timer');
-        if(el) el.innerText = t;
-    }, 1000);
+    beginElapsedTimer();
 }
 
 export function handleInput(note, el, playedAtMs = Date.now(), source = 'touch') {
@@ -917,6 +925,7 @@ export function endGame() {
 }
 
 export function exitGame() {
+    document.getElementById('game-pause-overlay')?.setAttribute('hidden','');
     stopMicrophone();
     state.game.phase = 'idle';
     state.game.sessionToken = (state.game.sessionToken || 0) + 1;
@@ -924,6 +933,7 @@ export function exitGame() {
     const overlay = document.getElementById('countdown-overlay');
     if(overlay) overlay.style.display = 'none';
     showScreen('screen-landing');
+    if(!document.hidden)resumePlayBudget();
     updateLanding();
 }
 
@@ -1045,4 +1055,98 @@ function beginTimedAnimation(){
         state.game.animFrame = requestAnimationFrame(animate);
     };
     state.game.animFrame = requestAnimationFrame(animate);
+}
+
+/**
+ * Freeze the song precisely on the current note. Pausing never scores a
+ * missed beat; the resume clock shifts all expected onsets by the entire
+ * paused interval (including the deliberate count-in).
+ */
+export function pauseMusicSession(){
+    const game=state.game;
+    if(!freezeSession(game,Date.now()))return false;
+    clearInterval(game.timerInt);
+    clearTimeout(game.countdownTimeout);
+    cancelAnimationFrame(game.animFrame);
+    game.timerInt=null;
+    game.countdownTimeout=null;
+    game.animFrame=null;
+    stopMicrophone();
+    pausePlayBudget();
+    const count=document.getElementById('countdown-overlay');
+    if(count)count.style.display='none';
+    const pause=document.getElementById('game-pause-overlay');
+    if(pause){
+        pause.hidden=false;
+        const label=document.getElementById('pause-session-title');
+        if(label)label.textContent='Your music is safely paused';
+        const desc=document.getElementById('pause-session-description');
+        if(desc)desc.textContent='Your notes and progress are right where you left them.';
+        const resume=document.getElementById('resume-game-button');
+        if(resume){resume.disabled=false;resume.textContent='Resume my music';}
+    }
+    return true;
+}
+
+export async function resumeMusicSession(){
+    const game=state.game;
+    if(game.phase!=='paused'||!state.currentUser||!canPlayToday())return false;
+    const token=game.sessionToken;
+    if(!beginResume(game))return false;
+    const resume=document.getElementById('resume-game-button');
+    if(resume){resume.disabled=true;resume.textContent='Getting ready…';}
+    if(state.inputMode==='microphone'){
+        try{
+            await startMicrophone({
+                onNote:event=>{
+                    if(game.sessionToken===token&&game.phase==='playing'&&
+                        state.inputMode==='microphone')
+                        handleInput(midiToNote(event.midiNote),null,event.onsetTimeMs,'microphone');
+                },
+                onMonitor:({pitch})=>{
+                    const label=document.getElementById('mic-game-note');
+                    if(label)label.textContent=pitch?.confidence>=0.82?
+                        midiToNote(pitch.midi):'Listening…';
+                },
+                onError:()=>{
+                    if(game.sessionToken!==token)return;
+                    useTouchInput();
+                }
+            });
+        }catch{
+            if(game.sessionToken!==token)return false;
+            useTouchInput();
+        }
+    }
+    if(game.sessionToken!==token||game.phase!=='resuming')return false;
+    // The explicit resume gesture may resume parental time accounting;
+    // paused/background time itself does not count.
+    resumePlayBudget();
+    let count=3;
+    const indicator=document.getElementById('pause-session-title');
+    const tick=()=>{
+        if(game.sessionToken!==token||game.phase!=='resuming')return;
+        if(count>0){
+            if(indicator)indicator.textContent='Ready in '+count+'…';
+            playClick();
+            count--;
+            game.resumeTimeout=setTimeout(tick,650);
+            return;
+        }
+        const restored=finishResume(game,Date.now());
+        game.resumeTimeout=null;
+        if(!restored)return;
+        document.getElementById('game-pause-overlay')?.setAttribute('hidden','');
+        if(restored.from==='countdown'){
+            game.phase='countdown';
+            startProGame();
+        }else if(restored.from==='playing'){
+            if(state.inputMode==='microphone')resetMicrophoneNotes();
+            if(isTimedExercise())beginTimedAnimation();
+            beginElapsedTimer();
+        }
+        if(resume){resume.disabled=false;resume.textContent='Resume my music';}
+    };
+    tick();
+    return true;
 }
