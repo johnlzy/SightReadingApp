@@ -86,6 +86,15 @@ function renderRound() {
         title:independent?'Independent Reading · Fresh Melody':ex.title,bpm:ex.bpm
     });
     document.getElementById('audition-score').innerHTML=staticScoreSvg(svg);
+    const leave=document.querySelector('#screen-audition .top-bar button');
+    if(leave) {
+        leave.textContent=independent?'← Leave score':'💾 Save & Leave';
+        leave.setAttribute('aria-label',independent?'Leave independent score':'Save and leave audition');
+    }
+    const restart=document.getElementById('audition-restart-btn');
+    if(restart)restart.hidden=independent;
+    const saveNote=document.getElementById('audition-save-note');
+    if(saveNote)saveNote.hidden=independent;
     document.getElementById('audition-heading').textContent=independent ?
         'Read the Music Independently' : 'Pip’s First Concert';
     document.getElementById('audition-level').textContent=independent ?
