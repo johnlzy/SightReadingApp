@@ -324,7 +324,7 @@
 
 <div id="screen-game" class="screen" style="padding:0; overflow:hidden;">
         <div class="top-bar" style="position:absolute; top:0; left:0; width:100%;">
-            <button class="btn-secondary" onclick="exitGame()" style="padding:5px 15px;">❌</button>
+            <button class="btn-secondary btn-sm" onclick="exitGame()" title="Leave this round; unfinished work is not scored" style="padding:6px 10px;">← Leave</button>
             <div class="stats-bar">
                 <div class="stat-group">Time: <span id="game-timer">0</span>s</div>
                 <div class="stat-group"><span id="game-counter-label">Points</span>: <span id="game-coins">0</span></div>
@@ -396,6 +396,7 @@
             <div id="audition-keys" class="keyboard-area" aria-label="Unlabelled piano keyboard for first-sight reading"></div>
             <div id="audition-actions" class="score-actions" hidden>
                 <button class="btn-secondary" onclick="auditionHarder()">🌟 Try a harder melody</button>
+                <button class="btn-secondary" onclick="auditionAnother()">🎵 Another melody</button>
                 <button class="btn-primary" onclick="auditionFinish()">Finish my concert</button>
             </div>
         </div>
