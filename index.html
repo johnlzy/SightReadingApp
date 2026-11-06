@@ -180,6 +180,7 @@
                     <div class="garden-hero-buttons">
                         <button class="btn-primary" id="journey-btn" onclick="startOpeningAdventure()">Start my adventure</button>
                         <button class="btn-secondary btn-sm" id="score-reader-btn" onclick="startIndependentReader()">📖 Read a stationary score</button>
+                        <button class="btn-secondary btn-sm" id="audition-retry-btn" onclick="auditionStartFresh()" hidden>🎼 Recheck my level</button>
                     </div>
                 </div>
             </div>
@@ -356,15 +357,19 @@
 
     <div id="screen-audition" class="screen">
         <div class="top-bar">
-            <button class="btn-secondary btn-sm" onclick="closeAudition()" aria-label="Leave audition">← Back</button>
+            <button class="btn-secondary btn-sm" onclick="closeAudition()" aria-label="Save and leave audition">💾 Save & Leave</button>
             <div class="score-title">
                 <strong id="audition-heading">Pip's First Concert</strong>
                 <span id="audition-level">Discovery Level 1</span>
             </div>
-            <button class="btn-sm btn-secondary" onclick="auditionSkipNote()">Skip a note</button>
+            <div class="audition-top-actions">
+                <button class="btn-sm btn-secondary" onclick="auditionSkipNote()" title="Move past a difficult note">Skip note</button>
+                <button class="btn-sm btn-secondary" id="audition-restart-btn" onclick="auditionStartFresh()" title="Start a fresh first concert">Restart</button>
+            </div>
         </div>
         <div class="score-practice-area scroll-content">
-            <p class="score-status" id="audition-progress">Read the whole score, then play your notes.</p>
+            <p class="score-status" id="audition-progress" aria-live="polite">Read the whole score, then play your notes.</p>
+            <p class="audition-resume-note" id="audition-save-note">Your concert is saved after each note. You can leave and come back.</p>
             <div id="audition-score" class="stationary-score" aria-label="Music notation that stays still while playing"></div>
             <p id="audition-status" class="score-status" aria-live="polite"></p>
             <div id="audition-keys" class="keyboard-area" aria-label="Unlabelled piano keyboard for first-sight reading"></div>
