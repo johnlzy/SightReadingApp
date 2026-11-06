@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Melody Garden — Sight Reading v4.0</title>
+    <title>Melody Garden — Sight Reading v4.1</title>
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@300;400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
     <style>
@@ -164,14 +164,15 @@
             <div class="coins-display">
                 <span id="music-passes" class="pass-chip" aria-label="Music time remaining">🎟️ 3 passes</span>
                 <span onclick="showParentPanel()" style="cursor:pointer;" role="button" tabindex="0" aria-label="Parent settings">🔒 Parent</span> | <span id="landing-credits" hidden>3</span>
-                🎼 <span id="landing-t-coins">0</span> | 
-                𝄢 <span id="landing-b-coins">0</span>
+                <span class="spark-balance" aria-label="Your Sparks">✦ <span id="landing-sparks">0</span> Sparks</span>
+                <span id="landing-t-coins" hidden>0</span>
+                <span id="landing-b-coins" hidden>0</span>
             </div>
         </div>
         
         <div class="scroll-content">
             <div class="garden-hero">
-                <div class="pip-character" role="img" aria-label="Pip, your friendly musical companion"><span>♪</span></div>
+                <div id="home-pip-scene" class="home-pip-scene" aria-label="Pip in your personal music garden"></div>
                 <div class="garden-hero-copy">
                     <span class="eyebrow">WELCOME TO MELODY GARDEN</span>
                     <h2>Every note helps your music grow.</h2>
@@ -182,6 +183,14 @@
                     </div>
                 </div>
             </div>
+            <section class="quest-strip" aria-labelledby="quest-heading">
+                <div class="quest-icon" aria-hidden="true">🎵</div>
+                <div>
+                    <strong id="quest-heading">Today’s Music Quest</strong>
+                    <p id="daily-quest">Read eight notes correctly on the first try.</p>
+                </div>
+                <span class="quest-spark" aria-label="Bonus reward">+15 ✦</span>
+            </section>
             <h3 style="margin-bottom:10px;">Select Clef</h3>
             <div class="toggle-group" style="transform:scale(1.1)">
                 <div class="toggle-opt selected" id="clef-treble" onclick="setClef('treble')">Treble 🎼</div>
@@ -215,13 +224,13 @@
                 <p id="learning-trend" class="learning-trend">Try a Skill Check to establish a starting point.</p>
             </section>
 
-            <h4 style="margin-bottom:5px; margin-top:20px;">My Instruments</h4>
+            <h4 style="margin-bottom:5px; margin-top:20px;">My Instrument Sounds</h4>
             <div class="instrument-bag" id="landing-bag"></div>
 
             <div class="card-menu">
                 <div class="menu-card" onclick="goToStore()">
-                    <div class="menu-icon">🏪</div>
-                    <div>Store</div>
+                    <div class="menu-icon">🎨</div>
+                    <div>Pip’s Workshop</div>
                 </div>
                 <button class="menu-card" onclick="startGame('practice')">
                     <div class="menu-icon">🌱</div>
@@ -249,12 +258,42 @@
 
     <div id="screen-store" class="screen">
         <div class="top-bar">
-            <button class="btn-secondary" onclick="updateLanding(); showScreen('screen-landing')" style="padding:8px 20px;">🔙</button>
-            <div class="coins-display"><span id="store-currency-icon"></span> <span id="store-coins">0</span></div>
+            <button class="btn-secondary btn-sm" onclick="updateLanding(); showScreen('screen-landing')" aria-label="Back to home">← Home</button>
+            <h3 id="store-title">Pip’s Workshop</h3>
+            <div class="spark-balance"><span id="store-currency-icon">✦</span> <span id="store-coins">0</span></div>
         </div>
-        <div class="scroll-content">
-            <h3 id="store-title">Store</h3>
-            <div class="store-grid" id="store-grid"></div>
+        <div class="scroll-content workshop-content">
+            <header class="workshop-intro">
+                <span class="eyebrow">MAKE YOUR MUSICAL WORLD YOUR OWN</span>
+                <h2>Dress Pip. Decorate the garden.</h2>
+                <p>Everything here changes how your adventure looks or sounds. Learning is always free.</p>
+            </header>
+            <div class="workshop-layout">
+                <section class="workshop-preview" aria-label="Pip's item preview">
+                    <div id="workshop-pip" class="workshop-scene"></div>
+                    <div class="workshop-preview-info">
+                        <span id="workshop-item-icon" class="workshop-preview-icon">🍃</span>
+                        <div>
+                            <h3 id="workshop-item-name">Pip’s Leaf Cap</h3>
+                            <p id="workshop-item-description">A fresh little garden leaf.</p>
+                        </div>
+                    </div>
+                    <p id="workshop-preview-hint" class="workshop-hint">Preview an item and see how it suits Pip.</p>
+                    <div class="workshop-preview-actions">
+                        <button id="workshop-action" class="btn-primary" onclick="workshopAction()">Equip this item</button>
+                        <button id="workshop-hear-sound" class="btn-secondary btn-sm" onclick="hearWorkshopSound()" hidden>♫ Hear it</button>
+                    </div>
+                    <p id="workshop-status" class="workshop-status" role="status" aria-live="polite"></p>
+                </section>
+                <section class="workshop-catalog" aria-label="Workshop items">
+                    <div class="workshop-catalog-heading">
+                        <h3>Pick something special</h3>
+                        <span id="workshop-balance" class="workshop-available">0 Sparks</span>
+                    </div>
+                    <div id="workshop-categories" class="workshop-categories" role="group" aria-label="Choose an item category"></div>
+                    <div id="store-grid" class="workshop-grid"></div>
+                </section>
+            </div>
         </div>
     </div>
 
@@ -271,7 +310,7 @@
             <button class="btn-secondary" onclick="exitGame()" style="padding:5px 15px;">❌</button>
             <div class="stats-bar">
                 <div class="stat-group">Time: <span id="game-timer">0</span>s</div>
-                <div class="stat-group">Coins: <span id="game-coins">0</span></div>
+                <div class="stat-group">Sparks: <span id="game-coins">0</span></div>
                 <div class="acc-group">
                     <div class="acc-label">Pitch</div>
                     <div class="acc-track">
@@ -338,7 +377,8 @@
 
     <div id="screen-result" class="screen" style="background:rgba(255,255,255,0.98); z-index:200;">
         <div class="scroll-content" style="justify-content:center; height:100%;">
-            <h1 style="color:var(--primary); font-size:3rem; margin-bottom:10px;">Great Job! 🎉</h1>
+            <h1 style="color:var(--primary); font-size:3rem; margin-bottom:10px;">Beautiful music! 🎉</h1>
+            <div id="result-pip-scene" class="result-pip-scene" aria-label="Pip celebrating your musical progress"></div>
             <h2 style="color:#555">Time: <span id="res-time"></span>s</h2>
             <h2 id="res-accuracy" style="color:var(--primary); margin-top:0;">Accuracy: 100%</h2>
             <div class="skill-results">
@@ -346,7 +386,8 @@
                 <strong id="res-rhythm" hidden>Rhythm: —</strong>
             </div>
             <div id="res-timing-breakdown" class="rhythm-breakdown" hidden></div>
-            <h2 style="color:var(--accent)">Coins Earned: +<span id="res-coins"></span></h2>
+            <h2 style="color:var(--accent)">✦ Sparks earned: +<span id="res-coins"></span></h2>
+            <p id="res-quest" class="result-quest" hidden></p>
             <div id="res-msg" style="color:var(--primary); font-weight:bold; margin-bottom:20px; font-size:1.2rem; text-align:center;"></div>
             
             <div class="score-box">
