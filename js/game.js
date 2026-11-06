@@ -268,7 +268,7 @@ export function generateNotes() {
     } else if(state.game.mode === 'phrase' || state.game.mode === 'phrase-check') {
         const kind=state.game.mode === 'phrase-check' ? 'check' : 'practice';
         const spec=generateReadingPhrase(state.currentUser,{
-            clef:state.currentClef,kind,level:state.currentUser.readingLevel||1
+            clef:state.currentClef,kind
         });
         state.game.phraseSpec=spec;
         state.game.notes=[...spec.notes];
