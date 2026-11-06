@@ -30,8 +30,12 @@ export function openWorkshop() {
     ensureEconomy(state.currentUser);
     category='hat';
     selectedId=state.currentUser.economy.equipped.hat;
-    document.querySelectorAll('.screen').forEach(el=>el.classList.remove('active'));
-    document.getElementById('screen-store').classList.add('active');
+    document.querySelectorAll('.screen').forEach(screen=>{
+        const active=screen.id==='screen-store';
+        screen.classList.toggle('active',active);
+        screen.inert=!active;
+        screen.setAttribute('aria-hidden',String(!active));
+    });
     renderWorkshop();
 }
 
