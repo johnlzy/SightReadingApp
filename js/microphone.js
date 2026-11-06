@@ -120,11 +120,10 @@ export async function startMicrophone({ onNote = () => {}, onMonitor = () => {},
         resources.raf = requestAnimationFrame(tick);
         return true;
     } catch (error) {
-        if (generation === token) {
-            stopMicrophone();
-        } else {
-            releaseResources({ context, stream });
-        }
+        if (generation === token) stopMicrophone();
+        // The context is allocated before the permission prompt and must be
+        // closed even when permission is denied before session initialization.
+        releaseResources({ context, stream });
         throw error;
     }
 }
