@@ -1,4 +1,4 @@
-# Melody Garden — V4.2 Learning Journey
+# Melody Garden — V4.3 Viewport & Music Continuity
 
 > **Planning for v4:** The proposed product overhaul is documented in
 > [v4 master redesign specification](docs/product/v4-master-redesign.md) and
@@ -12,6 +12,38 @@
 
 A browser-based sight-reading game for children. Practice on the on-screen piano, or
 use the device microphone to play notes on a **real acoustic piano**.
+
+## What's new in V4.3
+
+**One-viewport design:** Home uses well-spaced Play, Learning and My Piano
+panels; narrow screens use three compact tabs rather than vertically stacked
+sections. Songbook and Workshop use bounded pages. The musical staff and
+keyboard remain visible during exercises, and results have prominent Home
+and retry actions. Important controls should fit a phone in either orientation,
+tablets and desktop. When zoom or accessibility text makes a list too large,
+local overflow is preferred over clipping the action.
+
+**Correct treble and bass notation:** A single `js/notation.js` now defines
+five-line staff geometry, note placement, ledger lines and embedded vector clef
+outlines. Treble uses bottom-line E4 and bass uses bottom-line G2; the
+stationary and scrolling score systems use the same clef glyphs. Clef artwork
+is derived from Noto Music (SIL Open Font License 1.1) and distributed as
+vector outlines, not font files.
+
+**Pause/resume across game modes:** A visible Pause button freezes note
+progress, timing judgment, animation and microphone listening. Resume uses a
+3-2-1 count-in, then shifts the beat clock without penalizing the pause.
+Backgrounding the browser pauses rather than silently exiting the round.
+Auditions continue to use durable Save & Leave checkpoints. Leaving an
+ordinary unfinished timed round exits without recording a completed result;
+persisting those rounds between browser launches is not yet supported.
+
+**Manual sheet pages:** Longer stationary monophonic exercises use visible
+previous/next score pages instead of automatically scrolling while the learner
+plays. This phase improves notation consistency but does **not** implement or
+certify polyphonic Grade-8-level piano evaluation with a monophonic microphone.
+
+See [implementation contract](docs/product/v4.3-implementation-spec.md).
 
 ## What's new in V4.2
 
