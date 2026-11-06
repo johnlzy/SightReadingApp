@@ -14,6 +14,22 @@ import { readingJourneySummary } from './learning-journey.js';
 import { openWorkshop } from './workshop-ui.js';
 import { syncInputModeUI } from './mic-ui.js';
 let parentZoneAuthorized = false;
+let homeTab='play';
+let songPage=0;
+const SONG_PAGE_SIZE=8;
+
+export function setHomeTab(tab='play'){
+    if(!['play','learn','setup'].includes(tab))return;
+    homeTab=tab;
+    const panel=document.querySelector('.home-console');
+    if(panel)panel.dataset.tab=tab;
+    for(const button of document.querySelectorAll('[data-home-tab]')){
+        const selected=button.dataset.homeTab===tab;
+        button.classList.toggle('selected',selected);
+        button.setAttribute('aria-pressed',String(selected));
+    }
+}
+
 
 export function showScreen(id) {
     // Inactive screens must not expose hidden controls to keyboard users,
@@ -374,33 +390,61 @@ export function goToStore() {
 }
 
 export function goToSongs() {
-    if(!canPlayToday()) return;
-    const cont = document.getElementById('song-list-container');
-    cont.innerHTML = '';
-    
-    SONG_DB.forEach((s, i) => {
-        const locked = i > state.currentUser.unlockedSongs;
-        const completed = i < state.currentUser.unlockedSongs; // Check if completed
-    
-        // Determine reward text
-        let rewardText = `Reward: ${s.reward} coins`;
-        if (completed) {
-            rewardText = `Reward: Claimed (0 coins)`;
+    if(!canPlayToday())return;
+    songPage=0;
+    renderSongPage();
+    showScreen('screen-songs');
+}
+/** One bounded grid of songs per page, never a document-length list. */
+export function changeSongPage(delta){
+    if(!Number.isInteger(delta))return;
+    const max=Math.max(0,Math.ceil(SONG_DB.length/SONG_PAGE_SIZE)-1);
+    songPage=Math.max(0,Math.min(max,songPage+delta));
+    renderSongPage();
+}
+function renderSongPage(){
+    const cont=document.getElementById('song-list-container');
+    if(!cont||!state.currentUser)return;
+    cont.replaceChildren();
+    const start=songPage*SONG_PAGE_SIZE;
+    SONG_DB.slice(start,start+SONG_PAGE_SIZE).forEach((song,i)=>{
+        const index=start+i;
+        const locked=index>state.currentUser.unlockedSongs;
+        const completed=index<state.currentUser.unlockedSongs;
+        const div=document.createElement('div');
+        div.className='song-item'+(locked?' locked':'');
+        const info=document.createElement('div');
+        const title=document.createElement('strong');
+        title.textContent=(index+1)+'. '+song.title;
+        const detail=document.createElement('small');
+        detail.textContent=completed?'Played · rewards claimed':locked?
+            'Complete earlier performances to unlock':
+            'Your next musical performance';
+        info.append(title,document.createElement('br'),detail);
+        const mark=document.createElement('span');
+        mark.textContent=locked?'🔒':completed?'✅':'▶️';
+        mark.setAttribute('aria-hidden','true');
+        div.append(info,mark);
+        if(!locked){
+            div.tabIndex=0;
+            div.setAttribute('role','button');
+            div.setAttribute('aria-label','Play '+song.title);
+            div.onclick=()=>startGame('song',index);
+            div.onkeydown=event=>{
+                if(event.key==='Enter'||event.key===' '){
+                    event.preventDefault();startGame('song',index);
+                }
+            };
         }
-    
-        const div = document.createElement('div');
-        div.className = `song-item ${locked?'locked':''}`;
-        div.innerHTML = `
-            <div>
-                <strong>${i+1}. ${s.title}</strong><br>
-                <small>${rewardText}</small> </div>
-            <div style="font-size:1.5rem">${locked?'🔒':completed?'✅':'▶️'}</div>
-        `;
-        
-        if(!locked) div.onclick = () => startGame('song', i);
         cont.appendChild(div);
     });
-    showScreen('screen-songs');
+    const indicator=document.getElementById('song-page-label');
+    if(indicator)indicator.textContent='Page '+(songPage+1)+' of '+
+        Math.max(1,Math.ceil(SONG_DB.length/SONG_PAGE_SIZE));
+    const prev=document.getElementById('song-page-prev');
+    const next=document.getElementById('song-page-next');
+    if(prev)prev.disabled=songPage===0;
+    if(next)next.disabled=songPage>=Math.ceil(SONG_DB.length/SONG_PAGE_SIZE)-1;
 }
 
 // NEW: Global Score Aggregation
