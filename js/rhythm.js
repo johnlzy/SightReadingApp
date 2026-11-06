@@ -52,7 +52,7 @@ export function performanceSummary(game) {
     const wrong = game.pitchErrors || 0;
     const missing = game.pitchMisses || 0;
     const attempts = correct + wrong + missing;
-    const pitch = attempts ? Math.round(100 * correct / attempts) : (totalNotes ? 0 : 100);
+    const pitch = attempts ? Math.round(100 * correct / attempts) : 100;
     const rhythm = totalNotes
         ? Math.round(100 * (game.rhythmOnTime || 0) / totalNotes)
         : 100;
@@ -62,5 +62,6 @@ export function performanceSummary(game) {
         : null;
     return { pitch, rhythm, averageDeviationMs, totalNotes,
         perfect: game.rhythmPerfect || 0, good: game.rhythmGood || 0,
-        early: game.rhythmEarly || 0, late: game.rhythmLate || 0 };
+        early: game.rhythmEarly || 0, late: game.rhythmLate || 0,
+        missed: game.rhythmMisses || 0 };
 }
