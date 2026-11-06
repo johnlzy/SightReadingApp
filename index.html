@@ -129,7 +129,14 @@
                     <div class="emoji-opt" onclick="selectAvatar('🦁', this)">🦁</div>
                 </div>
                 
-                <p>Name: <span id="gen-name" style="color:var(--primary); font-weight:bold; font-size:1.2rem;">...</span> <button class="btn-secondary" style="padding:5px 10px; font-size:0.8rem;" onclick="generateName()">🔄</button></p>
+                <p>Child's nickname (optional): <input id="child-name-input" maxlength="30" placeholder="Or use a fun name below" class="child-name-input" aria-label="Nickname" /></p>
+                <label for="starting-comfort">What kind of music can they read?</label>
+                <select id="starting-comfort" class="child-name-input">
+                    <option value="new">Just starting</option>
+                    <option value="some">Some staff notes</option>
+                    <option value="experienced">Already reads music from a score</option>
+                </select>
+                <p>Fun name: <span id="gen-name" style="color:var(--primary); font-weight:bold; font-size:1.2rem;">...</span> <button class="btn-secondary" style="padding:5px 10px; font-size:0.8rem;" onclick="generateName()">🔄</button></p>
                 
                 <p>Difficulty:</p>
                 <div class="toggle-group">
@@ -156,7 +163,7 @@
             </div>
             <div class="coins-display">
                 <span id="music-passes" class="pass-chip" aria-label="Music time remaining">🎟️ 3 passes</span>
-                <span onclick="showParentPanel()" style="cursor:pointer;">🎟️ <span id="landing-credits" style="color:#555">3</span></span> | 
+                <span onclick="showParentPanel()" style="cursor:pointer;" role="button" tabindex="0" aria-label="Parent settings">🔒 Parent</span> | <span id="landing-credits" hidden>3</span>
                 🎼 <span id="landing-t-coins">0</span> | 
                 𝄢 <span id="landing-b-coins">0</span>
             </div>
@@ -169,7 +176,10 @@
                     <span class="eyebrow">WELCOME TO MELODY GARDEN</span>
                     <h2>Every note helps your music grow.</h2>
                     <p id="today-mission">Choose a musical adventure to begin.</p>
-                    <button class="btn-primary" id="journey-btn" onclick="startOpeningAdventure()">Start my adventure</button>
+                    <div class="garden-hero-buttons">
+                        <button class="btn-primary" id="journey-btn" onclick="startOpeningAdventure()">Start my adventure</button>
+                        <button class="btn-secondary btn-sm" id="score-reader-btn" onclick="startIndependentReader()">📖 Read a stationary score</button>
+                    </div>
                 </div>
             </div>
             <h3 style="margin-bottom:10px;">Select Clef</h3>
@@ -302,6 +312,27 @@
 
         <div id="game-start-overlay" style="position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.85); z-index:500; display:flex; justify-content:center; align-items:center;">
             <button class="btn-primary" style="font-size:2rem; padding:20px 50px; box-shadow:0 10px 20px rgba(0,0,0,0.2);" onclick="beginRound()">START</button>
+        </div>
+    </div>
+
+    <div id="screen-audition" class="screen">
+        <div class="top-bar">
+            <button class="btn-secondary btn-sm" onclick="closeAudition()" aria-label="Leave audition">← Back</button>
+            <div class="score-title">
+                <strong id="audition-heading">Pip's First Concert</strong>
+                <span id="audition-level">Discovery Level 1</span>
+            </div>
+            <button class="btn-sm btn-secondary" onclick="auditionSkipNote()">Skip a note</button>
+        </div>
+        <div class="score-practice-area scroll-content">
+            <p class="score-status" id="audition-progress">Read the whole score, then play your notes.</p>
+            <div id="audition-score" class="stationary-score" aria-label="Music notation that stays still while playing"></div>
+            <p id="audition-status" class="score-status" aria-live="polite"></p>
+            <div id="audition-keys" class="keyboard-area" aria-label="Unlabelled piano keyboard for first-sight reading"></div>
+            <div id="audition-actions" class="score-actions" hidden>
+                <button class="btn-secondary" onclick="auditionHarder()">🌟 Try a harder melody</button>
+                <button class="btn-primary" onclick="auditionFinish()">Finish my concert</button>
+            </div>
         </div>
     </div>
 
