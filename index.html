@@ -61,14 +61,14 @@
                 <h3 style="margin-top:0; color:var(--text)">Create New User</h3>
                 <p>Pick a face:</p>
                 <div class="emoji-grid">
-                    <div class="emoji-opt" onclick="selectAvatar('🐱')">🐱</div>
-                    <div class="emoji-opt" onclick="selectAvatar('🐶')">🐶</div>
-                    <div class="emoji-opt" onclick="selectAvatar('🦄')">🦄</div>
-                    <div class="emoji-opt" onclick="selectAvatar('🐼')">🐼</div>
-                    <div class="emoji-opt" onclick="selectAvatar('🐰')">🐰</div>
-                    <div class="emoji-opt" onclick="selectAvatar('🦊')">🦊</div>
-                    <div class="emoji-opt" onclick="selectAvatar('🐸')">🐸</div>
-                    <div class="emoji-opt" onclick="selectAvatar('🦁')">🦁</div>
+                    <div class="emoji-opt" onclick="selectAvatar('🐱', this)">🐱</div>
+                    <div class="emoji-opt" onclick="selectAvatar('🐶', this)">🐶</div>
+                    <div class="emoji-opt" onclick="selectAvatar('🦄', this)">🦄</div>
+                    <div class="emoji-opt" onclick="selectAvatar('🐼', this)">🐼</div>
+                    <div class="emoji-opt" onclick="selectAvatar('🐰', this)">🐰</div>
+                    <div class="emoji-opt" onclick="selectAvatar('🦊', this)">🦊</div>
+                    <div class="emoji-opt" onclick="selectAvatar('🐸', this)">🐸</div>
+                    <div class="emoji-opt" onclick="selectAvatar('🦁', this)">🦁</div>
                 </div>
                 
                 <p>Name: <span id="gen-name" style="color:var(--primary); font-weight:bold; font-size:1.2rem;">...</span> <button class="btn-secondary" style="padding:5px 10px; font-size:0.8rem;" onclick="generateName()">🔄</button></p>
@@ -174,7 +174,7 @@
 
         <div class="game-wrapper">
             <div class="sheet-music-area">
-                <svg id="music-svg" class="staff-svg" viewBox="0 0 1000 300" preserveAspectRatio="xMinYMid slice">
+                <svg id="music-svg" class="staff-svg" viewBox="0 0 1000 340" preserveAspectRatio="xMinYMid meet">
                     <g stroke="#333" stroke-width="2">
                         <line x1="0" y1="120" x2="3000" y2="120" />
                         <line x1="0" y1="140" x2="3000" y2="140" />
